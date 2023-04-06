@@ -1,0 +1,91 @@
+[package]
+name = "eq-staking"
+authors = ["equilibrium"]
+edition = "2018"
+version = "0.1.0"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+	"derive",
+] }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29" }
+timestamp = { default-features = false, package = "pallet-timestamp", optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29" }
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../../eq-primitives"
+version = "0.1.0"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.eq-utils]
+default-features = false
+optional = true
+package = "eq-utils"
+path = "../../eq-utils"
+version = "0.1.0"
+
+[dependencies.eq-assets]
+default-features = false
+optional = true
+package = "eq-assets"
+path = "../eq-assets"
+version = "0.1.0"
+
+[dependencies.eq-rate]
+default-features = false
+optional = true
+package = "eq-rate"
+path = "../eq-rate"
+version = "0.1.0"
+
+[dependencies.eq-balances]
+default-features = false
+optional = true
+package = "eq-balances"
+path = "../eq-balances"
+version = "0.1.0"
+
+[dev-dependencies]
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29" }
+eq-balances = { version = "0.1.0", path = "../eq-balances" }
+eq-assets = { version = "0.1.0", path = "../eq-assets" }
+eq-utils = { version = "0.1.0", path = "../../eq-utils" }
+timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.29"}
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame-benchmarking/std",
+	"frame-support/std",
+	"frame-system/std",
+	"scale-info/std",
+	"sp-runtime/std",
+	"sp-core/std",
+	"sp-std/std",
+	"eq-primitives/std",
+]
+production = []
+runtime-benchmarks = [
+	"frame-benchmarking/runtime-benchmarks",
+	"frame-support/runtime-benchmarks",
+	"eq-utils",
+	"eq-balances/runtime-benchmarks",
+	"eq-assets/runtime-benchmarks",
+	"timestamp/runtime-benchmarks",
+	"eq-rate/runtime-benchmarks"
+]
+try-runtime = ["frame-support/try-runtime"]

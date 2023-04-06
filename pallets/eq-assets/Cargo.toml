@@ -1,0 +1,123 @@
+[package]
+authors = ["equilibrium"]
+edition = "2018"
+name = "eq-assets"
+version = "0.1.0"
+
+[dependencies]
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+log = { version = "0.4.17", default-features = false }
+
+[dependencies.xcm]
+default-features = false
+git = "https://github.com/paritytech/polkadot"
+branch = "release-v0.9.29"
+
+[dependencies.codec]
+package = "parity-scale-codec"
+version = "3.0.0"
+default-features = false
+features = ["derive"]
+
+[dependencies.sp-application-crypto]
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+default-features = false
+
+[dependencies.serde]
+version = "1.0.123"
+optional = true
+features = ["derive"]
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.frame_system]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "frame-system"
+
+[dependencies.sp-runtime]
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+default-features = false
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.eq-utils]
+default-features = false
+package = "eq-utils"
+path = "../../eq-utils"
+version = "0.1.0"
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../../eq-primitives"
+version = "0.1.0"
+
+[dependencies.financial-pallet]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+branch = "polkadot-v0.9.29"
+package = "financial-pallet"
+version = "0.1.2"
+
+[dev-dependencies.sp-core]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.frame-benchmarking]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "frame-benchmarking"
+optional = true
+
+
+[features]
+default = ["std"]
+production = []
+std = [
+  "serde",
+	"codec/std",
+	"frame-support/std",
+	"frame_system/std",
+  "sp-application-crypto/std",
+  "sp-runtime/std",
+  "sp-std/std",
+  "sp-io/std",
+  "eq-primitives/std",
+  "xcm/std",
+  "eq-utils/std",
+  "frame-benchmarking/std",
+]
+test = []
+runtime-benchmarks = [
+  "frame-benchmarking",
+]
+try-runtime = [
+  "frame-support/try-runtime",
+]

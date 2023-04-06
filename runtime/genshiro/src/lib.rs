@@ -1,0 +1,1606 @@
+// This file is part of Equilibrium.
+
+// Copyright (C) 2023 EQ Lab.
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+#![cfg_attr(not(feature = "std"), no_std)]
+// `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
+#![recursion_limit = "256"]
+#![forbid(unsafe_code)]
+#![deny(warnings)]
+// Make the WASM binary available.
+#[cfg(feature = "std")]
+include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
+
+pub use chainbridge;
+use core::marker::PhantomData;
+pub use eq_assets;
+pub use eq_balances;
+pub use eq_bridge;
+pub use eq_distribution;
+pub use eq_lending;
+pub use eq_multisig_sudo;
+pub use eq_primitives;
+pub use eq_rate;
+pub use eq_treasury;
+use eq_utils::XcmBalance;
+pub use eq_vesting;
+pub use frame_support::{
+    construct_runtime, debug,
+    dispatch::{DispatchError, DispatchResult},
+    match_types, parameter_types,
+    traits::{
+        Contains, Everything, Imbalance, KeyOwnerProofSystem, Nothing, Randomness, StorageMapShim,
+    },
+    weights::{
+        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+        ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFee,
+    },
+    PalletId, StorageValue,
+};
+use frame_system as system;
+use frame_system::limits::{BlockLength, BlockWeights};
+use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
+use sp_api::impl_runtime_apis;
+use sp_arithmetic::{FixedPointNumber, PerThing};
+use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_runtime::traits::{
+    self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, OpaqueKeys,
+};
+use sp_runtime::transaction_validity::{
+    TransactionPriority, TransactionSource, TransactionValidity,
+};
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
+use sp_runtime::SaturatedConversion;
+use sp_runtime::{
+    create_runtime_str, generic, impl_opaque_keys, ApplyExtrinsicResult, FixedI128, Perquintill,
+};
+pub use sp_runtime::{Perbill, Permill};
+use sp_std::{
+    convert::{TryFrom, TryInto},
+    prelude::*,
+};
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
+use system::EnsureRoot;
+use transaction_payment::Multiplier;
+
+// Polkadot imports
+use codec::Encode;
+use frame_support::pallet_prelude::Get;
+use polkadot_parachain::primitives::Sibling;
+use polkadot_runtime_common::SlowAdjustingFeeUpdate;
+use polkadot_runtime_constants::weights::RocksDbWeight;
+use xcm::latest::{BodyId, Junction, MultiAsset, OriginKind, Weight as XcmWeight, Xcm};
+use xcm::v1::MultiLocation;
+use xcm_builder::{
+    EnsureXcmOrigin, FixedWeightBounds, LocationInverter, ParentIsPreset,
+    SiblingParachainConvertsVia,
+};
+use xcm_executor::{
+    traits::{ConvertOrigin, FilterAssetLocation},
+    Config, XcmExecutor,
+};
+
+use common_runtime::*;
+
+// #[cfg(feature = "runtime-benchmarks")]
+// use codec::alloc::string::ToString;
+
+// Tests for XCM integration
+#[cfg(test)]
+mod xcm_test;
+// Weights used in the runtime.
+pub mod weights;
+
+pub const ONE_TOKEN: Balance = eq_utils::ONE_TOKEN as Balance;
+
+/// This runtime version.
+pub const VERSION: RuntimeVersion = RuntimeVersion {
+    spec_name: create_runtime_str!("Gens-parachain"),
+    impl_name: create_runtime_str!("Gens-parachain"),
+    authoring_version: 10,
+    spec_version: 17, // 95a056f737dcc6727fcacf1362f897edc082ea44
+    impl_version: 1,
+    apis: RUNTIME_API_VERSIONS,
+    transaction_version: 1,
+    state_version: 0,
+};
+
+/// The version information used to identify this runtime when compiled natively.
+#[cfg(feature = "std")]
+pub fn native_version() -> NativeVersion {
+    NativeVersion {
+        runtime_version: VERSION,
+        can_author_with: Default::default(),
+    }
+}
+
+pub const MILLISECS_PER_BLOCK: u64 = 12000;
+pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
+
+// Time is measured by number of blocks.
+pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+pub const HOURS: BlockNumber = MINUTES * 60;
+pub const DAYS: BlockNumber = HOURS * 24;
+
+/// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
+/// the specifics of the runtime. They can then be made to be agnostic over specific formats
+/// of data like extrinsics, allowing for them to continue syncing the network through upgrades
+/// to even the core data structures.
+pub mod opaque {
+    use super::*;
+
+    impl_opaque_keys! {
+        pub struct SessionKeys {
+            pub aura: Aura,
+            pub eq_rate: EqRate,
+        }
+    }
+}
+
+parameter_types! {
+    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
+    pub const Offset: BlockNumber = 0;
+    pub const Period: BlockNumber = if cfg!(feature = "production") {
+        600
+    } else {
+        10
+    };
+}
+
+impl pallet_session::Config for Runtime {
+    type Event = Event;
+    type ValidatorId = <Self as system::Config>::AccountId;
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+    type SessionManager = eq_session_manager::Pallet<Runtime>;
+    type SessionHandler = <opaque::SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+    type Keys = opaque::SessionKeys;
+    type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_utility::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+    type PalletsOrigin = OriginCaller;
+}
+
+/// We assume that ~10% of the block weight is consumed by `on_initalize` handlers.
+/// This is used to limit the maximal weight of a single extrinsic.
+const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used
+/// by  Operational  extrinsics.
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+/// We allow for 0.5 seconds of compute with a 6 second average block time.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND.saturating_div(2);
+
+parameter_types! {
+    pub const BlockHashCount: BlockNumber = 250;
+    pub const Version: RuntimeVersion = VERSION;
+    pub RuntimeBlockLength: BlockLength =
+        BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+    pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
+        .base_block(BlockExecutionWeight::get())
+        .for_class(DispatchClass::all(), |weights| {
+            weights.base_extrinsic = ExtrinsicBaseWeight::get();
+        })
+        .for_class(DispatchClass::Normal, |weights| {
+            weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+        })
+        .for_class(DispatchClass::Operational, |weights| {
+            weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+            // Operational transactions have some extra reserved space, so that they
+            // are included even if block reached `MAXIMUM_BLOCK_WEIGHT`.
+            weights.reserved = Some(
+                MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT
+            );
+        })
+        .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+        .build_or_panic();
+    pub const SS58Prefix: u8 = 67;
+}
+
+/// Call filter for exctrinsics
+/// XCM extrinsics aren't allowed in prod (except `reserve_transfer_assets`)
+pub struct XcmPalletNotAllowed;
+impl frame_support::traits::Contains<Call> for XcmPalletNotAllowed {
+    fn contains(call: &Call) -> bool {
+        match call {
+            Call::PolkadotXcm(call) => {
+                use pallet_xcm::Call::*;
+                match call {
+                    // for GENS transfer
+                    reserve_transfer_assets { .. } => true,
+                    // for hrmp channel
+                    send { .. } => true,
+                    _ => false,
+                }
+            }
+            _ => true,
+        }
+    }
+}
+
+#[allow(unused_parens)]
+impl system::Config for Runtime {
+    #[cfg(feature = "production")]
+    type BaseCallFilter = XcmPalletNotAllowed;
+    #[cfg(not(feature = "production"))]
+    type BaseCallFilter = frame_support::traits::Everything;
+    /// Block & extrinsics weights: base values and limits.
+    type BlockWeights = RuntimeBlockWeights;
+    /// The maximum length of a block (in bytes).
+    type BlockLength = RuntimeBlockLength;
+    /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
+    type SS58Prefix = SS58Prefix;
+    type Origin = Origin;
+    type Call = Call;
+    type Index = Index;
+    type BlockNumber = BlockNumber;
+    type Hash = Hash;
+    type Hashing = BlakeTwo256;
+    type AccountId = AccountId;
+    type Lookup = AccountIdLookup<AccountId, ()>;
+    type Header = generic::Header<BlockNumber, BlakeTwo256>;
+    type Event = Event;
+    type BlockHashCount = BlockHashCount;
+    type DbWeight = RocksDbWeight;
+    type Version = Version;
+    type OnNewAccount = (eq_rate::Pallet<Runtime>);
+    type OnKilledAccount = (eq_rate::Pallet<Runtime>);
+    type AccountData = AccountData<Balance>;
+    type SystemWeightInfo = frame_system::weights::SubstrateWeight<Runtime>;
+    type PalletInfo = PalletInfo;
+    type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
+}
+
+parameter_types! {
+    pub const MaxAuthorities: u32 = 100_000;
+}
+
+impl aura::Config for Runtime {
+    type AuthorityId = AuraId;
+    type DisabledValidators = ();
+    type MaxAuthorities = MaxAuthorities;
+}
+
+impl eq_assets::Config for Runtime {
+    type Event = Event;
+    type MainAsset = BasicCurrencyGet;
+    type OnNewAsset = ();
+    type AssetManagementOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
+}
+
+// impl eq_oracle::Config for Runtime {
+//     type Event = Event;
+//     type AuthorityId = eq_oracle::crypto::AuthId;
+//     type Call = Call;
+//     type Balance = Balance;
+//     type UnixTime = EqRate;
+//     type Whitelist = Whitelists;
+//     type MedianPriceTimeout = MedianPriceTimeout;
+//     type PriceTimeout = PriceTimeout;
+//     type OnPriceSet = ();
+//     type FinancialSystemTrait = ();
+//     type FinancialRecalcPeriodBlocks = FinancialRecalcPeriodBlocks;
+//     type UnsignedPriority = OracleUnsignedPriority;
+//     type AssetGetter = eq_assets::Pallet<Runtime>;
+//     type WeightInfo = weights::pallet_oracle::WeightInfo<Runtime>;
+//     type CurveAmm = CurveAmmMock<Asset, (), Balance, AccountId>;
+//     type LpPriceBlockTimeout = LpPriceBlockTimeout;
+//     type XBasePrice = XbasePriceMock<Asset, Balance, FixedI64>;
+//     type UnsignedLifetimeInBlocks = UnsignedLifetimeInBlocks;
+// }
+
+//----------- eq-multisig-sudo ------------------
+parameter_types! {
+    pub const MaxSignatories: u32 = 10;
+}
+
+impl eq_multisig_sudo::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type MaxSignatories = MaxSignatories;
+    type WeightInfo = weights::pallet_multisig_sudo::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
+}
+
+impl timestamp::Config for Runtime {
+    /// A timestamp: milliseconds since the unix epoch.
+    type Moment = u64;
+    type OnTimestampSet = Aura;
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
+}
+
+pub const EXISTENSIAL_DEPOSIT: Balance = ONE_TOKEN / 10;
+pub const EXISTENSIAL_DEPOSIT_BASIC: Balance = 100 * ONE_TOKEN;
+
+parameter_types! {
+    pub const ExistentialDeposit: Balance = EXISTENSIAL_DEPOSIT; // 0.1 USD
+    pub const ExistentialDepositBasic: Balance = EXISTENSIAL_DEPOSIT_BASIC; // 100 GENS
+    pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::GENS;
+    pub const RelayCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::KSM;
+}
+
+impl eq_aggregates::Config for Runtime {
+    type Balance = Balance;
+    type BalanceGetter = eq_balances::Pallet<Runtime>;
+}
+
+pub struct XcmToFee;
+impl<'xcm, Call>
+    Convert<
+        (
+            eq_primitives::asset::Asset,
+            xcm::v1::MultiLocation,
+            &'xcm Xcm<Call>,
+        ),
+        Option<(eq_primitives::asset::Asset, XcmBalance)>,
+    > for XcmToFee
+{
+    fn convert(
+        (asset, destination, message): (
+            eq_primitives::asset::Asset,
+            xcm::v1::MultiLocation,
+            &'xcm Xcm<Call>,
+        ),
+    ) -> Option<(eq_primitives::asset::Asset, XcmBalance)> {
+        use eq_primitives::{asset, xcm_origins};
+        use eq_xcm::fees::*;
+        Some(match (destination, asset) {
+            (xcm_origins::RELAY, asset::KSM) => (asset::KSM, kusama::XcmToFee::convert(message)),
+            #[cfg(test)]
+            (xcm_origins::RELAY, asset::GENS) => (asset::GENS, 0),
+            #[cfg(test)]
+            (xcm_origins::RELAY, asset::EQD) => (asset::EQD, 0),
+
+            (xcm_origins::ksm::PARACHAIN_MOONRIVER, asset::MOVR) => {
+                (asset::MOVR, moonbeam::movr::XcmToFee::convert(message))
+            }
+
+            (xcm_origins::ksm::PARACHAIN_HEIKO, asset::HKO) => {
+                (asset::HKO, parallel::hko::XcmToFee::convert(message))
+            }
+            (xcm_origins::ksm::PARACHAIN_HEIKO, asset::GENS) => {
+                (asset::GENS, parallel::gens::XcmToFee::convert(message))
+            }
+
+            (xcm_origins::ksm::PARACHAIN_KARURA, asset::KAR) => {
+                (asset::KAR, acala::kar::XcmToFee::convert(message))
+            }
+            (xcm_origins::ksm::PARACHAIN_KARURA, asset::KUSD) => {
+                (asset::KUSD, acala::kusd::XcmToFee::convert(message))
+            }
+            (xcm_origins::ksm::PARACHAIN_KARURA, asset::LKSM) => {
+                (asset::LKSM, acala::lksm::XcmToFee::convert(message))
+            }
+            (xcm_origins::ksm::PARACHAIN_KARURA, asset::GENS) => {
+                (asset::GENS, acala::gens::XcmToFee::convert(message))
+            }
+            (xcm_origins::ksm::PARACHAIN_KARURA, asset::EQD) => {
+                (asset::EQD, acala::eqd::XcmToFee::convert(message))
+            }
+
+            (xcm_origins::ksm::PARACHAIN_KINTSUGI, asset::KBTC) => {
+                (asset::KBTC, interlay::kbtc::XcmToFee::convert(message))
+            }
+
+            (xcm_origins::ksm::PARACHAIN_SHIDEN, asset::SDN) => {
+                (asset::SDN, astar::sdn::XcmToFee::convert(message))
+            }
+            (xcm_origins::ksm::PARACHAIN_SHIDEN, asset::GENS) => {
+                (asset::GENS, astar::gens::XcmToFee::convert(message))
+            }
+            (xcm_origins::ksm::PARACHAIN_SHIDEN, asset::EQD) => {
+                (asset::EQD, astar::eqd::XcmToFee::convert(message))
+            }
+
+            (xcm_origins::ksm::PARACHAIN_BIFROST, asset::BNC) => {
+                (asset::BNC, bifrost::bnc::XcmToFee::convert(message))
+            }
+            // Cannot calculate fee so is is hardcoded to 0
+            // (xcm_origins::ksm::PARACHAIN_BIFROST, asset::GENS) => {
+            //     (asset::GENS, bifrost::gens::XcmToFee::convert(message))
+            // }
+            // (xcm_origins::ksm::PARACHAIN_BIFROST, asset::EQD) => {
+            //     (asset::EQD, bifrost::eqd::XcmToFee::convert(message))
+            // }
+            _ => return None,
+        })
+    }
+}
+
+impl eq_balances::Config for Runtime {
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    /// The type for recording an account's balance.
+    type Balance = Balance;
+    /// The ubiquitous event type.
+    type Event = Event;
+
+    type BalanceChecker = (eq_lending::Pallet<Runtime>,);
+
+    type ExistentialDeposit = ExistentialDeposit;
+    type ExistentialDepositBasic = ExistentialDepositBasic;
+    type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
+    type Aggregates = eq_aggregates::Pallet<Runtime>;
+    type TreasuryModuleId = TreasuryModuleId;
+    type SubaccountsManager = ();
+    type BailsmenManager = mocks::BailsmanManagerMock<TreasuryAccount, EqBalances>;
+    type UpdateTimeManager = eq_rate::Pallet<Runtime>;
+    type BailsmanModuleId = BailsmanModuleId;
+    type ModuleId = BalancesModuleId;
+    type XcmRouter = XcmRouter;
+    type XcmToFee = XcmToFee;
+    type LocationToAccountId = LocationToAccountId;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
+    type OrderAggregates = ();
+    type AccountStore = System;
+    type UnixTime = eq_rate::Pallet<Runtime>;
+    type ForceXcmTransferOrigin = EnsureRoot<AccountId>;
+    type ToggleTransferOrigin = EnsureRoot<AccountId>;
+    type ParachainId = ParachainInfo;
+}
+
+pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
+    Balance,
+    eq_balances::Pallet<Runtime>,
+    BasicCurrencyGet,
+>;
+
+pub type RelayCurrency = eq_primitives::balance_adapter::BalanceAdapter<
+    Balance,
+    eq_balances::Pallet<Runtime>,
+    RelayCurrencyGet,
+>;
+
+parameter_types! {
+    pub const TransactionBaseFee: Balance = 1;
+    pub const TransactionByteFee: Balance = 1;
+    pub const OperationalFeeMultiplier: u8 = 5;
+    pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+    /// The adjustment variable of the runtime. Higher values will cause `TargetBlockFullness` to
+    /// change the fees more rapidly.
+    pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
+    /// Minimum amount of the multiplier. This value cannot be too low. A test case should ensure
+    /// that combined with `AdjustmentVariable`, we can recover from the minimum.
+    /// See `multiplier_can_grow_from_zero`.
+    pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000u128);
+}
+
+type EqImbalance = eq_balances::NegativeImbalance<Balance>;
+pub struct DealWithFees<FeeAsset>(PhantomData<FeeAsset>);
+impl<FeeAsset: Get<eq_primitives::asset::Asset>> frame_support::traits::OnUnbalanced<EqImbalance>
+    for DealWithFees<FeeAsset>
+{
+    fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = EqImbalance>) {
+        if let Some(fees) = fees_then_tips.next() {
+            // for fees, 20% to treasury, 80% to author
+            let amount = fees.peek();
+            let _ = <EqBalances as eq_primitives::balance::EqCurrency<AccountId, Balance>>::deposit_creating(
+                &EqTreasury::account_id(),
+                FeeAsset::get(),
+                amount,
+                false,
+                None
+            );
+        }
+    }
+
+    fn on_unbalanced(fees: EqImbalance) {
+        let amount = fees.peek();
+        let _ = <EqBalances as eq_primitives::balance::EqCurrency<AccountId, Balance>>::deposit_creating(
+            &EqTreasury::account_id(),
+            FeeAsset::get(),
+            amount,
+            false,
+            None
+        );
+    }
+}
+
+/// Fee-related.
+pub mod fee {
+    use frame_support::weights::{
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+    };
+    use smallvec::smallvec;
+    pub use sp_runtime::Perbill;
+
+    /// The block saturation level. Fees will be updates based on this value.
+    pub const TARGET_BLOCK_FULLNESS: Perbill = Perbill::from_percent(25);
+
+    /// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
+    /// node's balance type.
+    ///
+    /// This should typically create a mapping between the following ranges:
+    ///   - [0, `MAXIMUM_BLOCK_WEIGHT`]
+    ///   - [Balance::min, Balance::max]
+    pub struct WeightToFee;
+    impl WeightToFeePolynomial for WeightToFee {
+        type Balance = crate::Balance;
+        fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+            smallvec![WeightToFeeCoefficient {
+                degree: 1,
+                negative: false,
+                coeff_frac: Perbill::from_percent(10),
+                coeff_integer: 0,
+            }]
+        }
+    }
+
+    const DOLLAR: crate::XcmBalance = eq_utils::ONE_TOKEN;
+    const CENT: crate::XcmBalance = DOLLAR / 100;
+
+    /// Convert Weight of xcm message into USD amount of fee
+    pub struct XcmWeightToFee;
+    impl WeightToFeePolynomial for XcmWeightToFee {
+        type Balance = crate::XcmBalance;
+        fn polynomial() -> WeightToFeeCoefficients<crate::XcmBalance> {
+            let p = 215 * CENT;
+            let q = crate::XcmBalance::from(crate::ExtrinsicBaseWeight::get().ref_time());
+            smallvec![WeightToFeeCoefficient {
+                coeff_integer: p / q,
+                coeff_frac: Perbill::from_rational(p % q, q),
+                negative: false,
+                degree: 1,
+            }]
+        }
+    }
+}
+
+impl transaction_payment::Config for Runtime {
+    type Event = Event;
+    type OnChargeTransaction =
+        transaction_payment::CurrencyAdapter<BasicCurrency, DealWithFees<BasicCurrencyGet>>;
+    type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+    type WeightToFee = fee::WeightToFee;
+    type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
+    type OperationalFeeMultiplier = OperationalFeeMultiplier;
+}
+
+parameter_types! {
+    pub const UncleGenerations: BlockNumber = 5;
+}
+
+impl authorship::Config for Runtime {
+    type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
+    type UncleGenerations = UncleGenerations;
+    type FilterUncle = ();
+    type EventHandler = ();
+}
+
+impl sudo::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+}
+
+parameter_types! {
+    pub const MinSurplus: Balance =  100 * ONE_TOKEN; // 100 GENS
+
+    pub const MinTempBailsman: Balance = 50 * ONE_TOKEN; // 50 USD
+    pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
+    pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
+    pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
+    pub const RepublicModuleId: PalletId = PalletId(*b"eq/repub");
+    pub const InvestorsModuleId: PalletId = PalletId(*b"eq/invst");
+
+}
+parameter_types! {
+    pub BuyFee: Permill = PerThing::from_rational::<u32>(1, 1000);
+    pub SellFee: Permill = PerThing::from_rational::<u32>(1, 1000);
+    pub const MinAmountToBuyout: Balance = 100 * ONE_TOKEN;
+}
+
+impl eq_treasury::Config for Runtime {
+    type Event = Event;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type Balance = Balance;
+    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
+    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type EqCurrency = eq_balances::Pallet<Runtime>;
+    type PalletId = TreasuryModuleId;
+    type BuyFee = BuyFee;
+    type SellFee = SellFee;
+    type UnixTime = eq_rate::Pallet<Runtime>;
+    type WeightInfo = weights::pallet_treasury::WeightInfo<Runtime>;
+    type MinAmountToBuyout = MinAmountToBuyout;
+}
+
+parameter_types! {
+    pub const MinVestedTransfer: Balance = 1000 * ONE_TOKEN; // 1000 GENS
+    pub const VestingModuleId: PalletId = PalletId(*b"eq/vestn");
+}
+
+pub struct VestingAccount;
+impl Get<AccountId> for VestingAccount {
+    fn get() -> AccountId {
+        VestingModuleId::get().into_account_truncating()
+    }
+}
+
+pub struct BlockNumberToBalance {}
+
+impl sp_runtime::traits::Convert<BlockNumber, Balance> for BlockNumberToBalance {
+    fn convert(block_number: BlockNumber) -> Balance {
+        block_number as Balance
+    }
+}
+
+type VestingInstance = eq_vesting::Instance1;
+impl eq_vesting::Config<VestingInstance> for Runtime {
+    type Event = Event;
+    type Currency = BasicCurrency;
+    type BlockNumberToBalance = BlockNumberToBalance;
+    type MinVestedTransfer = MinVestedTransfer;
+    type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
+    type PalletId = VestingModuleId;
+    type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+type DistriBenchInstance = eq_distribution::Instance16;
+#[cfg(feature = "runtime-benchmarks")]
+impl eq_distribution::Config<DistriBenchInstance> for Runtime {
+    type PalletId = TreasuryModuleId;
+    type VestingSchedule = Vesting;
+    type VestingAccountId = VestingAccount;
+    type AssetGetter = EqAssets;
+    type EqCurrency = EqBalances;
+    type ManagementOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = weights::pallet_distribution::WeightInfo<Runtime>;
+}
+
+type TreasuryInstance = eq_distribution::Instance5;
+impl eq_distribution::Config<TreasuryInstance> for Runtime {
+    type PalletId = TreasuryModuleId;
+    type VestingSchedule = Vesting;
+    type VestingAccountId = VestingAccount;
+    type AssetGetter = EqAssets;
+    type EqCurrency = EqBalances;
+    type ManagementOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = weights::pallet_distribution::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const RateUnsignedPriority: TransactionPriority = TransactionPriority::min_value();
+
+    pub TreasuryFee: Permill = Permill::from_percent(1);
+    pub const WeightFeeTreasury: u32 = 80;
+    pub const WeightFeeValidator: u32 = 20;
+
+    pub BaseBailsmanFee: Permill = Permill::from_percent(1);
+    pub BaseLenderFee: Permill =  Permill::from_rational(5u32, 1000u32);
+    pub LenderPart: Permill = Permill::from_percent(30);
+
+    pub RiskLowerBound: FixedI128 = FixedI128::saturating_from_rational(1, 2);
+    pub RiskUpperBound: FixedI128 = FixedI128::saturating_from_integer(2);
+    pub RiskNSigma: FixedI128 = FixedI128::saturating_from_integer(5);
+    pub RiskRho: FixedI128 = FixedI128::saturating_from_rational(7, 10);
+    pub Alpha: FixedI128 = FixedI128::from(15);
+}
+
+#[allow(unused_parens)]
+impl eq_rate::Config for Runtime {
+    type Balance = Balance;
+    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type BalanceRemover = eq_balances::Pallet<Runtime>;
+    type AuthorityId = eq_rate::ed25519::AuthorityId;
+    type MinSurplus = MinSurplus;
+    type BailsmanManager = mocks::BailsmanManagerMock<TreasuryAccount, EqBalances>;
+    type MinTempBailsman = MinTempBailsman;
+    type UnixTime = timestamp::Pallet<Runtime>;
+    type EqBuyout = eq_treasury::Pallet<Runtime>;
+    type BailsmanModuleId = BailsmanModuleId;
+    type EqCurrency = eq_balances::Pallet<Runtime>;
+    type SubaccountsManager = ();
+    type MarginCallManager = mocks::MarginCallManagerMock;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type UnsignedPriority = RateUnsignedPriority;
+    type WeightInfo = weights::pallet_rate::WeightInfo<Runtime>;
+    type RedistributeWeightInfo = ();
+    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
+    type Aggregates = EqAggregates;
+    type RiskLowerBound = RiskLowerBound;
+    type RiskUpperBound = RiskUpperBound;
+    type RiskNSigma = RiskNSigma;
+    type Alpha = Alpha;
+    type Financial = FinancialMock<Asset, substrate_fixed::types::I64F64, AccountId>;
+    type FinancialStorage = ();
+    type TreasuryFee = TreasuryFee;
+    type WeightFeeTreasury = WeightFeeTreasury;
+    type WeightFeeValidator = WeightFeeValidator;
+    type BaseBailsmanFee = BaseBailsmanFee;
+    type BaseLenderFee = BaseLenderFee;
+    type LenderPart = LenderPart;
+    type TreasuryModuleId = TreasuryModuleId;
+    type LendingModuleId = LendingModuleId;
+    type LendingPoolManager = EqLending;
+    type LendingAssetRemoval = EqLending;
+    type AutoReinitToggleOrigin = EnsureRoot<AccountId>;
+}
+
+impl eq_session_manager::Config for Runtime {
+    type Event = Event;
+    type ValidatorId = <Self as system::Config>::AccountId;
+    type RegistrationChecker = pallet_session::Pallet<Runtime>;
+    type ValidatorIdOf = sp_runtime::traits::ConvertInto;
+    type ValidatorsManagementOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = weights::pallet_session_manager::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const LendingModuleId: PalletId = PalletId(*b"eq/lendr");
+}
+
+impl eq_lending::Config for Runtime {
+    type Event = Event;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type Balance = Balance;
+    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type Aggregates = eq_aggregates::Pallet<Runtime>;
+    type BailsmanManager = mocks::BailsmanManagerMock<TreasuryAccount, EqBalances>;
+    type SubaccountsManager = ();
+    type ModuleId = LendingModuleId;
+    type EqCurrency = EqBalances;
+    type UnixTime = EqRate;
+    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
+    type WeightInfo = ();
+}
+
+impl system::offchain::SigningTypes for Runtime {
+    type Public = <Signature as traits::Verify>::Signer;
+    type Signature = Signature;
+}
+
+impl<C> system::offchain::SendTransactionTypes<C> for Runtime
+where
+    Call: From<C>,
+{
+    type OverarchingCall = Call;
+    type Extrinsic = UncheckedExtrinsic;
+}
+
+impl<LocalCall> system::offchain::CreateSignedTransaction<LocalCall> for Runtime
+where
+    Call: From<LocalCall>,
+{
+    fn create_transaction<C: system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+        call: Call,
+        public: <Signature as traits::Verify>::Signer,
+        account: AccountId,
+        nonce: Index,
+    ) -> Option<(
+        Call,
+        <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload,
+    )> {
+        let period = BlockHashCount::get()
+            .checked_next_power_of_two()
+            .map(|c| c / 2)
+            .unwrap_or(2) as u64;
+
+        let current_block = System::block_number()
+            .saturated_into::<u64>()
+            // The `System::block_number` is initialized with `n+1`,
+            // so the actual block number is `n`.
+            .saturating_sub(1);
+
+        // let tip = 0;
+        let extra: SignedExtra = (
+            system::CheckSpecVersion::<Runtime>::new(),
+            system::CheckTxVersion::<Runtime>::new(),
+            system::CheckGenesis::<Runtime>::new(),
+            system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
+            system::CheckNonce::<Runtime>::from(nonce),
+            system::CheckWeight::<Runtime>::new(),
+            transaction_payment::ChargeTransactionPayment::<Runtime>::from(0),
+            eq_rate::reinit_extension::ReinitAccount::<Runtime, CallsWithReinit>::new(),
+            eq_treasury::CheckBuyout::<Runtime>::new(),
+        );
+
+        let raw_payload = SignedPayload::new(call, extra)
+            .map_err(|e| {
+                log::warn!("SignedPayload error: {:?}", e);
+            })
+            .ok()?;
+
+        let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
+        //let address = Indices::unlookup(account);
+        let (call, extra, _) = raw_payload.deconstruct();
+        let address = sp_runtime::MultiAddress::Id(account);
+        Some((call, (address, signature, extra)))
+    }
+}
+
+parameter_types! {
+    pub const ChainId: u8 = 6;
+    pub const ProposalLifetime: BlockNumber = 72000;
+}
+
+impl chainbridge::Config for Runtime {
+    type Event = Event;
+    type Currency = BasicCurrency;
+    type Balance = Balance;
+    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type AdminOrigin = system::EnsureRoot<Self::AccountId>;
+    type Proposal = Call;
+    type ChainIdentity = ChainId;
+    type WeightInfo = weights::pallet_chainbridge::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const GensHashId: chainbridge::ResourceId = [14u8, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    pub const GensNativeTokenId: chainbridge::ResourceId = [0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x7au8, 0x05u8, 0xc5u8, 0x1fu8, 0x15u8, 0xd3u8, 0x66u8, 0xacu8, 0x77u8, 0xbcu8, 0x86u8, 0x67u8, 0x21u8, 0x66u8, 0x83u8, 0x61u8, 0x00u8];
+}
+
+parameter_types! {
+    pub const EthHashId: chainbridge::ResourceId = [11u8, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    pub const EthNativeTokenId: chainbridge::ResourceId = [0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0xe7u8, 0xafu8, 0x8cu8, 0xdbu8, 0xa2u8, 0x34u8, 0xffu8, 0xeeu8, 0xddu8, 0xccu8, 0xbbu8, 0xaau8, 0x34u8, 0x58u8, 0x79u8, 0x87u8, 0x00u8];
+}
+
+parameter_types! {
+    pub const CrvHashId: chainbridge::ResourceId = [13u8, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    pub const CrvNativeTokenId: chainbridge::ResourceId = [0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0xe5u8, 0x4du8, 0xd1u8, 0xf1u8, 0x1eu8, 0x2fu8, 0xd2u8, 0x47u8, 0x4au8, 0xf6u8, 0x4fu8, 0x48u8, 0x7eu8, 0x91u8, 0x1bu8, 0x59u8, 0x00u8];
+}
+
+impl eq_bridge::Config for Runtime {
+    type Event = Event;
+    type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
+    type EqCurrency = eq_balances::Pallet<Runtime>;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type BridgeManagementOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = weights::pallet_bridge::WeightInfo<Runtime>;
+}
+
+impl randomness_collective_flip::Config for Runtime {}
+
+//////////////////////////////////////////////////////////////////////////////
+// 	Cumulus pallets
+//////////////////////////////////////////////////////////////////////////////
+
+impl cumulus_pallet_aura_ext::Config for Runtime {}
+
+parameter_types! {
+    pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+    pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+}
+
+impl cumulus_pallet_parachain_system::Config for Runtime {
+    type Event = Event;
+    type SelfParaId = ParachainInfo;
+    type DmpMessageHandler = DmpQueue;
+    type ReservedDmpWeight = ReservedDmpWeight;
+    type OutboundXcmpMessageSource = XcmpQueue;
+    type XcmpMessageHandler = XcmpQueue;
+    type ReservedXcmpWeight = ReservedXcmpWeight;
+    type OnSystemEvent = ();
+    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+}
+
+impl parachain_info::Config for Runtime {}
+
+parameter_types! {
+    pub Ancestry: MultiLocation = Junction::Parachain(ParachainInfo::parachain_id().into()).into();
+}
+
+/// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
+/// when determining ownership of accounts for asset transacting and when attempting to use XCM
+/// `Transact` in order to determine the dispatch Origin.
+pub type LocationToAccountId = (
+    // Convertion to relay-chain sovereign account.
+    ParentIsPreset<AccountId>,
+    // Convertion to sibling parachain sovereign account.
+    SiblingParachainConvertsVia<Sibling, AccountId>,
+    // Straight up local `AccountId32` origins just alias directly to `AccountId`.
+    // We expect messages only from `NetworkId::Any` and `NetworkId::Kusama`
+    eq_xcm::origins::AccountIdConversion<AccountId>,
+);
+
+/// Means for transacting assets on this chain or through bridge.
+pub type LocalAssetTransactor = eq_xcm::assets::EqCurrencyAdapter<
+    // Our chain's account ID type (we can't get away without mentioning it explicitly):
+    AccountId,
+    // Balance type on chain
+    Balance,
+    // Operations on balances
+    EqBalances,
+    // Mathes MultiLocation to Genshiro assets
+    EqAssets,
+    // Transfers assets to standalone & Get ResourceId from asset
+    EqBridge,
+    // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
+    LocationToAccountId,
+    // We don't track any teleports.
+    (),
+>;
+
+pub struct TransactIsNotAllowed;
+
+impl<Origin> ConvertOrigin<Origin> for TransactIsNotAllowed {
+    fn convert_origin(
+        origin: impl Into<MultiLocation>,
+        _kind: OriginKind,
+    ) -> Result<Origin, MultiLocation> {
+        Err(origin.into())
+    }
+}
+
+/// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
+/// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
+/// biases the kind of local `Origin` it will become.
+pub type XcmOriginToTransactDispatchOrigin = TransactIsNotAllowed;
+
+parameter_types! {
+    // One XCM operation is 1_000_000 weight - almost certainly a conservative estimate.
+    pub BaseXcmWeight: XcmWeight = 1_000_000;
+    pub const MaxInstructions: u32 = 100;
+}
+
+pub struct NoTeleport;
+impl FilterAssetLocation for NoTeleport {
+    fn filter_asset_location(_asset: &MultiAsset, _origin: &MultiLocation) -> bool {
+        false
+    }
+}
+
+pub struct TreasuryAccount;
+impl Get<AccountId> for TreasuryAccount {
+    fn get() -> AccountId {
+        TreasuryModuleId::get().into_account_truncating()
+    }
+}
+
+pub type EqTrader = eq_xcm::assets::EqTrader<
+    AccountId,
+    Balance,
+    EqAssets,
+    EqBalances,
+    mocks::PriceGetterMock<EqAssets>,
+    TreasuryAccount,
+    fee::XcmWeightToFee,
+    (),
+>;
+
+match_types! {
+    pub type TrustedOrigins: impl Contains<MultiLocation> = {
+        &eq_primitives::xcm_origins::RELAY
+        | &eq_primitives::xcm_origins::ksm::PARACHAIN_MOONRIVER
+        | &eq_primitives::xcm_origins::ksm::PARACHAIN_HEIKO
+        | &eq_primitives::xcm_origins::ksm::PARACHAIN_KARURA
+        | &eq_primitives::xcm_origins::ksm::PARACHAIN_SHIDEN
+        | &eq_primitives::xcm_origins::ksm::PARACHAIN_BIFROST
+    };
+}
+
+pub type Barrier = (
+    eq_xcm::barrier::AllowReserveAssetDepositedFrom<EqAssets, TrustedOrigins>,
+    eq_xcm::barrier::AllowReserveTransferAssetsFromAccountId,
+);
+
+pub struct XcmConfig;
+impl Config for XcmConfig {
+    type Call = Call;
+    type XcmSender = XcmRouter;
+    // How to withdraw and deposit an asset.
+    type AssetTransactor = LocalAssetTransactor;
+    type OriginConverter = XcmOriginToTransactDispatchOrigin;
+    type IsReserve = eq_xcm::assets::NativeAsset;
+    type IsTeleporter = NoTeleport;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type Barrier = Barrier;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
+    type Trader = EqTrader;
+    type ResponseHandler = (); // Don't handle responses for now.
+    type AssetTrap = PolkadotXcm;
+    type AssetClaims = PolkadotXcm;
+    type SubscriptionService = PolkadotXcm;
+}
+
+/// The means for routing XCM messages which are not for local execution into the right message
+/// queues.
+#[cfg(not(test))]
+pub type XcmRouter = (
+    // use UMP to communicate with the relay chain:
+    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, ()>,
+    // use XCMP to comminicate with other parachains via relay:
+    XcmpQueue,
+);
+
+#[cfg(test)]
+pub type XcmRouter = xcm_test::XcmRouterMock;
+
+pub type LocalOriginToLocation = eq_xcm::origins::LocalOriginToLocation<Origin, AccountId>;
+
+impl pallet_xcm::Config for Runtime {
+    type Event = Event;
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmRouter = XcmRouter;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmExecuteFilter = Nothing;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type XcmTeleportFilter = Nothing;
+    type XcmReserveTransferFilter = Everything; // We don't use xcm pallet calls
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type Origin = Origin;
+    type Call = Call;
+    const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
+    type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+}
+
+impl cumulus_pallet_dmp_queue::Config for Runtime {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+}
+
+impl cumulus_pallet_xcmp_queue::Config for Runtime {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ChannelInfo = ParachainSystem;
+    type VersionWrapper = PolkadotXcm;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+    type ControllerOrigin = EnsureRoot<AccountId>;
+    type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const PotId: PalletId = PalletId(*b"PotStake");
+    pub const MaxCandidates: u32 = 1000;
+    pub const MinCandidates: u32 = 5;
+    pub const SessionLength: BlockNumber = 6 * HOURS;
+    pub const MaxInvulnerables: u32 = 100;
+    pub const ExecutiveBody: BodyId = BodyId::Executive;
+}
+
+/// We allow root to execute privileged collator selection operations.
+pub type CollatorSelectionUpdateOrigin = EnsureRoot<AccountId>;
+
+impl pallet_collator_selection::Config for Runtime {
+    type Event = Event;
+    type Currency = RelayCurrency;
+    type UpdateOrigin = CollatorSelectionUpdateOrigin;
+    type PotId = PotId;
+    type MaxCandidates = MaxCandidates;
+    type MinCandidates = MinCandidates;
+    type MaxInvulnerables = MaxInvulnerables;
+    // should be a multiple of session or things will get inconsistent
+    type KickThreshold = Period;
+    type ValidatorId = <Self as frame_system::Config>::AccountId;
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+    type ValidatorRegistration = Session;
+    type WeightInfo = (); // weights::pallet_collator_selection::WeightInfo<Runtime>;
+}
+
+use crate::mocks::FinancialMock;
+use eq_primitives::{asset::Asset, balance::AccountData};
+use sp_std::prelude::Vec;
+
+construct_runtime!(
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = common_runtime::opaque::Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: system::{Pallet, Call, Config, Storage, Event<T>},
+        ParachainSystem: cumulus_pallet_parachain_system::{
+            Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
+        },
+        Utility: pallet_utility::{Pallet, Call, Event},
+        RandomnessCollectiveFlip: randomness_collective_flip::{Pallet, Storage},
+        Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
+        ParachainInfo: parachain_info::{Pallet, Storage, Config},
+        EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>, Config<T>,},
+
+        // Collator support. the order of these 4 are important and shall not change.
+        Authorship: authorship::{Pallet, Call, Storage, Inherent},
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+        Aura: aura::{Pallet, Config<T>},
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config},
+
+        EqAssets: eq_assets::{Pallet, Call, Config<T>, Storage, Event}, // Assets genesis must be built first
+        // Oracle: eq_oracle::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned},
+        EqTreasury: eq_distribution::<Instance5>::{Pallet, Call, Storage, Config},
+        Treasury: eq_treasury::{Pallet, Call, Storage, Config, Event<T>},
+        EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        // ..... //
+        EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
+
+        TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>},
+        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+
+        Vesting: eq_vesting::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        EqAggregates: eq_aggregates::{Pallet, Storage},
+        ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>, Config<T>},
+        EqBridge: eq_bridge::{Pallet, Call, Storage, Event<T>, Config<T>},
+        EqMultisigSudo: eq_multisig_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
+        EqLending: eq_lending::{Pallet, Call, Storage, Event<T>, Config<T>},
+
+        // XCM helpers.
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Storage, Origin, Config},
+        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
+    }
+);
+
+/// Block header type as expected by this runtime.
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+/// Block type as expected by this runtime.
+pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+/// A Block signed with a Justification
+pub type SignedBlock = generic::SignedBlock<Block>;
+/// BlockId type as expected by this runtime.
+pub type BlockId = generic::BlockId<Block>;
+/// The SignedExtension to the basic transaction logic.
+pub type SignedExtra = (
+    system::CheckSpecVersion<Runtime>,
+    system::CheckTxVersion<Runtime>,
+    system::CheckGenesis<Runtime>,
+    system::CheckEra<Runtime>,
+    system::CheckNonce<Runtime>,
+    system::CheckWeight<Runtime>,
+    transaction_payment::ChargeTransactionPayment<Runtime>,
+    eq_rate::reinit_extension::ReinitAccount<Runtime, CallsWithReinit>,
+    eq_treasury::CheckBuyout<Runtime>,
+);
+
+pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
+/// Unchecked extrinsic type as expected by this runtime.
+pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
+/// Extrinsic type that has already been checked.
+pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
+/// Executive: handles dispatch to the various modules.
+pub type Executive = frame_executive::Executive<
+    Runtime,
+    Block,
+    system::ChainContext<Runtime>,
+    Runtime,
+    AllPalletsWithSystem,
+>;
+
+#[derive(Clone, Eq, PartialEq, scale_info::TypeInfo)]
+pub struct CallsWithReinit;
+impl Contains<Call> for CallsWithReinit {
+    fn contains(_call: &Call) -> bool {
+        false
+    }
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+#[macro_use]
+extern crate frame_benchmarking;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benches {
+    use frame_benchmarking::define_benchmarks;
+
+    define_benchmarks!(
+        [frame_benchmarking, BaselineBench::<Runtime>]
+        [frame_system, SystemBench::<Runtime>]
+        [cumulus_pallet_session_benchmarking, SessionBench::<Runtime>]
+        // [eq_balances, BalancesBench::<Runtime>]
+        // [eq_distribution, DistriBench::<Runtime, DistriBenchInstance>]
+        // [eq_vesting, VestingBench::<Runtime, eq_vesting::Instance1>]
+        // [eq_treasury, TreasuryBench::<Runtime>]
+        // [eq_rate, RateBench::<Runtime>]
+        [eq_session_manager, SessionManagerBench::<Runtime>]
+        [chainbridge, ChainBridge]
+        // [eq_bridge, BridgeBench::<Runtime>]
+        [eq_assets, EqAssets]
+        [eq_multisig_sudo, EqMultisigSudo]
+        // [eq_bailsman, BailsmanBench::<Runtime>]
+        // [eq_oracle, OracleBench::<Runtime>]
+        // [eq_dex, DexBench::<Runtime>]
+        // [eq_margin_call, MarginBench::<Runtime>]
+        // [eq_lending, LendingBench::<Runtime>]
+        // [eq_wrapped_dot, WrappedDotBench::<Runtime>]
+    );
+}
+
+impl_runtime_apis! {
+    impl sp_api::Core<Block> for Runtime {
+        fn version() -> RuntimeVersion {
+            VERSION
+        }
+
+        fn execute_block(block: Block) {
+            Executive::execute_block(block)
+        }
+
+        fn initialize_block(header: &<Block as BlockT>::Header) {
+            Executive::initialize_block(header)
+        }
+    }
+
+    impl sp_api::Metadata<Block> for Runtime {
+        fn metadata() -> OpaqueMetadata {
+            OpaqueMetadata::new(Runtime::metadata().into())
+        }
+    }
+
+    impl sp_block_builder::BlockBuilder<Block> for Runtime {
+        fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
+            Executive::apply_extrinsic(extrinsic)
+        }
+
+        fn finalize_block() -> <Block as BlockT>::Header {
+            Executive::finalize_block()
+        }
+
+        fn inherent_extrinsics(data: sp_inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
+            data.create_extrinsics()
+        }
+
+        fn check_inherents(
+            block: Block,
+            data: sp_inherents::InherentData,
+        ) -> sp_inherents::CheckInherentsResult {
+            data.check_extrinsics(&block)
+        }
+    }
+
+    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
+        fn account_nonce(account: AccountId) -> Index {
+            System::account_nonce(account)
+        }
+    }
+
+    impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
+        fn validate_transaction(_source: TransactionSource, tx: <Block as BlockT>::Extrinsic, block_hash: <Block as BlockT>::Hash) -> TransactionValidity {
+            Executive::validate_transaction(_source, tx, block_hash)
+        }
+    }
+
+    impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
+        fn offchain_worker(header: &<Block as BlockT>::Header) {
+            Executive::offchain_worker(header)
+        }
+    }
+
+    impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+        fn slot_duration() -> SlotDuration {
+            sp_consensus_aura::SlotDuration::from_millis(Aura::slot_duration())
+        }
+
+        fn authorities() -> Vec<AuraId> {
+            Aura::authorities().into_inner()
+        }
+    }
+
+    impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<
+        Block,
+        Balance,
+    > for Runtime {
+        fn query_info(uxt: <Block as BlockT>::Extrinsic, len: u32) -> RuntimeDispatchInfo<Balance> {
+            TransactionPayment::query_info(uxt, len)
+        }
+        fn query_fee_details(
+            uxt: <Block as BlockT>::Extrinsic,
+            len: u32,
+        ) -> transaction_payment::FeeDetails<Balance> {
+            TransactionPayment::query_fee_details(uxt, len)
+        }
+    }
+
+    impl sp_session::SessionKeys<Block> for Runtime {
+        fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
+            opaque::SessionKeys::generate(seed)
+        }
+
+        fn decode_session_keys(
+            encoded: Vec<u8>,
+        ) -> Option<Vec<(Vec<u8>, KeyTypeId)>> {
+            opaque::SessionKeys::decode_into_raw_public_keys(&encoded)
+        }
+    }
+
+    impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
+        fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
+            ParachainSystem::collect_collation_info(header)
+        }
+    }
+
+    impl equilibrium_curve_amm_rpc_runtime_api::EquilibriumCurveAmmApi<Block, Balance> for Runtime {
+        fn get_dy(
+            _pool_id: equilibrium_curve_amm::PoolId,
+            _i: equilibrium_curve_amm::PoolTokenIndex,
+            _j: equilibrium_curve_amm::PoolTokenIndex,
+            _dx: Balance
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn get_withdraw_one_coin(
+            _pool_id: equilibrium_curve_amm::PoolId,
+            _burn_amount: Balance,
+            _i: equilibrium_curve_amm::PoolTokenIndex
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn get_virtual_price(
+            _pool_id: equilibrium_curve_amm::PoolId,
+        ) -> Option<Balance> {
+            None
+        }
+    }
+
+    impl eq_xdot_pool_rpc_runtime_api::EqXdotPoolApi<Block, Balance> for Runtime {
+        fn invariant(
+            _pool_id: eq_primitives::xdot_pool::PoolId
+        ) -> Option<u128> {
+            None
+        }
+
+        fn fy_token_out_for_base_in(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _base_amount: Balance
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_out_for_fy_token_in(
+           _pool_id: eq_primitives::xdot_pool::PoolId,
+           _fy_token_amount: Balance
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn fy_token_in_for_base_out(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _base_amount: Balance,
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_in_for_fy_token_out(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _fy_token_amount: Balance,
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_out_for_lp_in(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _lp_in: Balance
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_and_fy_out_for_lp_in(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _lp_in: Balance
+        ) -> Option<(Balance, Balance)> {
+            None
+        }
+
+        fn max_base_xbase_in_and_out(
+            _pool_id: eq_primitives::xdot_pool::PoolId
+        ) -> Option<(Balance, Balance, Balance, Balance)> {
+            None
+        }
+    }
+
+    impl eq_balances_rpc_runtime_api::EqBalancesApi<Block, Balance, AccountId> for Runtime {
+        fn wallet_balance_in_usd(_account_id: AccountId) -> Option<Balance> {
+            None
+        }
+        fn portfolio_balance_in_usd(_account_id: AccountId) -> Option<Balance> {
+            None
+        }
+    }
+
+    #[cfg(feature = "try-runtime")]
+    impl frame_try_runtime::TryRuntime<Block> for Runtime {
+        fn on_runtime_upgrade() -> (Weight, Weight) {
+            log::info!("try-runtime::on_runtime_upgrade equilibrium");
+            let weight = Executive::try_runtime_upgrade().unwrap();
+            (weight, RuntimeBlockWeights::get().max_block)
+        }
+
+        fn execute_block(
+            block: Block,
+            state_root_check: bool,
+            select: frame_try_runtime::TryStateSelect
+        ) -> Weight {
+            log::info!(
+                "try-runtime: executing block {:?} / root checks: {:?} / try-state-select: {:?}",
+                block.header.hash(),
+                state_root_check,
+                select,
+            );
+            Executive::try_execute_block(block, state_root_check, select).unwrap()
+        }
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    impl frame_benchmarking::Benchmark<Block> for Runtime {
+        fn benchmark_metadata(extra: bool) -> (
+            Vec<frame_benchmarking::BenchmarkList>,
+            Vec<frame_support::traits::StorageInfo>,
+        ) {
+            use frame_benchmarking::{baseline, Benchmarking, BenchmarkList};
+            use frame_support::traits::StorageInfoTrait;
+            use frame_system_benchmarking::Pallet as SystemBench;
+            use baseline::Pallet as BaselineBench;
+            use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
+
+            // use eq_balances::benchmarking::Pallet as BalancesBench;
+            // use eq_bridge::benchmarking::Pallet as BridgeBench;
+            // use eq_distribution::benchmarking::Pallet as DistriBench;
+            // use eq_vesting::benchmarking::Pallet as VestingBench;
+            // use eq_treasury::benchmarking::Pallet as TreasuryBench;
+            use eq_session_manager::benchmarking::Pallet as SessionManagerBench;
+            // use eq_rate::benchmarking::Pallet as RateBench;
+            // use eq_lending::benchmarking::Pallet as LendingBench;
+            // use eq_bailsman::benchmarking::Pallet as BailsmanBench;
+            // use eq_oracle::benchmarking::Pallet as OracleBench;
+            // use eq_dex::benchmarking::Pallet as DexBench;
+            // use eq_margin_call::benchmarking::Pallet as MarginBench;
+            // use eq_wrapped_dot::benchmarking::Pallet as WrappedDotBench;
+
+            let mut list = Vec::<BenchmarkList>::new();
+            list_benchmarks!(list, extra);
+
+            let storage_info = AllPalletsWithSystem::storage_info();
+
+            (list, storage_info)
+        }
+
+        fn dispatch_benchmark(
+            config: frame_benchmarking::BenchmarkConfig
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+            use frame_benchmarking::{add_benchmark, baseline, BenchmarkBatch, Benchmarking, TrackedStorageKey};
+
+            use frame_system_benchmarking::Pallet as SystemBench;
+            use baseline::Pallet as BaselineBench;
+            impl baseline::Config for Runtime {}
+
+            use cumulus_pallet_session_benchmarking::Pallet as SessionBench;
+            impl cumulus_pallet_session_benchmarking::Config for Runtime {}
+
+            // use eq_balances::benchmarking::Pallet as BalancesBench;
+            // use eq_distribution::benchmarking::Pallet as DistriBench;
+            // use eq_bailsman::benchmarking::Pallet as BailsmanBench;
+            // use eq_treasury::benchmarking::Pallet as TreasuryBench;
+            // use eq_rate::benchmarking::Pallet as RateBench;
+            // use eq_dex::benchmarking::Pallet as EqDexBench;
+            // use eq_margin_call::benchmarking::Pallet as MarginCallBench;
+            use eq_session_manager::benchmarking::Pallet as SessionManagerBench;
+            // use eq_lending::benchmarking::Pallet as LendingBench;
+            // use eq_bridge::benchmarking::Pallet as BridgeBench;
+            // use eq_vesting::benchmarking::Pallet as VestingBench;
+
+            impl frame_system_benchmarking::Config for Runtime {}
+            // impl eq_balances::benchmarking::Config for Runtime {}
+            // impl eq_distribution::benchmarking::Config<DistriBenchInstance> for Runtime {}
+            // impl eq_bailsman::benchmarking::Config for Runtime {}
+            // impl eq_treasury::benchmarking::Config for Runtime {}
+            // impl eq_rate::benchmarking::Config for Runtime {}
+            // impl eq_dex::benchmarking::Config for Runtime {}
+            // impl eq_margin_call::benchmarking::Config for Runtime {}
+            impl eq_session_manager::benchmarking::Config for Runtime {}
+            // impl eq_lending::benchmarking::Config for Runtime {}
+            // impl eq_bridge::benchmarking::Config for Runtime {}
+            // impl eq_vesting::benchmarking::Config<eq_vesting::Instance1> for Runtime {}
+
+            let whitelist: Vec<TrackedStorageKey> = vec![
+                // Block Number
+                hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
+                // Execution Phase
+                hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7ff553b5a9862a516939d82b3d3d8661a").to_vec().into(),
+                // Event Count
+                hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
+                // System Events
+                hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
+
+            ];
+            let mut batches = Vec::<BenchmarkBatch>::new();
+            let params = (&config, &whitelist);
+
+            add_benchmarks!(params, batches);
+
+            if batches.is_empty() {
+                return Err("Benchmark not found for this pallet.".into());
+            }
+            Ok(batches)
+        }
+    }
+}
+
+struct CheckInherents;
+
+impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
+    fn check_inherents(
+        block: &Block,
+        relay_state_proof: &cumulus_pallet_parachain_system::RelayChainStateProof,
+    ) -> sp_inherents::CheckInherentsResult {
+        let relay_chain_slot = relay_state_proof
+            .read_slot()
+            .expect("Could not read the relay chain slot from the proof");
+
+        let inherent_data =
+            cumulus_primitives_timestamp::InherentDataProvider::from_relay_chain_slot_and_duration(
+                relay_chain_slot,
+                sp_std::time::Duration::from_secs(6),
+            )
+            .create_inherent_data()
+            .expect("Could not create the timestamp inherent data");
+
+        inherent_data.check_extrinsics(&block)
+    }
+}
+
+cumulus_pallet_parachain_system::register_validate_block! {
+    Runtime = Runtime,
+    BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
+    CheckInherents = CheckInherents,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generate_lp_token_asset_works() {
+        let id: u32 = 1234u32;
+        let name: Vec<u8> = b"lpt"
+            .iter()
+            .chain(id.to_string().as_bytes().iter())
+            .map(|item| item.clone())
+            .collect();
+        let _asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
+        // assert_eq!(asset, EqCurveAssetsAdapter::generate_asset_for_pool(id));
+    }
+
+    #[test]
+    fn generate_lp_token_asset_works_for0() {
+        let id: u32 = 0u32;
+        let name: Vec<u8> = b"lpt"
+            .iter()
+            .chain(id.to_string().as_bytes().iter())
+            .map(|item| item.clone())
+            .collect();
+        let _asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
+        // assert_eq!(asset, EqCurveAssetsAdapter::generate_asset_for_pool(id));
+    }
+
+    #[test]
+    fn generate_lp_token_asset_works_for1() {
+        let id: u32 = 1u32;
+        let name: Vec<u8> = b"lpt"
+            .iter()
+            .chain(id.to_string().as_bytes().iter())
+            .map(|item| item.clone())
+            .collect();
+        let _asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
+        // assert_eq!(asset, EqCurveAssetsAdapter::generate_asset_for_pool(id));
+    }
+}

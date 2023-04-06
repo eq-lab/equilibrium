@@ -1,0 +1,152 @@
+[package]
+authors = ["Artem Sevostianov <artem.sevos@gmail.com>"]
+edition = "2018"
+name = "eq-subaccounts"
+version = "0.1.0"
+
+[dependencies]
+codec = {package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
+safe-mix = {default-features = false, version = "1.0.0"}
+serde = {version = "1.0.123", optional = true}
+log = { version = "0.4.17", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.frame-system]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "frame-system"
+
+[dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.substrate-fixed]
+git = "https://github.com/equilibrium-eosdt/substrate-fixed"
+branch = "scale-info-2.0.1"
+package = "substrate-fixed"
+
+[dependencies.eq-utils]
+default-features = false
+package = "eq-utils"
+path = "../../eq-utils"
+version = "0.1.0"
+
+[dev-dependencies.sp-core]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../../eq-primitives"
+version = "0.1.0"
+
+[dependencies.eq-balances]
+default-features = false
+package = "eq-balances"
+path = "../eq-balances"
+version = "0.1.0"
+
+[dependencies.eq-assets]
+default-features = false
+package = "eq-assets"
+path = "../eq-assets"
+version = "0.1.0"
+
+[dependencies.frame-benchmarking]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+optional = true
+package = "frame-benchmarking"
+
+[dependencies.eq-aggregates]
+default-features = false
+package = "eq-aggregates"
+path = "../eq-aggregates"
+version = "0.1.0"
+
+[dependencies.timestamp]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "pallet-timestamp"
+
+[dependencies.eq-bailsman]
+default-features = false
+package = "eq-bailsman"
+path = "../eq-bailsman"
+version = "0.1.0"
+optional = true
+
+[dependencies.sp-arithmetic]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.eq-whitelists]
+default-features = false
+package = "eq-whitelists"
+path = "../eq-whitelists"
+version = "0.1.0"
+
+[dependencies.eq-oracle]
+default-features = false
+package = "eq-oracle"
+path = "../eq-oracle"
+version = "0.1.0"
+optional = true
+
+
+[features]
+default = ["std"]
+std = [
+  "log/std",
+  "serde",
+  "codec/std",
+  "frame-support/std",
+  "safe-mix/std",
+  "frame-system/std",
+  "sp-arithmetic/std",
+  "sp-std/std",
+  "sp-runtime/std",
+  "eq-primitives/std",
+  "eq-balances/std",
+  "eq-aggregates/std",
+  "eq-assets/std",
+  "eq-bailsman/std",
+  "timestamp/std",
+  "eq-whitelists/std",
+]
+production = []
+runtime-benchmarks = [
+  "frame-benchmarking",
+  "eq-oracle",
+  "eq-bailsman",
+]
+try-runtime = [
+  "frame-support/try-runtime",
+]

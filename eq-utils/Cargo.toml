@@ -1,0 +1,87 @@
+[package]
+authors = ["user <veniaminhrapov@gmail.com>"]
+edition = "2018"
+name = "eq-utils"
+version = "0.1.0"
+
+[dependencies]
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+
+[dependencies.codec]
+package = "parity-scale-codec"
+version = "3.0.0"
+default-features = false
+features = ["derive"]
+
+[dependencies.serde]
+version = "1.0.123"
+default-features = false
+features = ["derive"]
+
+[dependencies.sp-arithmetic]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+
+[dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "sp-std"
+
+[dependencies.substrate-fixed]
+git = "https://github.com/equilibrium-eosdt/substrate-fixed"
+branch = "scale-info-2.0.1"
+package = "substrate-fixed"
+
+[dependencies.xcm]
+default-features = false
+git = "https://github.com/paritytech/polkadot"
+branch = "release-v0.9.29"
+
+[dependencies.equilibrium-curve-amm]
+default-features = false
+git = "https://github.com/equilibrium-eosdt/equilibrium-curve-amm"
+branch = "polkadot-v0.9.29"
+package = "equilibrium-curve-amm"
+version = "0.2.3"
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../eq-primitives"
+version = "0.1.0"
+
+[features]
+default = ["std"]
+std = [
+    "eq-primitives/std",
+    "sp-arithmetic/std",
+    "frame-support/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "sp-io/std",
+    "substrate-fixed/std",
+    "xcm/std",
+    "equilibrium-curve-amm/std",
+    "codec/std",
+]
+
+logging = []

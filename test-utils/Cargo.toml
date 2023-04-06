@@ -1,0 +1,45 @@
+[package]
+name = "test-utils"
+authors = ["equilibrium"]
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+
+[dependencies.sp-arithmetic]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../eq-primitives"
+version = "0.1.0"
+
+[dependencies.financial-pallet]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+package = "financial-pallet"
+branch = "polkadot-v0.9.29"
+version = "0.1.2"
+
+[dependencies.substrate-fixed]
+git = "https://github.com/equilibrium-eosdt/substrate-fixed"
+branch = "scale-info-2.0.1"
+package = "substrate-fixed"
+
+[features]
+default = ["std"]
+std = ["sp-std/std", "financial-pallet/std", "substrate-fixed/std"]

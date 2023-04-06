@@ -1,0 +1,83 @@
+[package]
+authors = ["equilibrium"]
+edition = "2018"
+name = "common-runtime"
+version = "3.0.0"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies.codec]
+package = "parity-scale-codec"
+version = "3.0.0"
+default-features = false
+features = ["derive", "max-encoded-len"]
+
+[dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-core]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.substrate-fixed]
+features = ["serde"]
+git = "https://github.com/equilibrium-eosdt/substrate-fixed"
+branch = "scale-info-2.0.1"
+package = "substrate-fixed"
+
+[dependencies.eq-primitives]
+default-features = false
+path = "../../eq-primitives"
+
+[dependencies.eq-utils]
+default-features = false
+path = "../../eq-utils"
+
+[dependencies.equilibrium-curve-amm]
+default-features = false
+git = "https://github.com/equilibrium-eosdt/equilibrium-curve-amm"
+branch = "polkadot-v0.9.29"
+
+[dependencies.financial-pallet]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+branch = "polkadot-v0.9.29"
+
+[dependencies.financial-primitives]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+branch = "polkadot-v0.9.29"
+
+[features]
+
+default = ["std"]
+std = [
+    "codec/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "sp-core/std",
+    "frame-support/std",
+    "substrate-fixed/std",
+    "eq-primitives/std",
+    "eq-utils/std",
+    "equilibrium-curve-amm/std",
+    "financial-pallet/std",
+    "financial-primitives/std",
+]
+production = [
+    "eq-primitives/production",
+]

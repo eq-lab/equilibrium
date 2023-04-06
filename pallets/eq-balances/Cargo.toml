@@ -1,0 +1,157 @@
+[package]
+authors = ["equilibrium"]
+edition = "2018"
+name = "eq-balances"
+version = "0.1.0"
+
+[dependencies]
+serde = {version = "1.0.123", optional = true, features = ["derive"]}
+impl-trait-for-tuples = "0.1.3"
+safe-mix = {default-features = false, version = "1.0.0"}
+codec = {package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
+log = { version = "0.4.17", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.29" }
+# Polkadot dependencies
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.29" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.29" }
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.29" }
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.frame_system]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "frame-system"
+
+[dependencies.frame-benchmarking]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+optional = true
+package = "frame-benchmarking"
+
+[dependencies.sp-runtime]
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+default-features = false
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-core]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-arithmetic]
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+default-features = false
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../../eq-primitives"
+version = "0.1.0"
+
+[dependencies.eq-utils]
+default-features = false
+package = "eq-utils"
+path = "../../eq-utils"
+version = "0.1.0"
+
+[dependencies.substrate-fixed]
+git = "https://github.com/equilibrium-eosdt/substrate-fixed"
+branch = "scale-info-2.0.1"
+package = "substrate-fixed"
+
+[dependencies.financial-pallet]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+branch = "polkadot-v0.9.29"
+package = "financial-pallet"
+version = "0.1.2"
+
+[dependencies.financial-primitives]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+branch = "polkadot-v0.9.29"
+package = "financial-primitives"
+version = "0.1.0"
+
+[dependencies.eq-whitelists]
+default-features = false
+package = "eq-whitelists"
+path = "../eq-whitelists"
+version = "0.1.0"
+optional = true
+
+[dependencies.eq-assets]
+default-features = false
+package = "eq-assets"
+path = "../eq-assets"
+version = "0.1.0"
+
+[dependencies.eq-oracle]
+default-features = false
+package = "eq-oracle"
+path = "../eq-oracle"
+version = "0.1.0"
+optional = true
+
+[dependencies.eq-xcm]
+default-features = false
+package = "eq-xcm"
+path = "../../eq-xcm"
+version = "0.1.0"
+
+[features]
+default = ["std"]
+std = [
+  "log/std",
+  "serde",
+  "codec/std",
+  "frame_system/std",
+  "frame-support/std",
+  "safe-mix/std",
+  "sp-std/std",
+  "sp-runtime/std",
+  "sp-arithmetic/std",
+  "eq-primitives/std",
+  "eq-assets/std",
+  "eq-utils/std",
+  "eq-oracle/std",
+  "financial-pallet/std",
+  "financial-primitives/std",
+  "xcm/std",
+  "xcm-executor/std",
+  "scale-info/std",
+  "eq-xcm/std",
+  "polkadot-parachain/std"
+]
+runtime-benchmarks = [
+  "frame-benchmarking",
+  "eq-whitelists",
+  "eq-oracle",
+]
+production = []
+try-runtime = [
+  "frame-support/try-runtime",
+]

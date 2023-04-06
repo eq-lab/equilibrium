@@ -1,0 +1,169 @@
+[package]
+authors=["equilibrium"]
+name = "eq-margin-call"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+codec = {package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
+safe-mix = {default-features = false, version = "1.0.0"}
+serde = {version = "1.0.123", default-features = false, optional = true}
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+log = { version = "0.4.17", default-features = false }
+
+[dependencies.eq-utils]
+default-features = false
+package = "eq-utils"
+path = "../../eq-utils"
+version = "0.1.0"
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../../eq-primitives"
+version = "0.1.0"
+
+[dependencies.eq-oracle]
+default-features = false
+package = "eq-oracle"
+path = "../eq-oracle"
+version = "0.1.0"
+optional=true
+
+[dependencies.eq-balances]
+default-features = false
+package = "eq-balances"
+path = "../eq-balances"
+version = "0.1.0"
+
+[dev-dependencies.eq-bailsman]
+default-features = false
+package = "eq-bailsman"
+path = "../eq-bailsman"
+version = "0.1.0"
+
+[dev-dependencies.financial-pallet]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+branch = "polkadot-v0.9.29"
+package = "financial-pallet"
+version = "0.1.1"
+
+[dev-dependencies.financial-primitives]
+default-features = false
+git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+branch = "polkadot-v0.9.29"
+package = "financial-primitives"
+version = "0.1.0"
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-core]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.frame-system]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "frame-system"
+
+[dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-arithmetic]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.substrate-fixed]
+git = "https://github.com/equilibrium-eosdt/substrate-fixed"
+branch = "scale-info-2.0.1"
+package = "substrate-fixed"
+
+[dev-dependencies.timestamp]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "pallet-timestamp"
+
+[dependencies.frame-benchmarking]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "frame-benchmarking"
+optional = true
+
+[dependencies.eq-whitelists]
+default-features = false
+package = "eq-whitelists"
+path = "../eq-whitelists"
+version = "0.1.0"
+optional = true
+
+[dependencies.eq-vesting]
+default-features = false
+package = "eq-vesting"
+path = "../eq-vesting"
+version = "0.1.0"
+optional = true
+
+[dependencies.eq-assets]
+default-features = false
+package = "eq-assets"
+path = "../eq-assets"
+version = "0.1.0"
+
+
+[features]
+default = ["std"]
+std = [
+  "codec/std",
+  "frame-support/std",
+  "safe-mix/std",
+  "frame-system/std",
+  "sp-std/std",
+  "sp-runtime/std",
+  "serde/std",
+  "eq-utils/std",
+  "eq-assets/std",
+  "eq-primitives/std",
+  "eq-balances/std",
+  "sp-arithmetic/std",
+  "eq-oracle/std",
+]
+test = [
+  "eq-bailsman/std",
+  "financial-pallet/std",
+  "financial-primitives/std",
+  "timestamp/std",
+  "eq-assets/std",
+]
+production = []
+runtime-benchmarks = [
+  "frame-benchmarking",
+  "eq-whitelists",
+  "eq-vesting",
+  "frame-support/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
+  "eq-oracle",
+]
+try-runtime = [
+  "frame-support/try-runtime",
+]

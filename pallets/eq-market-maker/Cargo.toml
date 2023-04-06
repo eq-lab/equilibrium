@@ -1,0 +1,117 @@
+[package]
+authors = ["equilibrium"]
+name = "eq-market-maker"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+log = { version = "0.4.17", default-features = false }
+
+[dependencies.codec]
+package = "parity-scale-codec"
+version = "3.0.0"
+default-features = false
+features = ["derive"]
+
+[dependencies.safe-mix]
+default-features = false
+version = "1.0.0"
+
+[dependencies.serde]
+version = "1.0.123"
+optional = true
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.frame-system]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "frame-system"
+
+[dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.sp-core]
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dependencies.sp-std]
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+default-features = false
+
+[dependencies.eq-dex]
+default-features = false
+package = "eq-dex"
+path = "../eq-dex"
+version = "0.1.0"
+
+[dependencies.eq-utils]
+default-features = false
+package = "eq-utils"
+path = "../../eq-utils"
+version = "0.1.0"
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../../eq-primitives"
+version = "0.1.0"
+
+[dependencies.frame-benchmarking]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+optional = true
+package = "frame-benchmarking"
+
+[dependencies.sp-arithmetic]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+
+[dev-dependencies.test-utils]
+default-features = false
+package = "test-utils"
+path = "../../test-utils"
+version = "0.1.0"
+
+[dev-dependencies.authorship]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.29"
+package = "pallet-authorship"
+
+
+[features]
+default = ["std"]
+std = [
+  "codec/std",
+  "frame-support/std",
+  "safe-mix/std",
+  "frame-system/std",
+  "sp-runtime/std",
+  "sp-std/std",
+  "sp-io/std",
+  "serde",
+  "eq-utils/std",
+  "eq-primitives/std",
+  "eq-dex/std",
+  "frame-benchmarking/std",
+  "sp-arithmetic/std",
+]
+try-runtime = [
+  "frame-support/try-runtime",
+]
