@@ -1212,7 +1212,6 @@ impl equilibrium_curve_amm::traits::Assets<AssetId, Balance, AccountId> for EqCu
 
         EqAssets::do_add_asset(
             asset,
-            // TODO hardcode for now, change after dex
             EqFixedU128::from(0),
             FixedI64::from(0),
             Permill::zero(),
