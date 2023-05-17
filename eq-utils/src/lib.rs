@@ -31,6 +31,7 @@ pub mod ok_or_error;
 pub mod test;
 pub use eq_primitives::XcmBalance;
 pub use eq_primitives::ONE_TOKEN;
+pub use fixed::*;
 
 pub mod vec_map {
     pub use eq_primitives::vec_map::{SortedVec, VecMap};
