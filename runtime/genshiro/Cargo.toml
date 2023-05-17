@@ -331,23 +331,11 @@ package = "eq-assets"
 path = "../../pallets/eq-assets"
 version = "0.1.0"
 
-# [dependencies.eq-oracle]
-# default-features = false
-# package = "eq-oracle"
-# path = "../../pallets/eq-oracle"
-# version = "0.1.0"
-
 [dependencies.eq-multisig-sudo]
 default-features=false
 package = "eq-multisig-sudo"
 path = "../../pallets/eq-multisig-sudo"
 version = "0.1.0"
-
-# [dependencies.eq-curve-distribution]
-# default-features = false
-# package = "eq-curve-distribution"
-# path = "../../pallets/eq-curve-distribution"
-# version = "0.1.0"
 
 [dependencies.financial-pallet]
 default-features = false
@@ -387,6 +375,36 @@ version = "0.1.0"
 default-features = false
 package = "eq-balances-rpc-runtime-api"
 path = "../../pallets/eq-balances/rpc/runtime-api"
+version = "0.1.0"
+
+[dependencies.eq-whitelists]
+default-features = false
+path = "../../pallets/eq-whitelists"
+version = "0.1.0"
+
+[dependencies.eq-migration]
+default-features = false
+path = "../../pallets/eq-migration"
+version = "0.1.0"
+
+[dependencies.eq-bailsman]
+default-features = false
+path = "../../pallets/eq-bailsman"
+version = "0.1.0"
+
+[dependencies.eq-oracle]
+default-features = false
+path = "../../pallets/eq-oracle"
+version = "0.1.0"
+
+[dependencies.eq-margin-call]
+default-features=false
+path = "../../pallets/eq-margin-call"
+version = "0.1.0"
+
+[dependencies.eq-dex]
+default-features = false
+path = "../../pallets/eq-dex"
 version = "0.1.0"
 
 [features]
@@ -447,7 +465,6 @@ std = [
   "eq-distribution/std",
   "eq-multisig-sudo/std",
   "eq-lending/std",
-  # "eq-curve-distribution/std",
   "cumulus-pallet-aura-ext/std",
   "cumulus-pallet-parachain-system/std",
   "cumulus-primitives-core/std",
@@ -469,7 +486,14 @@ std = [
   "equilibrium-curve-amm/std",
   "equilibrium-curve-amm-rpc-runtime-api/std",
   "eq-xdot-pool-rpc-runtime-api/std",
-  "eq-balances-rpc-runtime-api/std"
+  "eq-whitelists/std",
+  "eq-balances-rpc-runtime-api/std",
+  "eq-migration/std",
+  "eq-bailsman/std",
+  "eq-oracle/std",
+  "eq-margin-call/std",
+  "eq-dex/std"
+
 ]
 
 runtime-benchmarks = [
@@ -501,7 +525,9 @@ production = [
   "eq-vesting/production",
   "eq-rate/production",
   "eq-subaccounts/production",
-  "eq-primitives/production"
+  "eq-primitives/production",
+  "eq-oracle/production",
+  "eq-margin-call/production",
 ]
 
 logging = [

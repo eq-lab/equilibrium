@@ -26,6 +26,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub use chainbridge;
+use codec::Encode;
 use core::marker::PhantomData;
 pub use eq_assets;
 pub use eq_balances;
@@ -34,10 +35,16 @@ pub use eq_distribution;
 pub use eq_lending;
 pub use eq_multisig_sudo;
 pub use eq_primitives;
+use eq_primitives::{balance::EqCurrency, Aggregates, UserGroup};
 pub use eq_rate;
 pub use eq_treasury;
 use eq_utils::XcmBalance;
 pub use eq_vesting;
+use financial_pallet::FinancialSystemTrait;
+use financial_primitives::{CalcReturnType, CalcVolatilityType};
+use frame_support::pallet_prelude::Get;
+use frame_support::traits::UnixTime;
+use frame_support::traits::{ExistenceRequirement, WithdrawReasons};
 pub use frame_support::{
     construct_runtime, debug,
     dispatch::{DispatchError, DispatchResult},
@@ -54,8 +61,11 @@ pub use frame_support::{
 use frame_system as system;
 use frame_system::limits::{BlockLength, BlockWeights};
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
+use polkadot_parachain::primitives::Sibling;
+use polkadot_runtime_common::SlowAdjustingFeeUpdate;
+use polkadot_runtime_constants::weights::RocksDbWeight;
 use sp_api::impl_runtime_apis;
-use sp_arithmetic::{FixedPointNumber, PerThing};
+use sp_arithmetic::{FixedI64, FixedPointNumber, PerThing, Percent};
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::{
@@ -80,13 +90,6 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use system::EnsureRoot;
 use transaction_payment::Multiplier;
-
-// Polkadot imports
-use codec::Encode;
-use frame_support::pallet_prelude::Get;
-use polkadot_parachain::primitives::Sibling;
-use polkadot_runtime_common::SlowAdjustingFeeUpdate;
-use polkadot_runtime_constants::weights::RocksDbWeight;
 use xcm::latest::{BodyId, Junction, MultiAsset, OriginKind, Weight as XcmWeight, Xcm};
 use xcm::v1::MultiLocation;
 use xcm_builder::{
@@ -98,10 +101,10 @@ use xcm_executor::{
     Config, XcmExecutor,
 };
 
-use common_runtime::*;
-
-// #[cfg(feature = "runtime-benchmarks")]
-// use codec::alloc::string::ToString;
+use common_runtime::{
+    mocks::{BalanceAwareMock, XbasePriceMock},
+    *,
+};
 
 // Tests for XCM integration
 #[cfg(test)]
@@ -219,33 +222,71 @@ parameter_types! {
     pub const SS58Prefix: u8 = 67;
 }
 
-/// Call filter for exctrinsics
-/// XCM extrinsics aren't allowed in prod (except `reserve_transfer_assets`)
-pub struct XcmPalletNotAllowed;
-impl frame_support::traits::Contains<Call> for XcmPalletNotAllowed {
-    fn contains(call: &Call) -> bool {
-        match call {
-            Call::PolkadotXcm(call) => {
-                use pallet_xcm::Call::*;
-                match call {
-                    // for GENS transfer
-                    reserve_transfer_assets { .. } => true,
-                    // for hrmp channel
-                    send { .. } => true,
-                    _ => false,
+pub struct CallFilter;
+impl frame_support::traits::Contains<Call> for CallFilter {
+    #[allow(unused_variables)]
+    fn contains(c: &Call) -> bool {
+        #[cfg(feature = "production")]
+        match (eq_migration::Migration::<Runtime>::exists(), c) {
+            (false, Call::EqMultisigSudo(proposal_call)) => match proposal_call {
+                eq_multisig_sudo::Call::propose { call } => match *call.clone() {
+                    Call::PolkadotXcm(_) => true, // allow send xcm from msig
+                    Call::Utility(utility_call) => {
+                        // allow send xcm batch from msig
+                        match utility_call {
+                            pallet_utility::Call::batch { calls, .. }
+                            | pallet_utility::Call::batch_all { calls, .. } => {
+                                calls.iter().all(|call| {
+                                    if let Call::PolkadotXcm(_) = call {
+                                        true
+                                    } else {
+                                        Self::contains(call)
+                                    }
+                                })
+                            }
+                            _ => true,
+                        }
+                    }
+                    _ => Self::contains(&**call),
+                },
+                _ => true,
+            },
+            (false, Call::Utility(utility_call)) => match utility_call {
+                pallet_utility::Call::batch { calls, .. }
+                | pallet_utility::Call::batch_all { calls, .. } => {
+                    calls.iter().all(|call| Self::contains(call))
                 }
-            }
-            _ => true,
+                _ => true,
+            },
+            (false, Call::EqBalances(call)) => match call {
+                eq_balances::Call::deposit { .. } | eq_balances::Call::burn { .. } => false,
+                _ => true,
+            },
+            // (false, Call::Oracle(eq_oracle::Call::set_fin_metrics_recalc_enabled { .. })) => false,
+            (false, Call::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
+            (false, Call::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            // XCM disallowed
+            (_, &Call::PolkadotXcm(_)) => false,
+            (false, _) => true,
+
+            // only system and sudo are allowed during migration
+            (true, &Call::ParachainSystem(_)) => true,
+            (true, &Call::System(_)) => true,
+            // (true, &Call::Sudo(_)) => true,
+            (true, &Call::Timestamp(_)) => true,
+            (true, &Call::EqMultisigSudo(_)) => true,
+
+            // all other pallets are disallowed during migration
+            (true, _) => false,
         }
+        #[cfg(not(feature = "production"))]
+        true
     }
 }
 
 #[allow(unused_parens)]
 impl system::Config for Runtime {
-    #[cfg(feature = "production")]
-    type BaseCallFilter = XcmPalletNotAllowed;
-    #[cfg(not(feature = "production"))]
-    type BaseCallFilter = frame_support::traits::Everything;
+    type BaseCallFilter = CallFilter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -284,36 +325,141 @@ impl aura::Config for Runtime {
     type MaxAuthorities = MaxAuthorities;
 }
 
+pub struct FilterPrices;
+
+impl FilterPrices {
+    fn filter_prices(who: &AccountId) {
+        Oracle::filter_prices_from(who);
+    }
+}
+
+impl eq_whitelists::OnRemove<AccountId> for FilterPrices {
+    fn on_remove(who: &AccountId) {
+        Self::filter_prices(who);
+    }
+}
+
+impl eq_whitelists::Config for Runtime {
+    type Event = Event;
+    type WhitelistManagementOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = weights::pallet_whitelists::WeightInfo<Runtime>;
+    type OnRemove = FilterPrices;
+}
+
 impl eq_assets::Config for Runtime {
     type Event = Event;
     type MainAsset = BasicCurrencyGet;
-    type OnNewAsset = ();
+    type OnNewAsset = FinancialPalletOnNewAsset;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type WeightInfo = weights::pallet_assets::WeightInfo<Runtime>;
 }
 
-// impl eq_oracle::Config for Runtime {
-//     type Event = Event;
-//     type AuthorityId = eq_oracle::crypto::AuthId;
-//     type Call = Call;
-//     type Balance = Balance;
-//     type UnixTime = EqRate;
-//     type Whitelist = Whitelists;
-//     type MedianPriceTimeout = MedianPriceTimeout;
-//     type PriceTimeout = PriceTimeout;
-//     type OnPriceSet = ();
-//     type FinancialSystemTrait = ();
-//     type FinancialRecalcPeriodBlocks = FinancialRecalcPeriodBlocks;
-//     type UnsignedPriority = OracleUnsignedPriority;
-//     type AssetGetter = eq_assets::Pallet<Runtime>;
-//     type WeightInfo = weights::pallet_oracle::WeightInfo<Runtime>;
-//     type CurveAmm = CurveAmmMock<Asset, (), Balance, AccountId>;
-//     type LpPriceBlockTimeout = LpPriceBlockTimeout;
-//     type XBasePrice = XbasePriceMock<Asset, Balance, FixedI64>;
-//     type UnsignedLifetimeInBlocks = UnsignedLifetimeInBlocks;
-// }
+parameter_types! {
+    pub const MigrationsPerBlock: u16 = 2_000;
+}
 
-//----------- eq-multisig-sudo ------------------
+impl eq_migration::Config for Runtime {
+    type Event = Event;
+    type MigrationsPerBlock = MigrationsPerBlock;
+    type WeightInfo = eq_migration::weights::EqWeight<Runtime>;
+}
+
+impl eq_oracle::Config for Runtime {
+    type FinMetricsRecalcToggleOrigin = EnsureRoot<AccountId>;
+    type Event = Event;
+    type AuthorityId = eq_oracle::crypto::AuthId;
+    type Call = Call;
+    type Balance = Balance;
+    type UnixTime = EqRate;
+    type Whitelist = Whitelists;
+    type MedianPriceTimeout = MedianPriceTimeout;
+    type PriceTimeout = PriceTimeout;
+    type OnPriceSet = financial_pallet::Pallet<Runtime>;
+    type FinancialSystemTrait = financial_pallet::Pallet<Runtime>;
+    type FinancialRecalcPeriodBlocks = FinancialRecalcPeriodBlocks;
+    type FinancialAssetRemover = financial_pallet::Pallet<Runtime>;
+    type UnsignedPriority = OracleUnsignedPriority;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type Aggregates = EqAggregates;
+    type AggregatesAssetRemover = EqAggregates;
+    type WeightInfo = weights::pallet_oracle::WeightInfo<Runtime>;
+    type CurveAmm = equilibrium_curve_amm::Pallet<Runtime>;
+    type LpPriceBlockTimeout = LpPriceBlockTimeout;
+    type XBasePrice = XbasePriceMock<Asset, Balance, FixedI64>;
+    type UnsignedLifetimeInBlocks = UnsignedLifetimeInBlocks;
+    type LendingAssetRemoval = EqLending;
+    type EqDotPrice = ();
+}
+
+parameter_types! {
+    pub const BailsmenUnsignedPriority: TransactionPriority = TransactionPriority::min_value();
+    pub const MaxBailsmenToDistribute: u32 = 20;
+    pub const QueueLengthWeightConstant: u32 = 5;
+}
+
+impl eq_bailsman::Config for Runtime {
+    type PalletId = BailsmanModuleId;
+    type PriceGetter = Oracle;
+    type UnixTime = EqRate;
+    type Balance = eq_primitives::balance::Balance;
+    type BalanceGetter = EqBalances;
+    type EqCurrency = EqBalances;
+    type Aggregates = EqAggregates;
+    type Event = Event;
+    type MinTempBalanceUsd = MinTempBalanceUsd;
+    type MinimalCollateral = MinimalCollateral;
+    type AssetGetter = EqAssets;
+    type WeightInfo = weights::pallet_bailsman::WeightInfo<Runtime>;
+    type MarginCallManager = EqMarginCall;
+    type SubaccountsManager = Subaccounts;
+    type AuthorityId = eq_rate::ed25519::AuthorityId;
+    type ValidatorOffchainBatcher = EqRate;
+    type UnsignedPriority = BailsmenUnsignedPriority;
+    type MaxBailsmenToDistribute = MaxBailsmenToDistribute;
+    type QueueLengthWeightConstant = QueueLengthWeightConstant;
+}
+
+parameter_types! {
+    pub const PriceStepCount: u32 = 5;
+    pub const PenaltyFee: Balance = 10 * ONE_TOKEN;
+    pub const DexUnsignedPriority: TransactionPriority = TransactionPriority::min_value();
+}
+
+impl eq_dex::Config for Runtime {
+    type Event = Event;
+    type DeleteOrderOrigin = EnsureRoot<AccountId>;
+    type UpdateAssetCorridorOrigin = EnsureRoot<AccountId>;
+    type PriceStepCount = PriceStepCount;
+    type PenaltyFee = PenaltyFee;
+    type DexUnsignedPriority = DexUnsignedPriority;
+    type WeightInfo = weights::pallet_dex::WeightInfo<Runtime>;
+    type ValidatorOffchainBatcher = eq_rate::Pallet<Runtime>;
+}
+
+parameter_types! {
+    pub InitialMargin: EqFixedU128 = EqFixedU128::saturating_from_rational(2, 10);
+    pub MaintenanceMargin: EqFixedU128 = EqFixedU128::saturating_from_rational(1, 10);
+    pub CriticalMargin: EqFixedU128 = EqFixedU128::saturating_from_rational(5, 100);
+    pub MaintenancePeriod: u64 = 60*60*24;
+}
+
+impl eq_margin_call::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type UnixTime = eq_rate::Pallet<Runtime>;
+    type BailsmenManager = Bailsman;
+    type BalanceGetter = EqBalances;
+    type PriceGetter = Oracle;
+    type InitialMargin = InitialMargin;
+    type MaintenanceMargin = MaintenanceMargin;
+    type CriticalMargin = CriticalMargin;
+    type MaintenancePeriod = MaintenancePeriod;
+    type OrderAggregates = EqDex;
+    type AssetGetter = EqAssets;
+    type SubaccountsManager = Subaccounts;
+    type WeightInfo = weights::pallet_margin_call::WeightInfo<Runtime>;
+}
+
 parameter_types! {
     pub const MaxSignatories: u32 = 10;
 }
@@ -349,7 +495,53 @@ parameter_types! {
 
 impl eq_aggregates::Config for Runtime {
     type Balance = Balance;
-    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type BalanceGetter = EqBalances;
+}
+
+pub struct FallbackWeightToFee;
+impl sp_runtime::traits::Convert<(Asset, XcmWeight), Option<eq_utils::XcmBalance>>
+    for FallbackWeightToFee
+{
+    fn convert((asset, weight): (Asset, XcmWeight)) -> Option<eq_utils::XcmBalance> {
+        use eq_primitives::asset;
+        use eq_xcm::fees::*;
+
+        Some(match asset {
+            asset::KSM => {
+                let weight =
+                    (weight * polkadot::BaseXcmWeight::get()) / crate::BaseXcmWeight::get();
+                kusama::WeightToFee::weight_to_fee(&Weight::from_ref_time(weight))
+            }
+            asset::MOVR => {
+                let weight =
+                    (weight * moonbeam::BaseXcmWeight::get()) / crate::BaseXcmWeight::get();
+                moonbeam::movr::WeightToFee::weight_to_fee(&Weight::from_ref_time(weight))
+            }
+            asset::HKO => {
+                let weight =
+                    (weight * parallel::BaseXcmWeight::get()) / crate::BaseXcmWeight::get();
+                parallel::hko::WeightToFee::weight_to_fee(&Weight::from_ref_time(weight))
+            }
+            asset::KAR => {
+                let weight = (weight * acala::BaseXcmWeight::get()) / crate::BaseXcmWeight::get();
+                acala::kar::WeightToFee::weight_to_fee(&Weight::from_ref_time(weight))
+            }
+            asset::KUSD => {
+                let weight = (weight * acala::BaseXcmWeight::get()) / crate::BaseXcmWeight::get();
+                acala::kusd::WeightToFee::weight_to_fee(&Weight::from_ref_time(weight))
+            }
+            asset::KBTC => {
+                let weight =
+                    (weight * interlay::BaseXcmWeight::get()) / crate::BaseXcmWeight::get();
+                interlay::kbtc::WeightToFee::weight_to_fee(&Weight::from_ref_time(weight))
+            }
+            asset::EQD => crate::fee::XcmWeightToFee::weight_to_fee(&Weight::from_ref_time(weight)),
+            asset::GENS => {
+                crate::fee::XcmWeightToFee::weight_to_fee(&Weight::from_ref_time(weight)) * 100
+            }
+            _ => return None,
+        })
+    }
 }
 
 pub struct XcmToFee;
@@ -442,15 +634,21 @@ impl eq_balances::Config for Runtime {
     /// The ubiquitous event type.
     type Event = Event;
 
-    type BalanceChecker = (eq_lending::Pallet<Runtime>,);
+    // order matters: heavy checks must be at the end
+    type BalanceChecker = (
+        eq_subaccounts::Pallet<Runtime>,
+        eq_balances::locked_balance_checker::CheckLocked<Runtime>,
+        eq_lending::Pallet<Runtime>,
+        eq_bailsman::Pallet<Runtime>,
+    );
 
     type ExistentialDeposit = ExistentialDeposit;
     type ExistentialDepositBasic = ExistentialDepositBasic;
     type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
     type Aggregates = eq_aggregates::Pallet<Runtime>;
     type TreasuryModuleId = TreasuryModuleId;
-    type SubaccountsManager = ();
-    type BailsmenManager = mocks::BailsmanManagerMock<TreasuryAccount, EqBalances>;
+    type SubaccountsManager = Subaccounts;
+    type BailsmenManager = Bailsman;
     type UpdateTimeManager = eq_rate::Pallet<Runtime>;
     type BailsmanModuleId = BailsmanModuleId;
     type ModuleId = BalancesModuleId;
@@ -458,8 +656,8 @@ impl eq_balances::Config for Runtime {
     type XcmToFee = XcmToFee;
     type LocationToAccountId = LocationToAccountId;
     type LocationInverter = LocationInverter<Ancestry>;
-    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
-    type OrderAggregates = ();
+    type PriceGetter = Oracle;
+    type OrderAggregates = EqDex;
     type AccountStore = System;
     type UnixTime = eq_rate::Pallet<Runtime>;
     type ForceXcmTransferOrigin = EnsureRoot<AccountId>;
@@ -595,22 +793,34 @@ impl authorship::Config for Runtime {
     type EventHandler = ();
 }
 
+#[cfg(not(feature = "production"))]
 impl sudo::Config for Runtime {
     type Event = Event;
     type Call = Call;
 }
 
-parameter_types! {
-    pub const MinSurplus: Balance =  100 * ONE_TOKEN; // 100 GENS
+parameter_types! {}
 
-    pub const MinTempBailsman: Balance = 50 * ONE_TOKEN; // 50 USD
-    pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
+const PRICE_TIMEOUT_IN_SECONDS: u64 = 60; // 1 minute
+
+parameter_types! {
+    pub const MedianPriceTimeout: u64 = 60 * 60 * 1; // 1 hours
+    pub const PriceTimeout: u64 = PRICE_TIMEOUT_IN_SECONDS;
+    pub const MinimalCollateral: Balance = 1000 * ONE_TOKEN; // 1000 USD
+    pub const OracleUnsignedPriority: UnsignedPriorityPair = (TransactionPriority::min_value(), 10_000);
+    pub const MinSurplus: Balance =  100 * ONE_TOKEN; // 100 Eq
+    pub const MinTempBalanceUsd: Balance = 50 * ONE_TOKEN; // 50 USD
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
-    pub const RepublicModuleId: PalletId = PalletId(*b"eq/repub");
-    pub const InvestorsModuleId: PalletId = PalletId(*b"eq/invst");
 
+    pub const LiquidityFarmingModuleId: PalletId = PalletId(*b"eq/liqfm");
+    pub const LendingModuleId: PalletId = PalletId(*b"eq/lendr");
+    pub const LpPriceBlockTimeout: u64 = PRICE_TIMEOUT_IN_SECONDS * 1000 / MILLISECS_PER_BLOCK;
+    pub const UnsignedLifetimeInBlocks: u32 = 5;
+    pub const FinancialRecalcPeriodBlocks: BlockNumber  = (1000 * 60 * 60 * 4) / MILLISECS_PER_BLOCK as BlockNumber; // 4 hours in blocks
+    pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
 }
+
 parameter_types! {
     pub BuyFee: Permill = PerThing::from_rational::<u32>(1, 1000);
     pub SellFee: Permill = PerThing::from_rational::<u32>(1, 1000);
@@ -621,8 +831,8 @@ impl eq_treasury::Config for Runtime {
     type Event = Event;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type Balance = Balance;
-    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
-    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type PriceGetter = Oracle;
+    type BalanceGetter = EqBalances;
     type EqCurrency = eq_balances::Pallet<Runtime>;
     type PalletId = TreasuryModuleId;
     type BuyFee = BuyFee;
@@ -661,6 +871,86 @@ impl eq_vesting::Config<VestingInstance> for Runtime {
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
     type PalletId = VestingModuleId;
     type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
+}
+
+parameter_types! {
+    // Maximum number of points for each asset that Financial Pallet can store
+    pub const PriceCount: u32 = 30;
+    // Duration of the price period in minutes
+    pub const PricePeriod: u32 = 24 * 60;
+    // CalcReturnType used by FinancialPallet's calc* extrinsics
+    pub const ReturnType: u32 = CalcReturnType::Log.into_u32();
+    // CalcVolatilityType used by FinancialPallet's calc* extrinsics
+    pub const VolCorType: i64 = CalcVolatilityType::Regular.into_i64();
+}
+
+impl financial_pallet::Config for Runtime {
+    type Event = Event;
+
+    // In most cases you should use pallet_timestamp as a UnixTime trait implementation
+    type UnixTime = eq_rate::Pallet<Runtime>;
+
+    // Specify parameters here you defined before
+    type PriceCount = PriceCount;
+    type PricePeriod = PricePeriod;
+    type ReturnType = ReturnType;
+    type VolCorType = VolCorType;
+
+    // Construct fixed number type that substrate-fixed crate provides.
+    // This type defines valid range of values and precision
+    // for all calculations Financial Pallet performs.
+    type FixedNumber = substrate_fixed::types::I64F64;
+    // FixedNumber underlying type should be defined explicitly because
+    // rust compiler could not determine it on its own.
+    type FixedNumberBits = i128;
+
+    // Specify here system wide type used for balance values.
+    // You should also provide convertions to and from FixedNumber
+    // which is used for all calculations under the hood.
+    type Price = substrate_fixed::types::I64F64;
+
+    // Asset type specific to your system. It can be as simple as
+    // enum. See example below.
+    type Asset = eq_primitives::asset::Asset;
+    // Provide BalanceAware trait implementation.
+    // Financial Pallet uses it to check user balances.
+    type Balances = BalanceAwareMock<AccountId, eq_primitives::asset::Asset>;
+}
+
+pub struct FinancialPalletOnNewAsset;
+impl OnNewAsset for FinancialPalletOnNewAsset {
+    fn on_new_asset(asset: eq_primitives::asset::Asset, prices: Vec<sp_runtime::FixedI64>) {
+        use frame_support::StorageMap;
+
+        if !prices.is_empty() {
+            let mut price_log = financial_primitives::capvec::CapVec::new(
+                <Runtime as financial_pallet::Config>::PriceCount::get(),
+            );
+
+            prices
+                .iter()
+                .rev()
+                .map(|price| eq_utils::fixedi64_to_i64f64(*price))
+                .for_each(|price| {
+                    price_log.push(price);
+                });
+
+            financial_pallet::PriceLogs::<Runtime>::insert(
+                asset,
+                financial_pallet::PriceLog {
+                    latest_timestamp: financial_pallet::Duration::from(
+                        eq_rate::Pallet::<Runtime>::now(),
+                    ),
+                    prices: price_log,
+                },
+            );
+        }
+
+        // May be that new prices are breaking financial pallet recalculation,
+        // but it is very rare case
+        #[allow(unused_must_use)]
+        let _ = Financial::recalc_inner();
+    }
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -705,33 +995,43 @@ parameter_types! {
     pub Alpha: FixedI128 = FixedI128::from(15);
 }
 
+/// Special structure that holds weights from pallets
+pub struct WeightInfoGetter;
+impl eq_primitives::bailsman_redistribute_weight::RedistributeWeightInfo for WeightInfoGetter {
+    fn redistribute(z: u32) -> Weight {
+        use eq_bailsman::WeightInfo;
+
+        weights::pallet_bailsman::WeightInfo::<Runtime>::redistribute(z)
+    }
+}
+
 #[allow(unused_parens)]
 impl eq_rate::Config for Runtime {
     type Balance = Balance;
-    type BalanceGetter = eq_balances::Pallet<Runtime>;
-    type BalanceRemover = eq_balances::Pallet<Runtime>;
+    type BalanceGetter = EqBalances;
+    type BalanceRemover = EqBalances;
     type AuthorityId = eq_rate::ed25519::AuthorityId;
     type MinSurplus = MinSurplus;
-    type BailsmanManager = mocks::BailsmanManagerMock<TreasuryAccount, EqBalances>;
-    type MinTempBailsman = MinTempBailsman;
+    type BailsmanManager = Bailsman;
+    type MinTempBailsman = MinTempBalanceUsd;
     type UnixTime = timestamp::Pallet<Runtime>;
     type EqBuyout = eq_treasury::Pallet<Runtime>;
     type BailsmanModuleId = BailsmanModuleId;
     type EqCurrency = eq_balances::Pallet<Runtime>;
-    type SubaccountsManager = ();
-    type MarginCallManager = mocks::MarginCallManagerMock;
+    type SubaccountsManager = Subaccounts;
+    type MarginCallManager = EqMarginCall;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type UnsignedPriority = RateUnsignedPriority;
     type WeightInfo = weights::pallet_rate::WeightInfo<Runtime>;
-    type RedistributeWeightInfo = ();
-    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
+    type RedistributeWeightInfo = WeightInfoGetter;
+    type PriceGetter = Oracle;
     type Aggregates = EqAggregates;
     type RiskLowerBound = RiskLowerBound;
     type RiskUpperBound = RiskUpperBound;
     type RiskNSigma = RiskNSigma;
     type Alpha = Alpha;
-    type Financial = FinancialMock<Asset, substrate_fixed::types::I64F64, AccountId>;
-    type FinancialStorage = ();
+    type Financial = Financial;
+    type FinancialStorage = Financial;
     type TreasuryFee = TreasuryFee;
     type WeightFeeTreasury = WeightFeeTreasury;
     type WeightFeeValidator = WeightFeeValidator;
@@ -754,23 +1054,34 @@ impl eq_session_manager::Config for Runtime {
     type WeightInfo = weights::pallet_session_manager::WeightInfo<Runtime>;
 }
 
-parameter_types! {
-    pub const LendingModuleId: PalletId = PalletId(*b"eq/lendr");
+impl eq_subaccounts::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetGetter = EqAssets;
+    type BalanceGetter = EqBalances;
+    type Aggregates = EqAggregates;
+    type EqCurrency = EqBalances;
+    type BailsmenManager = Bailsman;
+    type PriceGetter = Oracle;
+    type Whitelist = Whitelists;
+    type UpdateTimeManager = EqRate;
+    type WeightInfo = weights::pallet_subaccounts::WeightInfo<Runtime>;
+    type IsTransfersEnabled = EqBalances;
 }
 
 impl eq_lending::Config for Runtime {
     type Event = Event;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type Balance = Balance;
-    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type BalanceGetter = EqBalances;
     type Aggregates = eq_aggregates::Pallet<Runtime>;
-    type BailsmanManager = mocks::BailsmanManagerMock<TreasuryAccount, EqBalances>;
-    type SubaccountsManager = ();
+    type BailsmanManager = Bailsman;
+    type SubaccountsManager = Subaccounts;
     type ModuleId = LendingModuleId;
     type EqCurrency = EqBalances;
     type UnixTime = EqRate;
-    type PriceGetter = mocks::PriceGetterMock<EqAssets>;
-    type WeightInfo = ();
+    type PriceGetter = Oracle;
+    type WeightInfo = weights::pallet_lending::WeightInfo<Runtime>;
 }
 
 impl system::offchain::SigningTypes for Runtime {
@@ -838,15 +1149,14 @@ where
 }
 
 parameter_types! {
-    pub const ChainId: u8 = 6;
-    pub const ProposalLifetime: BlockNumber = 72000;
+    pub const ChainId: u8 = 1;
 }
 
 impl chainbridge::Config for Runtime {
     type Event = Event;
     type Currency = BasicCurrency;
     type Balance = Balance;
-    type BalanceGetter = eq_balances::Pallet<Runtime>;
+    type BalanceGetter = EqBalances;
     type AdminOrigin = system::EnsureRoot<Self::AccountId>;
     type Proposal = Call;
     type ChainIdentity = ChainId;
@@ -980,10 +1290,10 @@ pub type EqTrader = eq_xcm::assets::EqTrader<
     Balance,
     EqAssets,
     EqBalances,
-    mocks::PriceGetterMock<EqAssets>,
+    Oracle,
     TreasuryAccount,
     fee::XcmWeightToFee,
-    (),
+    FallbackWeightToFee,
 >;
 
 match_types! {
@@ -1098,8 +1408,13 @@ impl pallet_collator_selection::Config for Runtime {
     type WeightInfo = (); // weights::pallet_collator_selection::WeightInfo<Runtime>;
 }
 
-use crate::mocks::FinancialMock;
-use eq_primitives::{asset::Asset, balance::AccountData};
+use eq_primitives::{
+    asset::{Asset, AssetXcmData, OnNewAsset},
+    balance::AccountData,
+    balance_number::EqFixedU128,
+    curve_number::{CurveNumber, CurveNumberConvert},
+    TransferReason, UnsignedPriorityPair,
+};
 use sp_std::prelude::Vec;
 
 construct_runtime!(
@@ -1126,7 +1441,7 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config},
 
         EqAssets: eq_assets::{Pallet, Call, Config<T>, Storage, Event}, // Assets genesis must be built first
-        // Oracle: eq_oracle::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned},
+        Oracle: eq_oracle::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned},
         EqTreasury: eq_distribution::<Instance5>::{Pallet, Call, Storage, Config},
         Treasury: eq_treasury::{Pallet, Call, Storage, Config, Event<T>},
         EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -1135,13 +1450,21 @@ construct_runtime!(
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>},
         Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
+        Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,},
 
         Vesting: eq_vesting::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
         EqAggregates: eq_aggregates::{Pallet, Storage},
+        Subaccounts: eq_subaccounts::{Pallet, Call, Storage, Event<T>, Config<T>},
+        Financial: financial_pallet::{Pallet, Call, Storage, Config<T>, Event<T>},
         ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>, Config<T>},
         EqBridge: eq_bridge::{Pallet, Call, Storage, Event<T>, Config<T>},
         EqMultisigSudo: eq_multisig_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
+        EqMarginCall: eq_margin_call::{Pallet, Call, Storage, Event<T>},
+        EqDex: eq_dex::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned},
         EqLending: eq_lending::{Pallet, Call, Storage, Event<T>, Config<T>},
+        Migration: eq_migration::{Pallet, Call, Storage, Event<T>},
+        CurveAmm: equilibrium_curve_amm::{Pallet, Call, Storage, Event<T>},
 
         // XCM helpers.
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Storage, Origin, Config},
@@ -1188,9 +1511,374 @@ pub type Executive = frame_executive::Executive<
 #[derive(Clone, Eq, PartialEq, scale_info::TypeInfo)]
 pub struct CallsWithReinit;
 impl Contains<Call> for CallsWithReinit {
-    fn contains(_call: &Call) -> bool {
-        false
+    fn contains(call: &Call) -> bool {
+        matches!(call, Call::Subaccounts(..))
     }
+}
+
+pub struct AssetGenerator;
+
+impl AssetGenerator {
+    fn generate_asset_for_pool(pool_id: u32, name_base: Vec<u8>) -> eq_primitives::asset::Asset {
+        let zero_in_bytes = '0' as u8;
+        let mut pool_id_bytes: Vec<u8> = Vec::new();
+        let mut pool_id_for_bytes = pool_id;
+        while pool_id_for_bytes > 0 {
+            let byte = TryInto::<u8>::try_into(pool_id_for_bytes % 10).unwrap() + zero_in_bytes;
+            pool_id_bytes.push(byte);
+            pool_id_for_bytes = pool_id_for_bytes / 10;
+        }
+
+        // special case for 0, we want lpt0 instead of just lpt
+        if pool_id == 0 {
+            pool_id_bytes.push(zero_in_bytes);
+        }
+
+        pool_id_bytes.reverse();
+
+        let name: Vec<u8> = name_base
+            .iter()
+            .chain(pool_id_bytes.iter())
+            .map(|item| item.clone())
+            .collect();
+        eq_primitives::asset::Asset::from_bytes(&name)
+            .expect("Asset name cannot has wrong symbols!")
+    }
+}
+
+pub struct EqCurveAssetsAdapter;
+type AssetId = eq_primitives::asset::Asset;
+impl equilibrium_curve_amm::traits::Assets<AssetId, Balance, AccountId> for EqCurveAssetsAdapter {
+    fn create_asset(pool_id: equilibrium_curve_amm::PoolId) -> Result<AssetId, DispatchError> {
+        let asset = AssetGenerator::generate_asset_for_pool(pool_id, b"lpt".to_vec());
+
+        EqAssets::do_add_asset(
+            asset,
+            EqFixedU128::from(0),
+            FixedI64::from(0),
+            Permill::zero(),
+            Permill::zero(),
+            AssetXcmData::None,
+            LPTokensDebtWeight::get(),
+            LpTokenBuyoutPriority::get(),
+            eq_primitives::asset::AssetType::Lp(eq_primitives::asset::AmmPool::Curve(pool_id)),
+            false,
+            Percent::zero(),
+            Permill::one(),
+            // prices will be set at at OnPoolCreated
+            vec![],
+        )
+        .map_err(|e| e.error)?;
+
+        Ok(asset)
+    }
+
+    fn mint(asset: AssetId, dest: &AccountId, amount: Balance) -> DispatchResult {
+        EqBalances::deposit_creating(dest, asset, amount, true, None)
+    }
+
+    fn burn(asset: AssetId, dest: &AccountId, amount: Balance) -> DispatchResult {
+        EqBalances::withdraw(
+            dest,
+            asset,
+            amount,
+            true,
+            None,
+            WithdrawReasons::empty(),
+            ExistenceRequirement::AllowDeath,
+        )
+    }
+
+    fn transfer(
+        asset: AssetId,
+        source: &AccountId,
+        dest: &AccountId,
+        amount: Balance,
+    ) -> DispatchResult {
+        EqBalances::currency_transfer(
+            dest,
+            source,
+            asset,
+            amount,
+            ExistenceRequirement::AllowDeath,
+            TransferReason::Common,
+            true,
+        )
+        .into()
+    }
+
+    fn balance(asset: AssetId, who: &AccountId) -> Balance {
+        EqBalances::free_balance(who, asset)
+    }
+
+    fn total_issuance(asset: AssetId) -> Balance {
+        EqAggregates::get_total(UserGroup::Balances, asset).collateral
+    }
+
+    fn withdraw_admin_fees(
+        pool_id: equilibrium_curve_amm::PoolId,
+        amounts: impl Iterator<Item = Balance>,
+    ) -> DispatchResult {
+        let pool_info = equilibrium_curve_amm::Pallet::<Runtime>::pools(pool_id).ok_or(
+            equilibrium_curve_amm::Error::<Runtime>::PoolNotFound, // DispatchError::Module {
+                                                                   //     index: 33,
+                                                                   //     error: 4,
+                                                                   //     message: None,
+                                                                   // },
+        )?;
+        let pool_assets = pool_info.assets;
+
+        let _ = pool_assets.into_iter().zip(amounts).map(|(asset, amount)| {
+            <EqBalances as eq_primitives::balance::EqCurrency<AccountId, Balance>>::currency_transfer(
+                &CurveAmmModuleId::get().into_account_truncating(),
+                &EqTreasury::account_id(),
+                asset,
+                amount,
+                ExistenceRequirement::AllowDeath,
+                TransferReason::Common,
+                false,
+            )
+        })
+            .collect::<Result<_, DispatchError>>()?;
+        Ok(())
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn create_benchmark_asset() -> AssetId {
+        use sp_arithmetic::traits::One;
+
+        let assets_number = <EqAssets as eq_primitives::asset::AssetGetter>::get_assets().len() + 1;
+
+        let asset_name_bytes: Vec<u8> = "bench"
+            .as_bytes()
+            .iter()
+            .chain(assets_number.to_string().as_bytes())
+            .copied()
+            .collect();
+
+        let asset = eq_primitives::asset::Asset::from_bytes(&asset_name_bytes)
+            .expect("Asset name cannot has wrong symbols!");
+
+        EqAssets::do_add_asset(
+            asset,
+            0,
+            0,
+            0,
+            0,
+            AssetXcmData::None,
+            EqFixedU128::saturating_from_rational(2, 5).into_inner() as u128,
+            0,
+            eq_primitives::asset::AssetType::Native,
+            true,
+            EqFixedU128::from(1).into_inner(),
+            Permill::one(),
+            vec![FixedI64::one()],
+        )
+        .expect("Benchmark asset not added");
+
+        Oracle::set_the_only_price(asset, FixedI64::one());
+
+        asset
+    }
+}
+
+pub type CurveUnbalanceHandler = Treasury;
+
+mod curve_utils {
+    use super::*;
+    use eq_primitives::PriceGetter;
+    use eq_utils::{fixedi64_to_i64f64, i64f64_to_fixedi64};
+    use equilibrium_curve_amm::traits::CurveAmm;
+    use equilibrium_curve_amm::PoolId;
+    use financial_pallet::FinancialSystemTrait;
+    use financial_pallet::PriceLogs;
+    use financial_pallet::{
+        get_index_range, get_period_id_range, get_range_intersection, PriceLog,
+    };
+    use financial_primitives::capvec::CapVec;
+    use frame_benchmarking::Zero;
+    use frame_support::StorageMap;
+    use sp_arithmetic::FixedI64;
+    use sp_runtime::traits::Saturating;
+
+    pub struct AssetChecker;
+
+    impl equilibrium_curve_amm::traits::SliceChecker<AssetId> for AssetChecker {
+        #[cfg(not(feature = "runtime-benchmarks"))]
+        fn check(items: &[AssetId]) -> Result<(), DispatchError> {
+            use eq_primitives::financial_storage::FinancialStorage;
+            use frame_support::ensure;
+            use sp_std::collections::btree_set::BTreeSet;
+
+            let metrics = Financial::get_metrics()
+                .ok_or(equilibrium_curve_amm::pallet::Error::<Runtime>::ExternalAssetCheckFailed)?;
+            let assets_with_metrcis: BTreeSet<_> = metrics.assets.iter().collect();
+
+            for asset in items {
+                let asset_data =
+                    <EqAssets as eq_primitives::asset::AssetGetter>::get_asset_data(asset)?;
+
+                use eq_primitives::asset::AssetType;
+
+                match asset_data.asset_type {
+                    AssetType::Native | AssetType::Physical | AssetType::Synthetic => Ok(()),
+                    AssetType::Lp(_) => Err(
+                        equilibrium_curve_amm::pallet::Error::<Runtime>::ExternalAssetCheckFailed,
+                    ),
+                }?;
+
+                // check that all pool tokens have actual prices + fin metrics
+                let _: FixedI64 = Oracle::get_price(asset)?;
+                ensure!(
+                    assets_with_metrcis.contains(asset),
+                    equilibrium_curve_amm::pallet::Error::<Runtime>::ExternalAssetCheckFailed
+                );
+            }
+
+            Ok(())
+        }
+
+        #[cfg(feature = "runtime-benchmarks")]
+        fn check(items: &[AssetId]) -> Result<(), DispatchError> {
+            for asset in items {
+                let asset_data =
+                    <EqAssets as eq_primitives::asset::AssetGetter>::get_asset_data(asset)?;
+
+                use eq_primitives::asset::AssetType;
+
+                if let AssetType::Lp(_) = asset_data.asset_type {
+                    //skip errors in benchmark version
+                    continue;
+                };
+            }
+
+            Ok(())
+        }
+    }
+
+    pub struct OnPoolCreated;
+
+    impl equilibrium_curve_amm::traits::OnPoolCreated for OnPoolCreated {
+        fn on_pool_created(pool_id: PoolId) {
+            let pool = super::CurveAmm::pool(pool_id).expect("pool should be created!");
+            let assets = pool.assets;
+
+            // firstly set current lp token price
+            let price = calculate_mean_price(
+                assets
+                    .iter()
+                    .map(|asset| {
+                        Oracle::get_price(asset).expect("We checked all prices on pool creation!")
+                    })
+                    .collect(),
+            );
+            Oracle::set_the_only_price(pool.pool_asset, price);
+
+            // now we need to set historical prices of lp token,
+            // we assume that virtual price is 1 in history (no trades)
+            let price_period = financial_primitives::PricePeriod(PricePeriod::get());
+
+            let asset_logs: Vec<_> = assets
+                .iter()
+                .map(|asset| (asset, Financial::price_logs(asset).expect("")))
+                .collect();
+
+            let period_id_ranges = asset_logs
+                .iter()
+                .map(|(_, l)| {
+                    get_period_id_range(&price_period, l.prices.len(), l.latest_timestamp)
+                        .expect("No overflow for current metrics")
+                })
+                .collect::<Vec<_>>();
+
+            // Ensure that all correlations calculated for the same period
+            let intersection = get_range_intersection(period_id_ranges.iter())
+                .expect("current metrics are calculated, but prices are not intersected");
+
+            let mut historical_prices: Vec<Vec<FixedI64>> = (intersection.start..intersection.end)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|_| Vec::new())
+                .collect();
+
+            for ((_, log1), period_id_range1) in asset_logs.iter().zip(period_id_ranges.iter()) {
+                let range1 = get_index_range(period_id_range1, &intersection).unwrap();
+                log1.prices
+                    .iter_range(&range1)
+                    .enumerate()
+                    .for_each(|(index, price)| {
+                        historical_prices[index].push(i64f64_to_fixedi64(*price));
+                    });
+            }
+
+            let mut lp_price_log =
+                CapVec::new(<Runtime as financial_pallet::Config>::PriceCount::get());
+            for prices in historical_prices {
+                lp_price_log.push(fixedi64_to_i64f64(calculate_mean_price(prices)));
+            }
+
+            // TODO: Check historical prices not empty
+            PriceLogs::<Runtime>::insert(
+                pool.pool_asset,
+                PriceLog {
+                    latest_timestamp: price_period
+                        .get_period_id_start(intersection.end)
+                        .unwrap()
+                        .into(),
+                    prices: lp_price_log,
+                },
+            );
+
+            // May be that new prices are breaking financial pallet recalculation,
+            // but it is very rare case
+            #[allow(unused_must_use)]
+            let _ = Financial::recalc_inner();
+        }
+    }
+
+    fn calculate_mean_price(prices: Vec<FixedI64>) -> FixedI64 {
+        let prices_len = prices.len();
+        if prices_len == 0 {
+            FixedI64::zero()
+        } else {
+            let prices_sum = prices
+                .into_iter()
+                .fold(FixedI64::zero(), |acc, x| acc.saturating_add(x));
+
+            prices_sum / FixedI64::saturating_from_integer(prices_len as u64)
+        }
+    }
+}
+
+parameter_types! {
+    pub const CreationFee: Balance = 100_000 * ONE_TOKEN;
+    pub const CurveAmmModuleId: PalletId = PalletId(*b"eq/crvam");
+    pub Precision: CurveNumber = CurveNumber::from_inner(1u128);
+    pub LPTokensDebtWeight: Permill = Permill::from_rational(2u32, 5u32);
+    pub const LpTokenBuyoutPriority: u64 = u64::MAX;
+}
+
+/// Configure the pallet equilibrium_curve_amm in pallets/equilibrium_curve_amm.
+
+impl equilibrium_curve_amm::Config for Runtime {
+    type Event = Event;
+    type AssetId = AssetId;
+    type Balance = Balance;
+    type Currency = BasicCurrency;
+    type CreationFee = CreationFee;
+    type Assets = EqCurveAssetsAdapter;
+    type OnUnbalanced = CurveUnbalanceHandler;
+    type PalletId = CurveAmmModuleId;
+    type AssetChecker = curve_utils::AssetChecker;
+
+    type Number = CurveNumber;
+    type Precision = Precision;
+    type Convert = CurveNumberConvert;
+    type WeightInfo = weights::pallet_curve_amm::WeightInfo<Runtime>;
+    type OnPoolCreated = curve_utils::OnPoolCreated;
+
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkingInit = benchmarking::BenchmarkingInitializer;
 }
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -1329,26 +2017,26 @@ impl_runtime_apis! {
 
     impl equilibrium_curve_amm_rpc_runtime_api::EquilibriumCurveAmmApi<Block, Balance> for Runtime {
         fn get_dy(
-            _pool_id: equilibrium_curve_amm::PoolId,
-            _i: equilibrium_curve_amm::PoolTokenIndex,
-            _j: equilibrium_curve_amm::PoolTokenIndex,
-            _dx: Balance
+            pool_id: equilibrium_curve_amm::PoolId,
+            i: equilibrium_curve_amm::PoolTokenIndex,
+            j: equilibrium_curve_amm::PoolTokenIndex,
+            dx: Balance
         ) -> Option<Balance> {
-            None
+            CurveAmm::get_dy(pool_id, i, j, dx).ok()
         }
 
         fn get_withdraw_one_coin(
-            _pool_id: equilibrium_curve_amm::PoolId,
-            _burn_amount: Balance,
-            _i: equilibrium_curve_amm::PoolTokenIndex
+            pool_id: equilibrium_curve_amm::PoolId,
+            burn_amount: Balance,
+            i: equilibrium_curve_amm::PoolTokenIndex
         ) -> Option<Balance> {
-            None
+            CurveAmm::get_withdraw_one_coin(pool_id, burn_amount, i).ok()
         }
 
         fn get_virtual_price(
-            _pool_id: equilibrium_curve_amm::PoolId,
+            pool_id: equilibrium_curve_amm::PoolId,
         ) -> Option<Balance> {
-            None
+            CurveAmm::get_virtual_price(pool_id).ok()
         }
     }
 
@@ -1576,8 +2264,11 @@ mod tests {
             .chain(id.to_string().as_bytes().iter())
             .map(|item| item.clone())
             .collect();
-        let _asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
-        // assert_eq!(asset, EqCurveAssetsAdapter::generate_asset_for_pool(id));
+        let asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
+        assert_eq!(
+            asset,
+            AssetGenerator::generate_asset_for_pool(id, b"lpt".to_vec())
+        );
     }
 
     #[test]
@@ -1589,7 +2280,11 @@ mod tests {
             .map(|item| item.clone())
             .collect();
         let _asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
-        // assert_eq!(asset, EqCurveAssetsAdapter::generate_asset_for_pool(id));
+        let asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
+        assert_eq!(
+            asset,
+            AssetGenerator::generate_asset_for_pool(id, b"lpt".to_vec())
+        );
     }
 
     #[test]
@@ -1600,7 +2295,10 @@ mod tests {
             .chain(id.to_string().as_bytes().iter())
             .map(|item| item.clone())
             .collect();
-        let _asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
-        // assert_eq!(asset, EqCurveAssetsAdapter::generate_asset_for_pool(id));
+        let asset = eq_primitives::asset::Asset::from_bytes(&name).unwrap();
+        assert_eq!(
+            asset,
+            AssetGenerator::generate_asset_for_pool(id, b"lpt".to_vec())
+        );
     }
 }
