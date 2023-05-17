@@ -417,6 +417,7 @@ pub fn new_test_ext_params(relayers: Vec<AccountId>) -> sp_io::TestExternalities
         threshold: DEFAULT_RELAYER_THRESHOLD,
         resources: vec![],
         proposal_lifetime: DEFAULT_PROPOSAL_LIFETIME as u64,
+        min_nonces: vec![],
     }
     .assimilate_storage(&mut t)
     .unwrap();
@@ -455,6 +456,8 @@ pub fn new_test_ext_initialized(
         // Set proposal lifetime
         assert_ok!(ChainBridge::set_proposal_lifetime(Origin::root(), lifetime));
         assert_eq!(ChainBridge::proposal_lifetime(), lifetime);
+        // Set minimal nonce
+        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 0));
     });
     t
 }

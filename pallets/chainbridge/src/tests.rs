@@ -911,3 +911,46 @@ fn relays_count_is_valid_after_genesis_init() {
         assert_eq!(ChainBridge::relayer_count(), 3);
     })
 }
+
+#[test]
+fn minimal_nonce_check() {
+    let src_id = 1;
+    let r_id = derive_resource_id(src_id, b"remark");
+
+    new_test_ext_initialized(
+        src_id,
+        r_id,
+        b"System.remark".to_vec(),
+        DEFAULT_PROPOSAL_LIFETIME as u64,
+    )
+    .execute_with(|| {
+        let proposal = make_proposal(vec![10]);
+        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 0));
+        // Create proposal (& vote)
+        assert_ok!(ChainBridge::acknowledge_proposal(
+            Origin::signed(RELAYER_A),
+            1,
+            src_id,
+            r_id,
+            Box::new(proposal.clone())
+        ));
+        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 1));
+        assert_ok!(ChainBridge::acknowledge_proposal(
+            Origin::signed(RELAYER_B),
+            1,
+            src_id,
+            r_id,
+            Box::new(proposal.clone())
+        ));
+        assert_noop!(
+            ChainBridge::acknowledge_proposal(
+                Origin::signed(RELAYER_C),
+                0,
+                src_id,
+                r_id,
+                Box::new(proposal.clone())
+            ),
+            Error::<Test>::MinimalNonce
+        );
+    });
+}

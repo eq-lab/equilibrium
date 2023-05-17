@@ -41,7 +41,7 @@ mod tests;
 pub mod weights;
 
 use codec::{Codec, Decode, Encode, EncodeLike};
-use core::convert::{TryFrom, TryInto};
+use core::convert::TryInto;
 use eq_primitives::asset::AssetGetter;
 use eq_primitives::balance::BalanceGetter;
 use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
@@ -169,7 +169,6 @@ pub mod pallet {
             + Default
             + Codec
             + Copy
-            + TryFrom<eq_primitives::balance::Balance>
             + Into<eq_primitives::balance::Balance>;
 
         /// The currency adapter trait.
@@ -328,6 +327,22 @@ pub mod pallet {
             Self::unregister_relayer(v)
         }
 
+        /// Sets minimal deposit nonce for chain id
+        ///
+        /// # <weight>
+        /// - O(1) lookup and insert
+        /// # </weight>
+        #[pallet::weight(T::DbWeight::get().writes(1).ref_time())]
+        pub fn set_min_nonce(
+            origin: OriginFor<T>,
+            chain_id: ChainId,
+            min_nonce: DepositNonce,
+        ) -> DispatchResultWithPostInfo {
+            T::AdminOrigin::ensure_origin(origin)?;
+            MinDepositNonce::<T>::insert(chain_id, min_nonce);
+            Ok(().into())
+        }
+
         /// Commits a vote in favour of the provided proposal.
         ///
         /// If a proposal with the given nonce and source chain ID does not already exist, it will
@@ -356,6 +371,10 @@ pub mod pallet {
             ensure!(
                 Self::resource_exists(r_id),
                 Error::<T>::ResourceDoesNotExist
+            );
+            ensure!(
+                Self::min_nonce_threshold(src_id, nonce),
+                Error::<T>::MinimalNonce
             );
 
             Self::vote_for(who, nonce, src_id, call)?;
@@ -502,6 +521,8 @@ pub mod pallet {
         AllowabilityEqual,
         /// Bridge transfers to this chain are disabled
         DisabledChain,
+        /// Minimal nonce check not passed
+        MinimalNonce,
     }
 
     /// All whitelisted chains and their respective transaction counts.
@@ -513,6 +534,12 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn disabled_chains)]
     pub type DisabledChains<T: Config> = StorageMap<_, Blake2_128Concat, ChainId, (), ValueQuery>;
+
+    /// Minimal allowed value for deposit nonce per chain id
+    #[pallet::storage]
+    #[pallet::getter(fn min_deposit_nonce)]
+    pub type MinDepositNonce<T: Config> =
+        StorageMap<_, Blake2_128Concat, ChainId, DepositNonce, OptionQuery>;
 
     #[pallet::type_value]
     pub(super) fn DefaultForRelayerThreshold() -> u32 {
@@ -572,6 +599,7 @@ pub mod pallet {
         pub threshold: u32,
         pub resources: Vec<(ResourceId, Vec<u8>)>,
         pub proposal_lifetime: T::BlockNumber,
+        pub min_nonces: Vec<(ChainId, DepositNonce)>,
     }
 
     #[cfg(feature = "std")]
@@ -584,6 +612,7 @@ pub mod pallet {
                 threshold: DEFAULT_RELAYER_THRESHOLD,
                 resources: vec![],
                 proposal_lifetime: DEFAULT_PROPOSAL_LIFETIME.into(),
+                min_nonces: vec![],
                 _runtime: PhantomData,
             }
         }
@@ -592,6 +621,8 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
+            use core::convert::TryFrom;
+
             let extra_genesis_builder: fn(&Self) = |config| {
                 use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
                 EqPalletAccountInitializer::<T>::initialize(&Pallet::<T>::account_id());
@@ -627,6 +658,11 @@ pub mod pallet {
 
                 // 6. set proposal lifetime
                 ProposalLifetime::<T>::put(config.proposal_lifetime);
+
+                // 7. min_nonces
+                for (chain, n) in config.min_nonces.iter() {
+                    MinDepositNonce::<T>::insert(chain, n);
+                }
             };
             extra_genesis_builder(self);
         }
@@ -665,6 +701,12 @@ impl<T: Config> Pallet<T> {
     /// Asserts if transfers with chain are disabled.
     pub fn chain_enabled(id: ChainId) -> bool {
         return !<DisabledChains<T>>::contains_key(id);
+    }
+
+    pub fn min_nonce_threshold(id: ChainId, nonce: DepositNonce) -> bool {
+        MinDepositNonce::<T>::get(id)
+            .map(|min| nonce >= min)
+            .unwrap_or(false)
     }
 
     /// Increments the deposit nonce for the specified chain ID.

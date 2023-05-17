@@ -178,6 +178,7 @@ fn execute_remark() {
             DEFAULT_FEE
         ));
         assert_ok!(ChainBridge::set_resource(Origin::root(), r_id, resource));
+        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 0));
 
         assert_ok!(ChainBridge::acknowledge_proposal(
             Origin::signed(RELAYER_A),
@@ -294,6 +295,7 @@ fn create_successful_transfer_proposal() {
             DEFAULT_FEE
         ));
         assert_ok!(ChainBridge::set_resource(Origin::root(), r_id, resource));
+        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 0));
 
         // Create proposal (& vote)
         assert_ok!(ChainBridge::acknowledge_proposal(

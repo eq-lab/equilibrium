@@ -320,6 +320,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         resources: vec![],
         proposal_lifetime: 144_000,
         fees: vec![(0, DEFAULT_FEE / ONE_TOKEN)], // in genesis config integer part of balance
+        min_nonces: vec![],
     }
     .assimilate_storage(&mut t)
     .unwrap();
