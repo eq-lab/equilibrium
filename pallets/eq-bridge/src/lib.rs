@@ -41,6 +41,7 @@ mod mock;
 mod tests;
 pub mod weights;
 
+use codec::{Decode, Encode};
 use core::convert::TryFrom;
 use core::convert::TryInto;
 use eq_primitives::asset::{Asset, AssetGetter, AssetType};
@@ -55,6 +56,19 @@ use sp_std::prelude::*;
 pub use weights::WeightInfo;
 
 pub use pallet::*;
+
+const ETHEREUM_ADDRESS_LENGTH: usize = 20;
+const SUBSTRATE_ADDRESS_LENGTH: usize = 32;
+const SUBSTRATE_PREFIX_LENGTH: usize = 4;
+const SUBSTRATE_WITH_PREFIX_ADDRESS_LENGTH: usize =
+    SUBSTRATE_ADDRESS_LENGTH + SUBSTRATE_PREFIX_LENGTH;
+
+#[derive(Encode, Decode, Debug, Copy, Clone, PartialEq, Eq, scale_info::TypeInfo)]
+pub enum ChainAddressType {
+    Ethereum,
+    Substrate,
+    SubstrateWithPrefix,
+}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -99,6 +113,11 @@ pub mod pallet {
         Vec<chainbridge::ChainId>,
         ValueQuery,
     >;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_chain_address_type)]
+    pub type ChainAddressTypes<T: Config> =
+        StorageMap<_, Blake2_128Concat, chainbridge::ChainId, ChainAddressType, OptionQuery>;
 
     #[pallet::config]
     pub trait Config: frame_system::Config + chainbridge::Config {
@@ -204,6 +223,22 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::BridgeManagementOrigin::ensure_origin(origin)?;
             Self::update_minimum_transfer_amount(dest_id, resource_id, minimum_amount)
+        }
+
+        /// Stores chain id relation to chain address type.
+        /// Sudo only.
+        ///
+        /// # <weight>
+        /// - O(1) write
+        /// # </weight>
+        #[pallet::weight(T::DbWeight::get().writes(1).ref_time())]
+        pub fn set_chain_address_type(
+            origin: OriginFor<T>,
+            dest_id: chainbridge::ChainId,
+            address_type: Option<ChainAddressType>,
+        ) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+            Self::update_chain_address_type(dest_id, address_type)
         }
 
         //
@@ -314,6 +349,8 @@ pub mod pallet {
         WithdrawalsToggled(chainbridge::ResourceId, chainbridge::ChainId, bool),
         /// Minimum transfer amount to out of the network has changed. \[chainId, resourceId, new_minimum_amount\]
         MinimumTransferAmountChanged(chainbridge::ChainId, chainbridge::ResourceId, T::Balance),
+        /// ChainAddressType has changed. \[chainId, Option<ChainAddressType>\]
+        ChainAddressTypeChanged(chainbridge::ChainId, Option<ChainAddressType>),
     }
     #[pallet::error]
     pub enum Error<T> {
@@ -322,6 +359,8 @@ pub mod pallet {
         InvalidResourceId,
         /// not allowed to bridge tokens of this type
         InvalidAssetType,
+        /// wrong recipient address
+        RecipientChainAddressTypeMismatch,
         /// Bridge transfers to this chain are disabled
         DisabledChain,
         /// Interactions with this chain is not permitted
@@ -334,6 +373,8 @@ pub mod pallet {
         TransferAmountLowerMinimum,
         /// Invalid destination Account for XCM transfer
         InvalidAccount,
+        /// Attempt to set ChainAddressType to current value
+        ChainAddressTypeEqual,
     }
 
     #[pallet::genesis_config]
@@ -429,6 +470,28 @@ impl<T: Config> Pallet<T> {
         Ok(().into())
     }
 
+    fn update_chain_address_type(
+        dest_id: chainbridge::ChainId,
+        address_type: Option<ChainAddressType>,
+    ) -> DispatchResultWithPostInfo {
+        ensure!(
+            <chainbridge::Pallet<T>>::chain_whitelisted(dest_id),
+            Error::<T>::ChainNotWhitelisted
+        );
+        ensure!(
+            ChainAddressTypes::<T>::get(dest_id) != address_type,
+            Error::<T>::ChainAddressTypeEqual
+        );
+
+        match address_type {
+            Some(value) => ChainAddressTypes::<T>::insert(dest_id, value),
+            None => ChainAddressTypes::<T>::remove(dest_id),
+        }
+
+        Self::deposit_event(Event::ChainAddressTypeChanged(dest_id, address_type));
+        Ok(().into())
+    }
+
     fn is_mintable_asset(asset: &Asset) -> Result<bool, sp_runtime::DispatchError> {
         let asset_data = T::AssetGetter::get_asset_data(&asset)?;
 
@@ -457,6 +520,10 @@ impl<T: Config> Pallet<T> {
         ensure!(
             Self::withdrawals_enabled(resource_id, dest_id),
             Error::<T>::DisabledWithdrawals
+        );
+        ensure!(
+            Self::is_address_valid(&recipient, dest_id),
+            Error::<T>::RecipientChainAddressTypeMismatch
         );
         ensure!(
             amount >= <MinimumTransferAmount<T>>::get(dest_id, resource_id),
@@ -527,6 +594,19 @@ impl<T: Config> Pallet<T> {
         match enabled_chains.binary_search_by(|x| x.cmp(&chain_id)) {
             Ok(_) => true,
             Err(_) => false,
+        }
+    }
+
+    fn is_address_valid(recipient: &Vec<u8>, dest_id: chainbridge::ChainId) -> bool {
+        let expected_address_type = ChainAddressTypes::<T>::get(dest_id);
+        match expected_address_type {
+            Some(ChainAddressType::Ethereum) => recipient.len() == ETHEREUM_ADDRESS_LENGTH,
+            Some(ChainAddressType::Substrate) => recipient.len() == SUBSTRATE_ADDRESS_LENGTH,
+            Some(ChainAddressType::SubstrateWithPrefix) => {
+                recipient.len() == SUBSTRATE_ADDRESS_LENGTH
+                    || recipient.len() == SUBSTRATE_WITH_PREFIX_ADDRESS_LENGTH
+            }
+            None => true,
         }
     }
 }
