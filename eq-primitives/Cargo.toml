@@ -54,7 +54,7 @@ package = "frame-system"
 
 [dependencies.financial-pallet]
 default-features = false
-git = "ssh://git@gitlab.equilab.io/eqlab/substrate/financial-pallet.git"
+git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
 branch = "polkadot-v0.9.29"
 package = "financial-pallet"
 version = "0.1.2"
