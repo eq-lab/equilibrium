@@ -1449,7 +1449,7 @@ construct_runtime!(
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>},
-        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        // Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
         Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,},
 
