@@ -4101,6 +4101,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "gens-binary-opt"
+version = "0.3.0"
+dependencies = [
+ "eq-assets",
+ "eq-bailsman",
+ "eq-balances",
+ "eq-oracle",
+ "eq-primitives",
+ "eq-rate",
+ "eq-utils",
+ "eq-whitelists",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-session",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "gens-node-runtime"
 version = "3.0.0"
 dependencies = [

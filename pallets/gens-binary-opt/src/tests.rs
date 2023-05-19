@@ -1,22 +1,3 @@
-// This file is part of Equilibrium.
-
-// Copyright (C) 2023 EQ Lab.
-// SPDX-License-Identifier: GPL-3.0-or-later
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-
 #![cfg(test)]
 
 use eq_utils::ONE_TOKEN;
@@ -26,20 +7,23 @@ use sp_runtime::FixedI64;
 
 use crate::{mock::*, BinaryMode::*};
 
-type Module = crate::Module<Test>;
+type Module = crate::Pallet<Test>;
 type Error = crate::Error<Test>;
 
 #[test]
 fn start_single_binary_option() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             0,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
     })
 }
@@ -47,24 +31,30 @@ fn start_single_binary_option() {
 #[test]
 fn start_multiple_similar_binaries() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             0,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
         assert_err!(
-            Module::start(
+            Module::create(
                 RawOrigin::Root.into(),
                 BINARY_ID_0,
                 0,
+                DEPOSIT_OFFSET,
                 TARGET_ASSET,
                 CallPut(OLD_TARGET_PRICE),
                 PROPER_ASSET,
                 MINIMAL_DEPOSIT,
+                ZERO_FEE,
+                PENALTY,
             ),
             Error::AlreadyStarted,
         );
@@ -74,23 +64,29 @@ fn start_multiple_similar_binaries() {
 #[test]
 fn start_multiple_different_binaries() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             0,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_1,
             0,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
     })
 }
@@ -99,26 +95,32 @@ fn start_multiple_different_binaries() {
 fn start_with_non_existent_asset() {
     new_test_ext().execute_with(|| {
         assert_err!(
-            Module::start(
+            Module::create(
                 RawOrigin::Root.into(),
                 BINARY_ID_0,
                 0,
+                DEPOSIT_OFFSET,
                 UNKNOWN_ASSET,
                 CallPut(OLD_TARGET_PRICE),
                 PROPER_ASSET,
                 MINIMAL_DEPOSIT,
+                ZERO_FEE,
+                PENALTY,
             ),
             eq_assets::Error::<Test>::AssetNotExists,
         );
         assert_err!(
-            Module::start(
+            Module::create(
                 RawOrigin::Root.into(),
                 BINARY_ID_0,
                 0,
+                DEPOSIT_OFFSET,
                 TARGET_ASSET,
                 CallPut(OLD_TARGET_PRICE),
                 UNKNOWN_ASSET,
                 MINIMAL_DEPOSIT,
+                ZERO_FEE,
+                PENALTY,
             ),
             eq_assets::Error::<Test>::AssetNotExists,
         );
@@ -128,14 +130,17 @@ fn start_with_non_existent_asset() {
 #[test]
 fn start_binary_and_end_in_time() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         time_move(60);
@@ -147,14 +152,17 @@ fn start_binary_and_end_in_time() {
 #[test]
 fn start_binary_and_end_earlier() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         time_move(54);
@@ -173,14 +181,17 @@ fn start_binary_and_end_earlier() {
 #[test]
 fn start_multiple_similar_binaries_consequentially() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         time_move(60);
@@ -189,14 +200,17 @@ fn start_multiple_similar_binaries_consequentially() {
 
         time_move(40);
 
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         time_move(60);
@@ -208,34 +222,43 @@ fn start_multiple_similar_binaries_consequentially() {
 #[test]
 fn start_binary_option_with_in_out_mode() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             30,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             InOut(TARGET_PRICE_0, TARGET_PRICE_1),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_1,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             InOut(TARGET_PRICE_0, TARGET_PRICE_1),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_2,
             90,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             InOut(TARGET_PRICE_0, TARGET_PRICE_1),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -301,14 +324,17 @@ fn start_binary_option_with_in_out_mode() {
 #[test]
 fn try_to_end_binary_in_time_but_before_block_finalize() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             7,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         time_move(6);
@@ -354,14 +380,17 @@ fn try_to_end_binary_in_time_but_before_block_finalize() {
 #[test]
 fn binary_results_with_target_price_no_growth() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -398,14 +427,17 @@ fn binary_results_with_target_price_no_growth() {
 #[test]
 fn binary_results_with_target_price_growth() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -447,14 +479,17 @@ fn binary_results_with_target_price_growth() {
 #[test]
 fn deposit_while_already_participated() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -513,14 +548,17 @@ fn deposit_while_already_participated() {
 #[test]
 fn binary_results_with_multiple_winners_one_loser() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -566,14 +604,17 @@ fn binary_results_with_multiple_winners_one_loser() {
 #[test]
 fn try_to_deposit_when_the_participation_time_is_over() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -648,14 +689,17 @@ fn try_to_deposit_when_the_participation_time_is_over() {
 #[test]
 fn try_to_deposit_less_than_minimal_deposit() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_err!(
@@ -668,14 +712,17 @@ fn try_to_deposit_less_than_minimal_deposit() {
 #[test]
 fn try_to_withdraw_without_deposit() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -754,14 +801,17 @@ fn try_to_withdraw_without_deposit() {
 #[test]
 fn binary_results_with_no_winners() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -815,14 +865,17 @@ fn binary_results_with_no_winners() {
 #[test]
 fn binary_results_with_all_winners() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -864,14 +917,17 @@ fn binary_results_with_all_winners() {
 #[test]
 fn binary_results_with_multiple_winners_multiple_losers() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -927,14 +983,17 @@ fn binary_results_with_multiple_winners_multiple_losers() {
 #[test]
 fn claim_for_other() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -998,14 +1057,17 @@ fn claim_for_other() {
 #[test]
 fn rounding_error_residue_transfer_to_user_0() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -1057,14 +1119,17 @@ fn rounding_error_residue_transfer_to_user_0() {
 #[test]
 fn rounding_error_residue_transfer_to_user_1() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -1116,14 +1181,17 @@ fn rounding_error_residue_transfer_to_user_1() {
 #[test]
 fn try_purge_with_winners() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::start(
+        assert_ok!(Module::create(
             RawOrigin::Root.into(),
             BINARY_ID_0,
             60,
+            DEPOSIT_OFFSET,
             TARGET_ASSET,
             CallPut(OLD_TARGET_PRICE),
             PROPER_ASSET,
             MINIMAL_DEPOSIT,
+            ZERO_FEE,
+            PENALTY,
         ));
 
         assert_ok!(Module::deposit(
@@ -1169,6 +1237,53 @@ fn try_purge_with_winners() {
         assert_eq!(
             balances[&(get_treasury_account(), PROPER_ASSET)],
             0_05 * ONE_HUNDREDTH_TOKEN
+        );
+        assert_eq!(balances[&(get_pallet_account(), PROPER_ASSET)], 0);
+    })
+}
+
+#[test]
+fn fee_test() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Module::create(
+            RawOrigin::Root.into(),
+            BINARY_ID_0,
+            60,
+            DEPOSIT_OFFSET,
+            TARGET_ASSET,
+            CallPut(OLD_TARGET_PRICE),
+            PROPER_ASSET,
+            MINIMAL_DEPOSIT,
+            TEN_PERCENT_FEE,
+            PENALTY,
+        ));
+
+        assert_ok!(Module::deposit(
+            RawOrigin::Signed(USER_0).into(),
+            BINARY_ID_0,
+            true,
+            ONE_TOKEN,
+        ));
+        assert_ok!(Module::deposit(
+            RawOrigin::Signed(USER_1).into(),
+            BINARY_ID_0,
+            false,
+            ONE_TOKEN,
+        ));
+
+        time_move(60);
+
+        assert_ok!(Module::claim(RawOrigin::Signed(USER_1).into(), BINARY_ID_0));
+        assert_ok!(Module::purge(RawOrigin::Signed(USER_0).into(), BINARY_ID_0));
+
+        let balances = get_balances();
+        // won: 1 TOKEN
+        // fee: 10% * 1 ONE_TOKEN == 0.1 ONE_TOKEN == 1 ONE_TENTH_TOKEN
+        assert_eq!(balances[&(USER_0, PROPER_ASSET)], 9 * ONE_TOKEN);
+        assert_eq!(balances[&(USER_1, PROPER_ASSET)], 109 * ONE_TENTH_TOKEN);
+        assert_eq!(
+            balances[&(get_treasury_account(), PROPER_ASSET)],
+            ONE_TENTH_TOKEN
         );
         assert_eq!(balances[&(get_pallet_account(), PROPER_ASSET)], 0);
     })

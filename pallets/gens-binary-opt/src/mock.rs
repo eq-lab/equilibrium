@@ -1,29 +1,14 @@
-// This file is part of Equilibrium.
-
-// Copyright (C) 2023 EQ Lab.
-// SPDX-License-Identifier: GPL-3.0-or-later
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-
 #![cfg(test)]
 
 use super::*;
 
 use crate as gens_binary_opt;
+use eq_balances::MaxLocks;
 use eq_primitives::{
     asset,
+    balance::{Balance, DepositReason, WithdrawReason},
+    balance_number::EqFixedU128,
+    mocks::TimeZeroDurationMock,
     subaccount::{SubAccType, SubaccountsManager},
     Aggregates, BailsmanManager, EqBuyout, SignedBalance, TotalAggregates, UpdateTimeManager,
     UserGroup,
@@ -32,22 +17,23 @@ use eq_utils::ONE_TOKEN;
 use eq_whitelists::CheckWhitelisted;
 use frame_support::{
     parameter_types, sp_io,
-    traits::{Hooks, LockIdentifier, WithdrawReasons},
+    traits::{Currency, Hooks, LockIdentifier, WithdrawReasons},
+    PalletId,
 };
+use frame_system::EnsureRoot;
 use sp_core::H256;
-use sp_runtime::FixedU128;
 use sp_runtime::{
     testing::Header,
     traits::AccountIdConversion,
-    traits::{BlakeTwo256, IdentityLookup},
-    DispatchError, DispatchResult, FixedI128, FixedI64, FixedPointNumber, ModuleId, Perbill,
-    Perquintill,
+    traits::{BlakeTwo256, IdentityLookup, Zero},
+    DispatchError, DispatchResult, FixedI128, FixedI64, FixedPointNumber, Perbill, Percent,
 };
+use sp_runtime::{traits::One, Permill};
 use std::{cell::RefCell, collections::HashMap};
 
-pub const ONE_THIRD_TOKEN: u64 = 0_333_333_333;
-pub const ONE_TENTH_TOKEN: u64 = 0_100_000_000;
-pub const ONE_HUNDREDTH_TOKEN: u64 = 0_010_000_000;
+pub const ONE_THIRD_TOKEN: Balance = 0_333_333_333;
+pub const ONE_TENTH_TOKEN: Balance = 0_100_000_000;
+pub const ONE_HUNDREDTH_TOKEN: Balance = 0_010_000_000;
 
 pub const PROPER_ASSET: Asset = Asset(0x41414141); // "AAAA"
 pub const TARGET_ASSET: Asset = Asset(0x42424242); // "BBBB"
@@ -67,6 +53,11 @@ pub const BINARY_ID_0: BinaryId = 1;
 pub const BINARY_ID_1: BinaryId = 2;
 pub const BINARY_ID_2: BinaryId = 4;
 
+pub const ZERO_FEE: Permill = Permill::zero();
+pub const TEN_PERCENT_FEE: Permill = Permill::from_parts(100_000);
+pub const DEPOSIT_OFFSET: u64 = 10;
+pub const PENALTY: Permill = Permill::from_percent(5);
+
 pub const MINIMAL_DEPOSIT: Balance = ONE_HUNDREDTH_TOKEN;
 
 thread_local! {
@@ -83,15 +74,18 @@ thread_local! {
 }
 
 pub type Time = u64;
-pub type Balance = Balance;
 pub type BinaryId = u64;
 pub type AccountId = u64;
+type DummyValidatorId = u64;
+type BlockNumber = u64;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 pub type Block = frame_system::mocking::MockBlock<Test>;
 
-pub type ModuleTimestamp = timestamp::Module<Test>;
-pub type ModuleSystem = frame_system::Module<Test>;
-pub type ModuleBinaries = crate::Module<Test>;
+pub type ModuleTimestamp = timestamp::Pallet<Test>;
+pub type ModuleSystem = frame_system::Pallet<Test>;
+pub type ModuleBinaries = crate::Pallet<Test>;
+pub type CurrencyMock =
+    eq_primitives::balance_adapter::BalanceAdapter<Balance, EqCurrencyMock, BasicCurrencyGet>;
 
 // Test runtime
 
@@ -121,7 +115,7 @@ impl frame_system::Config for Test {
     type Origin = Origin;
     type Call = Call;
     type Index = u64;
-    type BlockNumber = u64;
+    type BlockNumber = BlockNumber;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
@@ -141,30 +135,37 @@ impl frame_system::Config for Test {
 }
 
 parameter_types! {
-    pub const BinaryOpModuleId: ModuleId = ModuleId(*b"eq/binop");
-    pub const BalancesModuleId: ModuleId = ModuleId(*b"eq/balan");
-    pub const BailsmanModuleId: ModuleId = ModuleId(*b"eq/bails");
-    pub const TreasuryModuleId: ModuleId = ModuleId(*b"eq/trsry");
+    pub const BinaryOpModuleId: PalletId = PalletId(*b"eq/binop");
+    pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
+    pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
+    pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
 }
 
-parameter_types! {
-    pub const DepositOffset: u64 = 10;
-    pub const Penalty: Perquintill = Perquintill::from_percent(5);
+pub struct TreasuryAccount;
+impl Get<AccountId> for TreasuryAccount {
+    fn get() -> AccountId {
+        TreasuryModuleId::get().into_account_truncating()
+    }
+}
+pub struct UpdateOnceInBlocks;
+impl Get<BlockNumber> for UpdateOnceInBlocks {
+    fn get() -> BlockNumber {
+        BlockNumber::one()
+    }
 }
 
 impl Config for Test {
     type Event = Event;
+    type ToggleBinaryCreateOrigin = EnsureRoot<AccountId>;
     type Balance = Balance;
-    type BinaryId = BinaryId;
     type AssetGetter = AssetGetterMock;
     type PriceGetter = OracleMock;
-    type UnixTime = timestamp::Module<Test>;
+    type UnixTime = timestamp::Pallet<Test>;
     type EqCurrency = EqCurrencyMock;
-    type DepositOffset = DepositOffset;
-    type Penalty = Penalty;
-    type ModuleId = BinaryOpModuleId;
-    type TreasuryModuleId = TreasuryModuleId;
+    type PalletId = BinaryOpModuleId;
+    type TreasuryModuleId = TreasuryAccount;
     type WeightInfo = ();
+    type UpdateOnceInBlocks = UpdateOnceInBlocks;
 }
 
 parameter_types! {
@@ -176,6 +177,7 @@ impl eq_assets::Config for Test {
     type MainAsset = BasicCurrencyGet;
     type OnNewAsset = ();
     type WeightInfo = ();
+    type AssetManagementOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
@@ -184,8 +186,8 @@ parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const MinimumPeriod: u64 = 1;
     pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(16);
-    pub const MinSurplus: u64 = 1 * ONE_TOKEN; // 1 usd
-    pub const MinTempBailsman: u64 = 20 * ONE_TOKEN; // 20 usd
+    pub const MinSurplus: Balance = 1 * ONE_TOKEN; // 1 usd
+    pub const MinTempBailsman: Balance = 20 * ONE_TOKEN; // 20 usd
     pub const UnsignedPriority: u64 = 100;
     pub const DepositEq: u64 = 0;
     pub const ExistentialDeposit: Balance = 1;
@@ -222,6 +224,9 @@ impl eq_balances::Config for Test {
     type LocationToAccountId = ();
     type LocationInverter = eq_primitives::mocks::LocationInverterMock;
     type OrderAggregates = ();
+    type ToggleTransferOrigin = EnsureRoot<AccountId>;
+    type ForceXcmTransferOrigin = EnsureRoot<AccountId>;
+    type UnixTime = TimeZeroDurationMock;
 }
 
 impl timestamp::Config for Test {
@@ -263,24 +268,22 @@ impl timestamp::Config for Test {
 
 pub struct AssetGetterMock;
 
-impl AssetGetter<DebtWeightType> for AssetGetterMock {
-    fn get_asset_data(
-        asset: &Asset,
-    ) -> Result<asset::AssetData<Asset, DebtWeightType>, DispatchError> {
+impl AssetGetter for AssetGetterMock {
+    fn get_asset_data(asset: &Asset) -> Result<asset::AssetData<Asset>, DispatchError> {
         if Self::exists(asset.clone()) {
-            Ok(asset::AssetData::<Asset, DebtWeightType> {
+            Ok(asset::AssetData::<Asset> {
                 id: asset.clone(),
-                lot: FixedU128::from_inner(0),
-                price_step: FixedU128::from_inner(0),
-                maker_fee: FixedU128::from_inner(0),
-                taker_fee: FixedU128::from_inner(0),
-                multi_asset: None,
-                multi_location: None,
-                debt_weight: DebtWeightType::from_inner(0),
+                lot: EqFixedU128::from_inner(0),
+                price_step: FixedI64::from_inner(0),
+                maker_fee: Permill::zero(),
+                taker_fee: Permill::zero(),
+                debt_weight: Permill::zero(),
                 buyout_priority: 0,
                 asset_type: asset::AssetType::Physical,
                 is_dex_enabled: false,
-                collateral_enabled: false,
+                asset_xcm_data: eq_primitives::asset::AssetXcmData::None,
+                lending_debt_weight: Permill::one(),
+                collateral_discount: Percent::one(),
             })
         } else {
             Err(eq_assets::Error::<Test>::AssetNotExists.into())
@@ -294,11 +297,11 @@ impl AssetGetter<DebtWeightType> for AssetGetterMock {
         }
     }
 
-    fn get_assets_data() -> Vec<asset::AssetData<Asset, DebtWeightType>> {
+    fn get_assets_data() -> Vec<asset::AssetData<Asset>> {
         todo!()
     }
 
-    fn get_assets_data_with_usd() -> Vec<asset::AssetData<Asset, DebtWeightType>> {
+    fn get_assets_data_with_usd() -> Vec<asset::AssetData<Asset>> {
         todo!()
     }
 
@@ -318,14 +321,6 @@ impl AssetGetter<DebtWeightType> for AssetGetterMock {
         PROPER_ASSET
     }
 
-    fn get_collateral_enabled_assets() -> Vec<Asset> {
-        Self::get_assets()
-    }
-
-    fn is_allowed_as_collateral(_asset: &Asset) -> bool {
-        true
-    }
-
     fn collateral_discount(_asset: &Asset) -> EqFixedU128 {
         EqFixedU128::one()
     }
@@ -335,15 +330,15 @@ pub struct BalanceCheckerMock {}
 
 pub const FAIL_ACC: u64 = 666;
 
-impl eq_primitives::balance::BalanceChecker<u64, u64, EqBalances, SubaccountsManagerMock>
+impl eq_primitives::balance::BalanceChecker<Balance, AccountId, EqBalances, SubaccountsManagerMock>
     for BalanceCheckerMock
 {
     fn can_change_balance_impl(
         who: &u64,
-        changes: &Vec<(Asset, eq_primitives::SignedBalance<Balance>)>,
+        changes: &Vec<(Asset, SignedBalance<Balance>)>,
         _reason: Option<WithdrawReasons>,
     ) -> Result<(), sp_runtime::DispatchError> {
-        let all_positive = change.iter().all(|sb| match sb {
+        let all_positive = changes.iter().all(|(_, sb)| match sb {
             SignedBalance::Positive(_) => true,
             SignedBalance::Negative(_) => false,
         });
@@ -359,7 +354,7 @@ impl eq_primitives::balance::BalanceChecker<u64, u64, EqBalances, SubaccountsMan
 
 pub struct BailsmenManagerMock;
 
-impl BailsmanManager<AccountId, u64> for BailsmenManagerMock {
+impl BailsmanManager<AccountId, Balance> for BailsmenManagerMock {
     fn register_bailsman(_who: &AccountId) -> Result<(), sp_runtime::DispatchError> {
         unimplemented!()
     }
@@ -375,14 +370,9 @@ impl BailsmanManager<AccountId, u64> for BailsmenManagerMock {
         Ok(())
     }
 
-    fn reinit() -> Result<bool, sp_runtime::DispatchError> {
-        unimplemented!()
-    }
-
     fn should_unreg_bailsman(
         _who: &AccountId,
-        _assets: &[Asset],
-        _amounts: &[SignedBalance<u64>],
+        _amounts: &[(Asset, SignedBalance<Balance>)],
         _: Option<(Balance, Balance)>,
     ) -> Result<bool, sp_runtime::DispatchError> {
         unimplemented!()
@@ -394,6 +384,16 @@ impl BailsmanManager<AccountId, u64> for BailsmenManagerMock {
 
     fn distribution_queue_len() -> u32 {
         0
+    }
+
+    fn redistribute(_who: &AccountId) -> Result<u32, sp_runtime::DispatchError> {
+        todo!()
+    }
+
+    fn get_account_distribution(
+        _who: &AccountId,
+    ) -> Result<eq_primitives::AccountDistribution<Balance>, sp_runtime::DispatchError> {
+        todo!()
     }
 }
 
@@ -407,11 +407,10 @@ impl UpdateTimeManager<AccountId> for RateMock {
 
 pub struct EqBuyoutMock;
 
-impl EqBuyout<u64, u64> for EqBuyoutMock {
-    fn eq_buyout(who: &u64, amount: u64) -> sp_runtime::DispatchResult {
-        let native_asset =
-            <eq_assets::Module<Test> as AssetGetter<DebtWeightType>>::get_main_asset();
-        <eq_balances::Module<Test> as EqCurrency<u64, u64>>::currency_transfer(
+impl EqBuyout<AccountId, Balance> for EqBuyoutMock {
+    fn eq_buyout(who: &AccountId, amount: Balance) -> sp_runtime::DispatchResult {
+        let native_asset = <eq_assets::Pallet<Test> as AssetGetter>::get_main_asset();
+        <eq_balances::Pallet<Test> as EqCurrency<AccountId, Balance>>::currency_transfer(
             &TreasuryModuleId::get().into_account_truncating(),
             who,
             native_asset,
@@ -421,7 +420,7 @@ impl EqBuyout<u64, u64> for EqBuyoutMock {
             false,
         )?;
 
-        <eq_balances::Module<Test> as EqCurrency<u64, u64>>::currency_transfer(
+        <eq_balances::Pallet<Test> as EqCurrency<AccountId, Balance>>::currency_transfer(
             who,
             &TreasuryModuleId::get().into_account_truncating(),
             asset::EOS,
@@ -433,7 +432,11 @@ impl EqBuyout<u64, u64> for EqBuyoutMock {
 
         Ok(())
     }
-    fn is_enough(_asset: Asset, _amount: u64, _amount_buyout: u64) -> Result<bool, DispatchError> {
+    fn is_enough(
+        _asset: Asset,
+        _amount: Balance,
+        _amount_buyout: Balance,
+    ) -> Result<bool, DispatchError> {
         Ok(true)
     }
 }
@@ -448,19 +451,25 @@ impl Aggregates<AccountId, Balance> for AggregatesMock {
     fn in_usergroup(_account_id: &AccountId, _user_group: UserGroup) -> bool {
         true
     }
-    fn set_usergroup(account_id: &AccountId, user_group: UserGroup, _is_in: &bool) {
+    fn set_usergroup(
+        account_id: &AccountId,
+        user_group: UserGroup,
+        _is_in: bool,
+    ) -> Result<(), sp_runtime::DispatchError> {
         USER_GROUPS.with(|v| {
             v.borrow_mut()
                 .push((user_group.clone(), account_id.clone()));
-        })
+        });
+        Ok(())
     }
 
     fn update_total(
         _account_id: &AccountId,
         _asset: Asset,
-        _prev_balance: &SignedBalance<u64>,
-        _delta_balance: &SignedBalance<u64>,
-    ) {
+        _prev_balance: &SignedBalance<Balance>,
+        _delta_balance: &SignedBalance<Balance>,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        Ok(())
     }
 
     fn iter_account(user_group: UserGroup) -> Box<dyn Iterator<Item = AccountId>> {
@@ -476,10 +485,10 @@ impl Aggregates<AccountId, Balance> for AggregatesMock {
     }
     fn iter_total(
         _user_group: UserGroup,
-    ) -> Box<dyn Iterator<Item = (Asset, TotalAggregates<u64>)>> {
+    ) -> Box<dyn Iterator<Item = (Asset, TotalAggregates<Balance>)>> {
         panic!("AggregatesMock not implemented");
     }
-    fn get_total(_user_group: UserGroup, _asset: Asset) -> TotalAggregates<u64> {
+    fn get_total(_user_group: UserGroup, _asset: Asset) -> TotalAggregates<Balance> {
         TotalAggregates {
             collateral: 0,
             debt: 0,
@@ -490,10 +499,19 @@ impl Aggregates<AccountId, Balance> for AggregatesMock {
 pub struct OracleMock;
 
 impl PriceGetter for OracleMock {
-    fn get_price(asset: &Asset) -> Result<FixedI64, DispatchError> {
+    fn get_price<FixedNumber: FixedPointNumber + One + Zero + Debug + TryFrom<FixedI64>>(
+        asset: &Asset,
+    ) -> Result<FixedNumber, DispatchError> {
         match *asset {
-            TARGET_ASSET => Ok(ASSET_PRICE.with(|price| *price.borrow())),
-            PROPER_ASSET => Ok(FixedI64::one()),
+            TARGET_ASSET => {
+                let result: Result<FixedNumber, _> =
+                    ASSET_PRICE.with(|price| *price.borrow()).try_into();
+                match result {
+                    Ok(price) => Ok(price),
+                    Err(_) => Err(DispatchError::Other("Couldn't convert")),
+                }
+            }
+            PROPER_ASSET => Ok(FixedNumber::one()),
             _ => Err(DispatchError::Other("Unknown asset")),
         }
     }
@@ -502,7 +520,10 @@ impl PriceGetter for OracleMock {
 pub struct EqCurrencyMock;
 
 impl EqCurrency<AccountId, Balance> for EqCurrencyMock {
-    fn total_balance(asset: Asset, who: &AccountId) -> Balance {
+    type Moment = Block;
+    type MaxLocks = MaxLocks;
+
+    fn total_balance(who: &AccountId, asset: Asset) -> Balance {
         BALANCES.with(|balances| {
             balances
                 .borrow()
@@ -512,7 +533,7 @@ impl EqCurrency<AccountId, Balance> for EqCurrencyMock {
         })
     }
 
-    fn debt(_asset: Asset, _who: &AccountId) -> Balance {
+    fn debt(_who: &AccountId, _asset: Asset) -> Balance {
         unimplemented!()
     }
 
@@ -524,13 +545,13 @@ impl EqCurrency<AccountId, Balance> for EqCurrencyMock {
         unimplemented!()
     }
 
-    fn free_balance(_asset: Asset, _who: &AccountId) -> Balance {
+    fn free_balance(_who: &AccountId, _asset: Asset) -> Balance {
         unimplemented!()
     }
 
     fn ensure_can_withdraw(
-        _asset: Asset,
         _who: &AccountId,
+        _asset: Asset,
         _amount: Balance,
         _reasons: frame_support::traits::WithdrawReasons,
         _new_balance: Balance,
@@ -539,9 +560,9 @@ impl EqCurrency<AccountId, Balance> for EqCurrencyMock {
     }
 
     fn currency_transfer(
-        asset: Asset,
         transactor: &AccountId,
         dest: &AccountId,
+        asset: Asset,
         value: Balance,
         _existence_requirement: ExistenceRequirement,
         _transfer_reason: TransferReason,
@@ -564,23 +585,11 @@ impl EqCurrency<AccountId, Balance> for EqCurrencyMock {
                 }
             })
         }
-
-        fn set_lock(_: LockIdentifier, _: &AccountId, _: Balance) {
-            panic!("{}:{} - should not be called", file!(), line!())
-        }
-
-        fn extend_lock(_: LockIdentifier, _: &AccountId, _: Balance) {
-            panic!("{}:{} - should not be called", file!(), line!())
-        }
-
-        fn remove_lock(_: LockIdentifier, _: &AccountId) {
-            panic!("{}:{} - should not be called", file!(), line!())
-        }
     }
 
     fn deposit_into_existing(
-        _asset: Asset,
         _who: &AccountId,
+        _asset: Asset,
         _value: Balance,
         _: Option<DepositReason>,
     ) -> Result<(), DispatchError> {
@@ -588,28 +597,30 @@ impl EqCurrency<AccountId, Balance> for EqCurrencyMock {
     }
 
     fn deposit_creating(
-        _asset: Asset,
-        _who: &AccountId,
-        _value: Balance,
-        _ensure_can_change: bool,
+        _: &DummyValidatorId,
+        _: Asset,
+        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        _: bool,
+        _: Option<DepositReason>,
     ) -> Result<(), DispatchError> {
         unimplemented!()
     }
 
     fn withdraw(
-        _asset: Asset,
-        _who: &AccountId,
-        _value: Balance,
-        _reasons: frame_support::traits::WithdrawReasons,
-        _liveness: ExistenceRequirement,
-        _ensure_can_change: bool,
+        _: &DummyValidatorId,
+        _: Asset,
+        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        _: bool,
+        _: Option<WithdrawReason>,
+        _: WithdrawReasons,
+        _: ExistenceRequirement,
     ) -> Result<(), DispatchError> {
         unimplemented!()
     }
 
     fn make_free_balance_be(
-        _asset: Asset,
         _who: &AccountId,
+        _asset: Asset,
         _value: eq_primitives::SignedBalance<Balance>,
     ) {
         unimplemented!()
@@ -637,6 +648,49 @@ impl EqCurrency<AccountId, Balance> for EqCurrencyMock {
 
     fn unreserve(_who: &AccountId, _asset: Asset, _amount: Balance) -> Balance {
         unimplemented!()
+    }
+
+    fn reserved_balance(_who: &AccountId, _asset: Asset) -> Balance {
+        panic!("{}:{} - should not be called", file!(), line!())
+    }
+
+    fn slash_reserved(
+        _who: &AccountId,
+        _asset: Asset,
+        _value: Balance,
+    ) -> (eq_balances::NegativeImbalance<Balance>, Balance) {
+        panic!("{}:{} - should not be called", file!(), line!())
+    }
+
+    fn repatriate_reserved(
+        _slashed: &AccountId,
+        _beneficiary: &AccountId,
+        _asset: Asset,
+        _value: Balance,
+        _status: frame_support::traits::BalanceStatus,
+    ) -> Result<Balance, DispatchError> {
+        panic!("{}:{} - should not be called", file!(), line!())
+    }
+
+    fn xcm_transfer(
+        _from: &AccountId,
+        _asset: Asset,
+        _amount: Balance,
+        _kind: eq_primitives::balance::XcmDestination,
+    ) -> DispatchResult {
+        panic!("{}:{} - should not be called", file!(), line!())
+    }
+
+    fn set_lock(_: LockIdentifier, _: &AccountId, _: Balance) {
+        panic!("{}:{} - should not be called", file!(), line!())
+    }
+
+    fn extend_lock(_: LockIdentifier, _: &AccountId, _: Balance) {
+        panic!("{}:{} - should not be called", file!(), line!())
+    }
+
+    fn remove_lock(_: LockIdentifier, _: &AccountId) {
+        panic!("{}:{} - should not be called", file!(), line!())
     }
 }
 

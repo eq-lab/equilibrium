@@ -10,6 +10,8 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 serde = {version = "1.0.123", optional = true, features = ["derive"]}
 codec = {package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+log = { version = "0.4.17", default-features = false }
 
 [dependencies.frame-support]
 default-features = false
@@ -75,10 +77,12 @@ version = "0.1.0"
 path = "../eq-whitelists"
 version = "0.1.0"
 
-[dev-dependencies.timestamp]
+[dependencies.timestamp]
+default-features = false
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.29"
 package = "pallet-timestamp"
+optional = true
 
 [dev-dependencies.session]
 git = "https://github.com/paritytech/substrate"
@@ -98,9 +102,11 @@ std = [
   "sp-std/std",
   "eq-primitives/std",
   "eq-utils/std",
+  "timestamp/std",
 ]
 runtime-benchmarks = [
   "frame-benchmarking",
+  "timestamp/runtime-benchmarks",
 ]
 try-runtime = [
   "frame-support/try-runtime",
