@@ -5,10 +5,10 @@ authors = ["equilibrium"]
 edition = "2018"
 
 [dependencies]
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.29" }
-sp-api = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.29" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.42" }
+sp-api = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.42" }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.29" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.42" }
 eq-xdot-pool = { version = "0.1.0", default-features = false, path = "../..", package="eq-xdot-pool" }
 
 [features]

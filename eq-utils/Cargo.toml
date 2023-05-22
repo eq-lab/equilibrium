@@ -21,29 +21,29 @@ features = ["derive"]
 [dependencies.sp-arithmetic]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 
 [dependencies.frame-support]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 
 [dependencies.sp-runtime]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.sp-io]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.sp-std]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "sp-std"
 
 [dependencies.substrate-fixed]
@@ -54,12 +54,12 @@ package = "substrate-fixed"
 [dependencies.xcm]
 default-features = false
 git = "https://github.com/paritytech/polkadot"
-branch = "release-v0.9.29"
+branch = "release-v0.9.42"
 
 [dependencies.equilibrium-curve-amm]
 default-features = false
 git = "https://github.com/equilibrium-eosdt/equilibrium-curve-amm"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "equilibrium-curve-amm"
 version = "0.2.3"
 
