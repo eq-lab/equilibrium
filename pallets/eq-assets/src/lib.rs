@@ -233,6 +233,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Constructs and adds an asset
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::add_asset())]
         pub fn add_asset(
             origin: OriginFor<T>,
@@ -286,6 +287,7 @@ pub mod pallet {
 
         /// Call to remove asset from eq_assets::Assets, eq_oracle, eq_lenders and financial_pallet storages
         /// Doesn't affect mm, xdot and curve pools
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::remove_asset())]
         pub fn remove_asset(origin: OriginFor<T>, asset_id: Asset) -> DispatchResultWithPostInfo {
             T::AssetManagementOrigin::ensure_origin(origin)?;
@@ -324,6 +326,7 @@ pub mod pallet {
         }
 
         /// Updates an asset
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::update_asset())]
         pub fn update_asset(
             origin: OriginFor<T>,

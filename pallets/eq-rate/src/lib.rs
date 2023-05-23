@@ -314,6 +314,7 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::reinit())]
         pub fn reinit(
             origin: OriginFor<T>,
@@ -363,6 +364,7 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn delete_account(
             origin: OriginFor<T>,
@@ -393,6 +395,7 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
+        #[pallet::call_index(2)]
         #[pallet::weight(10000)]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -432,6 +435,7 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
+        #[pallet::call_index(3)]
         #[pallet::weight(10000)]
         pub fn withdraw(
             origin: OriginFor<T>,
@@ -476,6 +480,7 @@ pub mod pallet {
         ///
         /// Parameters:
         ///  - `account`: Account that should be checked for deletion.
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::delete_account_external())]
         pub fn delete_account_external(
             origin: OriginFor<T>,
@@ -494,6 +499,7 @@ pub mod pallet {
         ///
         /// Parameters:
         ///  - `account`: Account that should be checked for margin call and charged fee.
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::reinit_external())]
         pub fn reinit_external(
             origin: OriginFor<T>,
@@ -507,6 +513,7 @@ pub mod pallet {
         }
 
         /// Function used in test builds for time move
+        #[pallet::call_index(6)]
         #[pallet::weight(10_000)]
         pub fn set_now_millis_offset(
             origin: OriginFor<T>,
@@ -531,6 +538,7 @@ pub mod pallet {
 
         /// Enables or disables offchain workers. `true` to enable offchain worker
         /// operations, `false` to disable them.
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as Config>::WeightInfo::set_auto_reinit_enabled())]
         pub fn set_auto_reinit_enabled(
             origin: OriginFor<T>,

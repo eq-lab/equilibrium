@@ -318,6 +318,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Deposit amount of DOT
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::deposit())]
         pub fn deposit(origin: OriginFor<T>, amount: T::Balance) -> DispatchResultWithPostInfo {
             let account_id = ensure_signed(origin)?;
@@ -335,6 +336,7 @@ pub mod pallet {
         /// Withdraw
         /// params:
         /// - amount - amount of DOT/EQDOT to withdraw/burn
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn withdraw(
             origin: OriginFor<T>,
@@ -377,6 +379,7 @@ pub mod pallet {
             }
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(10_000)]
         pub fn initialize(
             origin: OriginFor<T>,
@@ -415,6 +418,7 @@ pub mod pallet {
         }
 
         ///Set total unlocking. For maintenance purposes
+        #[pallet::call_index(3)]
         #[pallet::weight(10_000)]
         pub fn set_total_unlocking(
             origin: OriginFor<T>,

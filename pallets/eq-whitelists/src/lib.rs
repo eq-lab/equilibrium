@@ -78,6 +78,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Adds a `who_to_add` account to whitelist. Requires root authorization
+        #[pallet::call_index(0)]
         #[pallet::weight((
             T::WeightInfo::add_to_whitelist(),
             DispatchClass::Normal))
@@ -105,6 +106,7 @@ pub mod pallet {
         }
 
         /// Removes an account `who_to_remove` from whitelist. Requires sudo authorization
+        #[pallet::call_index(1)]
         #[pallet::weight((
             T::WeightInfo::remove_from_whitelist(),
             DispatchClass::Normal

@@ -143,6 +143,7 @@ pub mod pallet {
         /// locked under this module.
         ///
         /// Emits either `VestingCompleted` or `VestingUpdated`.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::vest_locked().max(T::WeightInfo::vest_unlocked()))]
         pub fn vest(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -157,6 +158,7 @@ pub mod pallet {
         /// locked under this module.
         ///
         /// Emits either `VestingCompleted` or `VestingUpdated`.
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::vest_other_locked().max(T::WeightInfo::vest_other_unlocked()))]
         pub fn vest_other(
             origin: OriginFor<T>,
@@ -174,6 +176,7 @@ pub mod pallet {
         /// - `target`: The account that should be transferred the vested funds.
         /// - `amount`: The amount of funds to transfer and will be vested.
         /// - `schedule`: The vesting schedule attached to the transfer.
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::vested_transfer())]
         pub fn force_vested_transfer(
             origin: OriginFor<T>,

@@ -101,6 +101,7 @@ pub mod pallet {
         ///  - `asset`: The asset that will be transfered;
         ///  - `target`: The account that should be transferred funds;
         ///  - `value`: The amount of `asset` that will be transferred.
+        #[pallet::call_index(0)]
         #[pallet::weight((
             T::WeightInfo::transfer(),
             DispatchClass::Normal
@@ -136,6 +137,7 @@ pub mod pallet {
         ///  -  First balance is the total amount that should be held for vesting.
         ///  -  Second balance is how much should be unlocked per block.
         ///  -  The block number is when the vesting should start.
+        #[pallet::call_index(1)]
         #[pallet::weight((
             T::WeightInfo::vested_transfer(),
             DispatchClass::Normal,

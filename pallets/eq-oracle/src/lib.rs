@@ -457,6 +457,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight((<T as Config>::WeightInfo::set_price(10), DispatchClass::Operational))]
         /// Adds and saves a new `DataPoint` containing an asset price information. It
         /// would be used for the `PricePoint` calculation. Only whitelisted
@@ -474,6 +475,7 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight((<T as Config>::WeightInfo::set_price(10), DispatchClass::Operational))]
         /// Adds new `DataPoint` from an unsigned transaction
         pub fn set_price_unsigned(
@@ -493,6 +495,7 @@ pub mod pallet {
             <Self as PriceSetter<T::AccountId>>::set_price(who, asset, price)
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(10_000)]
         /// Enables or disables auto recalculation of financial metrics
         pub fn set_fin_metrics_recalc_enabled(

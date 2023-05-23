@@ -144,6 +144,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Transfers `value` amount of `currency` from main account to `subacc_type` subaccount
+        #[pallet::call_index(0)]
         #[pallet::weight((Pallet::<T>::transfer_max_weight(subacc_type, true), DispatchClass::Normal))]
         pub fn transfer_to_subaccount(
             origin: OriginFor<T>,
@@ -222,6 +223,7 @@ pub mod pallet {
         /// Transfers `amount` of `currency` from subaccount to main account. If `subacc_type`
         /// is `Bailsman` and it's total collateral value becomes less than minimal bailsman
         /// collateral value - subaccount will be unregistered as bailsman.
+        #[pallet::call_index(1)]
         #[pallet::weight((Pallet::<T>::transfer_max_weight(subacc_type, false), DispatchClass::Normal))]
         pub fn transfer_from_subaccount(
             origin: OriginFor<T>,
@@ -247,6 +249,7 @@ pub mod pallet {
         /// is `Bailsman` and it's total collateral value becomes less than minimal bailsman
         /// collateral value - subaccount will be unregistered as bailsman.
         /// Destination should not be subaccount.
+        #[pallet::call_index(2)]
         #[pallet::weight((Pallet::<T>::transfer_max_weight(subacc_type, false), DispatchClass::Normal))]
         pub fn transfer(
             origin: OriginFor<T>,

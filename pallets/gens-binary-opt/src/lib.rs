@@ -244,6 +244,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::create())]
         pub fn create(
             origin: OriginFor<T>,
@@ -274,6 +275,7 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::purge())]
         pub fn purge(origin: OriginFor<T>, binary_id: BinaryId) -> DispatchResultWithPostInfo {
             ensure_signed(origin)?;
@@ -283,6 +285,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::deposit())]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -301,6 +304,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn withdraw(origin: OriginFor<T>, binary_id: BinaryId) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -314,6 +318,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::claim())]
         pub fn claim(origin: OriginFor<T>, binary_id: BinaryId) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -329,6 +334,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::claim_other())]
         pub fn claim_other(
             origin: OriginFor<T>,

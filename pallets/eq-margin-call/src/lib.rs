@@ -197,6 +197,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Tries to margin-call an account from another account signed call.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::try_margincall_external())]
         pub fn try_margincall_external(
             origin: OriginFor<T>,

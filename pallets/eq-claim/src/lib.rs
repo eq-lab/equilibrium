@@ -125,6 +125,7 @@ pub mod pallet {
         /// - `dest`: The destination account to payout the claim.
         /// - `ethereum_signature`: The signature of an ethereum signed message
         ///    matching the format described above.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::claim())]
         pub fn claim(
             origin: OriginFor<T>,
@@ -161,6 +162,7 @@ pub mod pallet {
         /// - `who`: The Ethereum address allowed to collect this claim.
         /// - `value`: The balance that will be claimed.
         /// - `vesting_schedule`: An optional vesting schedule for the claim
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::mint_claim())]
         pub fn mint_claim(
             origin: OriginFor<T>,
@@ -242,6 +244,7 @@ pub mod pallet {
         /// - `ethereum_signature`: The signature of an ethereum signed message
         ///    matching the format described above.
         /// - `statement`: The identity of the statement which is being attested to in the signature.
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::claim_attest())]
         pub fn claim_attest(
             origin: OriginFor<T>,
@@ -275,6 +278,7 @@ pub mod pallet {
         ///
         /// Parameters:
         /// - `statement`: The identity of the statement which is being attested to in the signature.
+        #[pallet::call_index(3)]
         #[pallet::weight((T::WeightInfo::attest(), DispatchClass::Normal, Pays::No))]
         pub fn attest(origin: OriginFor<T>, statement: Vec<u8>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -300,6 +304,7 @@ pub mod pallet {
         }
 
         /// Gives claims ownership from `old` to `new`
+        #[pallet::call_index(4)]
         #[pallet::weight((
             T::DbWeight::get().reads_writes(4, 4).saturating_add(Weight::from_ref_time(100_000_000_000)),
             DispatchClass::Normal,

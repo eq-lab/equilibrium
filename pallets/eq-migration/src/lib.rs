@@ -56,6 +56,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Adds new migration, if there is no migration in storage
+        #[pallet::call_index(0)]
         #[pallet::weight((
             T::WeightInfo::set_migration(),
             DispatchClass::Operational))

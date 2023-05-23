@@ -75,6 +75,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::add_validator())]
         pub fn add_validator(
             origin: OriginFor<T>,
@@ -119,6 +120,7 @@ pub mod pallet {
         }
 
         /// Removes validator. Root authorization required to remove validator.
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::remove_validator())]
         pub fn remove_validator(
             origin: OriginFor<T>,

@@ -139,6 +139,7 @@ pub mod pallet {
         /// `asset` - asset to exchange
         /// `amount` - amount of native asset user will get after buyout
         ///            or amount of exchange asset user will give for buyout
+        #[pallet::call_index(0)]
         #[pallet::weight((T::WeightInfo::buyout(), Pays::No))]
         pub fn buyout(
             origin: OriginFor<T>,
@@ -153,6 +154,7 @@ pub mod pallet {
         /// Set/unset buyout limit
         /// Parameters:
         /// `limit` - max value of native token user could get with help of buyout for a period(day), None - to disable buyout limits
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::update_buyout_limit())]
         pub fn update_buyout_limit(
             origin: OriginFor<T>,

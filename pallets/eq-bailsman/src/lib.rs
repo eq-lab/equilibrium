@@ -180,6 +180,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::toggle_auto_redistribution())]
         pub fn toggle_auto_redistribution(
             origin: OriginFor<T>,
@@ -192,6 +193,7 @@ pub mod pallet {
         }
 
         /// Request to redistribute single bailsman sent by offchain worker.
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::redistribute_unsigned(request.queue_len + T::QueueLengthWeightConstant::get()))]
         pub fn redistribute_unsigned(
             origin: OriginFor<T>,
@@ -212,6 +214,7 @@ pub mod pallet {
         }
 
         /// Operation to redistribute single bailsman manually.
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::redistribute(30))]
         pub fn redistribute(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
             ensure_signed(origin)?;
