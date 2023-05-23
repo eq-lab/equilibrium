@@ -132,7 +132,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("Equilibrium-parachain"),
     impl_name: create_runtime_str!("Equilibrium-parachain"),
     authoring_version: 10,
-    spec_version: 27,
+    spec_version: 28,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
