@@ -2463,7 +2463,7 @@ construct_runtime!(
         EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 15,
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>} = 16,
-        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
+        // Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
         Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned} = 18,
         Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,} = 19,
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned} = 20,
