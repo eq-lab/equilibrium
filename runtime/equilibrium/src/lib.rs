@@ -1701,8 +1701,6 @@ impl AssetGenerator {
 
 use eq_primitives::proxy::ProxyType;
 
-impl randomness_collective_flip::Config for Runtime {}
-
 //////////////////////////////////////////////////////////////////////////////
 // 	Cumulus pallets
 //////////////////////////////////////////////////////////////////////////////
@@ -1822,7 +1820,8 @@ match_types! {
         &PARACHAIN_CRUST |
         &PARACHAIN_PHALA |
         &PARACHAIN_LITENTRY |
-        &PARACHAIN_POLKADEX
+        &PARACHAIN_POLKADEX |
+        &PARACHAIN_COMPOSABLE
     };
 }
 
@@ -2445,7 +2444,6 @@ construct_runtime!(
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
         } = 1,
         Utility: pallet_utility::{Pallet, Call, Event} = 2,
-        RandomnessCollectiveFlip: randomness_collective_flip::{Pallet, Storage} = 3,
         Timestamp: timestamp::{Pallet, Call, Storage, Inherent} = 4,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 5,
         EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>, Config<T>,} = 6,

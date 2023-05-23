@@ -65,7 +65,6 @@ pub mod pallet {
         EitherOfDiverse<EnsureManager<T, I>, <T as Config<I>>::ManagementOrigin>;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
     #[pallet::config]

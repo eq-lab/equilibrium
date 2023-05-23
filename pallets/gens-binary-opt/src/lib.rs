@@ -107,7 +107,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Origin for binary creation
         type ToggleBinaryCreateOrigin: EnsureOrigin<Self::Origin>;
         type Balance: Parameter
@@ -141,7 +141,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
     #[pallet::storage]

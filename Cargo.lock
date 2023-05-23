@@ -2943,7 +2943,6 @@ dependencies = [
  "pallet-multisig 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "pallet-preimage 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "pallet-proxy 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "pallet-randomness-collective-flip",
  "pallet-scheduler 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "pallet-session 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "pallet-society 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
@@ -4410,7 +4409,6 @@ dependencies = [
  "pallet-aura 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "pallet-authorship 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "pallet-collator-selection",
- "pallet-randomness-collective-flip",
  "pallet-session 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "pallet-sudo",
  "pallet-timestamp 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
@@ -7436,20 +7434,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-randomness-collective-flip"
-version = "4.0.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42#cc370aa61e15c18d23a2f686b812fd576a630afe"
-dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "parity-scale-codec",
- "safe-mix",
- "scale-info",
- "sp-runtime 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "sp-std 4.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
-]
-
-[[package]]
 name = "pallet-recovery"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29#cc370aa61e15c18d23a2f686b812fd576a630afe"
@@ -9199,7 +9183,7 @@ dependencies = [
  "rayon",
  "sc-executor 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sc-executor-common 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
- "sc-executor-wasmtime 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
+ "sc-executor-wasmtime",
  "slotmap",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sp-externalities 0.12.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
@@ -9231,7 +9215,7 @@ dependencies = [
  "rayon",
  "sc-executor 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sc-executor-common 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
- "sc-executor-wasmtime 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
+ "sc-executor-wasmtime",
  "slotmap",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sp-externalities 0.12.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
@@ -11874,7 +11858,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "sc-executor-common 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sc-executor-wasmi 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
- "sc-executor-wasmtime 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
+ "sc-executor-wasmtime",
  "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sp-core-hashing-proc-macro 5.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
@@ -11901,7 +11885,6 @@ dependencies = [
  "parking_lot 0.12.1",
  "sc-executor-common 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "sc-executor-wasmi 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "sc-executor-wasmtime 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "sp-core 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "sp-core-hashing-proc-macro 5.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
@@ -11997,27 +11980,6 @@ dependencies = [
  "sp-runtime-interface 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sp-sandbox 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
  "sp-wasm-interface 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.29)",
- "wasmtime",
-]
-
-[[package]]
-name = "sc-executor-wasmtime"
-version = "0.10.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42#cc370aa61e15c18d23a2f686b812fd576a630afe"
-dependencies = [
- "cfg-if 1.0.0",
- "libc",
- "log",
- "once_cell",
- "parity-scale-codec",
- "parity-wasm 0.42.2",
- "rustix 0.33.7",
- "rustix 0.35.13",
- "sc-allocator 4.1.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "sc-executor-common 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "sp-runtime-interface 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "sp-sandbox 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
- "sp-wasm-interface 6.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "wasmtime",
 ]
 
@@ -14902,7 +14864,6 @@ dependencies = [
  "parity-scale-codec",
  "sp-std 4.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.42)",
  "wasmi",
- "wasmtime",
 ]
 
 [[package]]

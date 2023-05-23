@@ -157,14 +157,6 @@ default-features = false
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.42"
 
-
-[dependencies.randomness-collective-flip]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-randomness-collective-flip"
-
-
 [dependencies.sp-api]
 default-features = false
 git = "https://github.com/paritytech/substrate"
@@ -425,7 +417,6 @@ std = [
   "frame-executive/std",
   "frame-support/std",
   "pallet-session/std",
-  "randomness-collective-flip/std",
   "financial-pallet/std",
   "financial-primitives/std",
   "serde",

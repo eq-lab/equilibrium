@@ -110,7 +110,6 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
@@ -146,7 +145,7 @@ pub mod pallet {
         /// Used to work with `TotalAggregates` storing aggregated collateral and debt
         type Aggregates: Aggregates<Self::AccountId, Self::Balance>;
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Minimal sum of the collateral and debt abs values to distribute temp Bailsman balances
         #[pallet::constant]

@@ -1187,8 +1187,6 @@ impl eq_bridge::Config for Runtime {
     type WeightInfo = weights::pallet_bridge::WeightInfo<Runtime>;
 }
 
-impl randomness_collective_flip::Config for Runtime {}
-
 //////////////////////////////////////////////////////////////////////////////
 // 	Cumulus pallets
 //////////////////////////////////////////////////////////////////////////////
@@ -1428,7 +1426,6 @@ construct_runtime!(
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
         },
         Utility: pallet_utility::{Pallet, Call, Event},
-        RandomnessCollectiveFlip: randomness_collective_flip::{Pallet, Storage},
         Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
         EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>, Config<T>,},

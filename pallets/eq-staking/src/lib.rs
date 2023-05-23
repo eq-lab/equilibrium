@@ -65,12 +65,11 @@ pub mod pallet {
         EitherOfDiverse<origin::EnsureManager<T>, <T as Config>::RewardManagementOrigin>;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Numerical representation of stored balances
         type Balance: Member
             + AtLeast32BitUnsigned

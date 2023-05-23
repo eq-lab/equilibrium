@@ -84,7 +84,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     //Config
@@ -93,7 +92,7 @@ pub mod pallet {
         /// Timestamp provider
         type UnixTime: UnixTime;
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Numerical representation of stored balances
         type Balance: Member
             + AtLeast32BitUnsigned

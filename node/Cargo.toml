@@ -109,7 +109,6 @@ branch = "polkadot-v0.9.42"
 version = "0.10.0-dev"
 
 [dependencies.sc-cli]
-features = ["wasmtime"]
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.42"
 
@@ -138,7 +137,6 @@ branch = "polkadot-v0.9.42"
 version = "0.10.0-dev"
 
 [dependencies.sc-executor]
-features = ["wasmtime"]
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.42"
 version = "0.10.0-dev"
@@ -149,7 +147,6 @@ branch = "polkadot-v0.9.42"
 version = "0.10.0-dev"
 
 [dependencies.sc-service]
-features = ["wasmtime"]
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.42"
 version = "0.10.0-dev"

@@ -124,7 +124,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
@@ -220,7 +219,7 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config + SendTransactionTypes<Call<Self>> + eq_rate::Config
     {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         type DeleteOrderOrigin: EnsureOrigin<Self::Origin>;
 

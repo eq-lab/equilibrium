@@ -192,7 +192,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     // #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
@@ -217,7 +216,7 @@ pub mod pallet {
         /// Used for currency-related operations and calculations
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
         /// Weight information for extrinsics of eqDex.

@@ -110,14 +110,13 @@ pub mod pallet {
     use sp_runtime::FixedPointOperand;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Origin for enable and disable transfers
         type ToggleTransferOrigin: EnsureOrigin<Self::Origin>;
         /// Origin to force xcm transfers

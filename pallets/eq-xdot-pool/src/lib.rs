@@ -117,7 +117,6 @@ pub mod pallet {
     use yield_math::YieldMathTrait;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -137,7 +136,7 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config + eq_rate::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         type PoolsManagementOrigin: EnsureOrigin<Self::Origin>;
 

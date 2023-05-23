@@ -113,7 +113,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
@@ -122,7 +121,7 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
         /// The overarching event type.
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The currency adapter trait
         type Currency: Currency<Self::AccountId>;
         /// Convert the block number into a balance

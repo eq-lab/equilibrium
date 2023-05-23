@@ -18,7 +18,8 @@
 
 use crate::balance_number::EqFixedU128;
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{Parameter, WeakBoundedVec};
+use frame_support::Parameter;
+use sp_runtime::bounded::weak_bounded_vec::WeakBoundedVec;
 use impl_trait_for_tuples::impl_for_tuples;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};

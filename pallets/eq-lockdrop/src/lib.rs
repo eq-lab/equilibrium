@@ -83,7 +83,7 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config + SendTransactionTypes<Call<Self>> + eq_rate::Config
     {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Pallet's AccountId for balances
         #[pallet::constant]
         type PalletId: Get<PalletId>;
