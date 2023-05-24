@@ -23,6 +23,7 @@ use codec::{FullCodec, MaxEncodedLen};
 use frame_support::traits::{
     BalanceStatus, Currency, Get, LockableCurrency, ReservableCurrency, SignedImbalance,
 };
+use sp_arithmetic::FixedPointOperand;
 use sp_runtime::traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Zero};
 use sp_runtime::{DispatchError, DispatchResult};
 use sp_std::fmt::Debug;
@@ -49,7 +50,8 @@ where
         + Debug
         + Default
         + MaxEncodedLen
-        + scale_info::TypeInfo,
+        + scale_info::TypeInfo
+        + FixedPointOperand,
     MultiCurrency: EqCurrency<AccountId, Balance>,
     CurrencyGetter: Get<crate::asset::Asset>,
 {
@@ -192,7 +194,8 @@ where
         + Debug
         + Default
         + MaxEncodedLen
-        + scale_info::TypeInfo,
+        + scale_info::TypeInfo
+        + FixedPointOperand,
     MultiCurrency: EqCurrency<AccountId, Balance>,
     CurrencyGetter: Get<crate::asset::Asset>,
 {
@@ -266,7 +269,8 @@ where
         + Debug
         + Default
         + MaxEncodedLen
-        + scale_info::TypeInfo,
+        + scale_info::TypeInfo
+        + FixedPointOperand,
     MultiCurrency: EqCurrency<AccountId, Balance>,
     CurrencyGetter: Get<crate::asset::Asset>,
 {

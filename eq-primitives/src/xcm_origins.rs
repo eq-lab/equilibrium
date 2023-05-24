@@ -16,8 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use xcm::latest::{Junction::*, Junctions::*};
-use xcm::v1::MultiLocation;
+use xcm::v3::{Junction::*, Junctions::*, MultiLocation};
 
 pub const RELAY: MultiLocation = MultiLocation {
     parents: 1,
@@ -75,7 +74,7 @@ pub mod dot {
         interior: X1(Parachain(2040)),
     };
 
-    pub const PARACHAIN_COMPOSABLE:  MultiLocation = MultiLocation {
+    pub const PARACHAIN_COMPOSABLE: MultiLocation = MultiLocation {
         parents: 1,
         interior: X1(Parachain(2019)),
     };

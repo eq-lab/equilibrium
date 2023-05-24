@@ -574,7 +574,7 @@ mod tests {
 
 pub enum XcmDestination {
     /// Send to some multilocation
-    Common(xcm::v1::MultiLocation),
+    Common(xcm::v2::MultiLocation),
     /// Send to native asset location (example: send KSM to account on Kusama chain)
     Native(AccountType),
 }
