@@ -77,13 +77,12 @@ pub mod pallet {
 
         type OnNewAsset: OnNewAsset;
 
-        type AssetManagementOrigin: EnsureOrigin<Self::Origin>;
+        type AssetManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub (super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -226,7 +225,7 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_runtime_upgrade() -> Weight {
             let _ = Assets::<T>::translate(migration::migrate_assets_data);
-            Weight::from_ref_time(1)
+            Weight::from_parts(1, 0)
         }
     }
 
