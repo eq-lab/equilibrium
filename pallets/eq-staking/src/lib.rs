@@ -40,7 +40,6 @@ use frame_support::{
     pallet_prelude::DispatchResult,
     storage::bounded_btree_set::BoundedBTreeSet,
     traits::{EitherOfDiverse, ExistenceRequirement, LockIdentifier, UnixTime},
-    weights::Pays,
 };
 use sp_runtime::traits::{
     AtLeast32BitUnsigned, CheckedAdd, MaybeSerializeDeserialize, Member, Saturating, Zero,
@@ -92,7 +91,7 @@ pub mod pallet {
         #[pallet::constant]
         type MaxStakesCount: Get<u32>;
         /// Origin to set manager and pay rewards
-        type RewardManagementOrigin: EnsureOrigin<Self::Origin>;
+        type RewardManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Account with liquidity to pay rewards
         type LiquidityAccount: Get<Self::AccountId>;
         /// Account with liquidity to pay custom rewards

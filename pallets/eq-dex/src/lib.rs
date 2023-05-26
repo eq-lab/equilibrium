@@ -221,9 +221,9 @@ pub mod pallet {
     {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type DeleteOrderOrigin: EnsureOrigin<Self::Origin>;
+        type DeleteOrderOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-        type UpdateAssetCorridorOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateAssetCorridorOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Used for group orders in chunks. Should be positive value
         #[pallet::constant]
         type PriceStepCount: Get<u32>;

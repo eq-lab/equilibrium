@@ -121,7 +121,8 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
         /// The overarching event type.
-        type RuntimeEvent: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        type RuntimeEvent: From<Event<Self, I>>
+            + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The currency adapter trait
         type Currency: Currency<Self::AccountId>;
         /// Convert the block number into a balance

@@ -35,8 +35,8 @@ use eq_utils::{eq_ensure, ok_or_error};
 #[allow(unused_imports)]
 use frame_support::debug; // This usage is required by a macro
 use frame_support::{
+    dispatch::{DispatchClass, Pays},
     traits::{Currency, EnsureOrigin, Get, IsSubType, VestingSchedule},
-    weights::{DispatchClass, Pays},
 };
 use frame_system::{ensure_none, ensure_root, ensure_signed};
 #[cfg(feature = "std")]
@@ -85,7 +85,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
@@ -99,7 +98,7 @@ pub mod pallet {
         /// The Prefix that is used in signed Ethereum messages for this network
         type Prefix: Get<&'static [u8]>;
         /// Origin that can move claims to another account
-        type MoveClaimOrigin: EnsureOrigin<Self::Origin>;
+        type MoveClaimOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Gets vesting account
         type VestingAccountId: Get<Self::AccountId>;
         /// For unsigned transaction priority calculation
@@ -306,7 +305,7 @@ pub mod pallet {
         /// Gives claims ownership from `old` to `new`
         #[pallet::call_index(4)]
         #[pallet::weight((
-            T::DbWeight::get().reads_writes(4, 4).saturating_add(Weight::from_ref_time(100_000_000_000)),
+            T::DbWeight::get().reads_writes(4, 4).saturating_add(Weight::from_parts(100_000_000_000, 0)),
             DispatchClass::Normal,
             Pays::No
         ))]
@@ -815,11 +814,11 @@ pub struct PrevalidateAttests<T: Config + Send + Sync + scale_info::TypeInfo>(
     sp_std::marker::PhantomData<T>,
 )
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> Debug for PrevalidateAttests<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     #[cfg(feature = "std")]
     fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -834,7 +833,7 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> Default for PrevalidateAttests<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     fn default() -> Self {
         Self(sp_std::marker::PhantomData)
@@ -843,7 +842,7 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> PrevalidateAttests<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     /// Create new `SignedExtension` to check runtime version.
     pub fn new() -> Self {
@@ -853,10 +852,10 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> SignedExtension for PrevalidateAttests<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     type AccountId = T::AccountId;
-    type Call = <T as frame_system::Config>::Call;
+    type Call = <T as frame_system::Config>::RuntimeCall;
     type AdditionalSigned = ();
     type Pre = ();
     const IDENTIFIER: &'static str = "PrevalidateAttests";

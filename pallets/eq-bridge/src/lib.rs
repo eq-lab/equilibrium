@@ -123,10 +123,10 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type BridgeManagementOrigin: EnsureOrigin<Self::Origin>;
+        type BridgeManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Specifies the origin check provided by the bridge for calls that can only be called by the bridge pallet
-        type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+        type BridgeOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
         /// Integrates balances operations of `eq-balances` pallet
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
@@ -306,11 +306,11 @@ pub mod pallet {
                     )?;
                 }
                 Err(_) => {
-                    use xcm::latest::{Junction::*, Junctions::*, NetworkId};
+                    use xcm::v3::{Junction::*, Junctions::*, MultiLocation};
 
                     let (para_id, account_type): (u32, AccountType) =
                         Decode::decode(&mut &to[..]).map_err(|_| Error::<T>::InvalidAccount)?;
-                    let account_type = account_type.multi_location(NetworkId::Any);
+                    let account_type = account_type.multi_location();
                     let location = if para_id == 0 {
                         X1(account_type)
                     } else {
@@ -322,7 +322,7 @@ pub mod pallet {
                         &from,
                         asset,
                         amount,
-                        XcmDestination::Common((1, location).into()),
+                        XcmDestination::Common(MultiLocation::new(1, location)),
                     )?;
                 }
             }

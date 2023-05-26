@@ -186,9 +186,9 @@ pub mod pallet {
     use super::*;
     use eq_primitives::subaccount::SubaccountsManager;
     use financial_pallet::Financial;
+    use frame_support::dispatch::PostDispatchInfo;
     use frame_support::pallet_prelude::*;
     use frame_support::traits::WithdrawReasons;
-    use frame_support::weights::PostDispatchInfo;
     use frame_support::PalletId;
     use frame_system::pallet_prelude::*;
     use sp_arithmetic::Permill;
@@ -205,7 +205,7 @@ pub mod pallet {
         + authorship::Config
         + eq_assets::Config
     {
-        type AutoReinitToggleOrigin: EnsureOrigin<Self::Origin>;
+        type AutoReinitToggleOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Timestamp provider
         type UnixTime: UnixTime;
         /// Numerical representation of stored balances
@@ -396,7 +396,7 @@ pub mod pallet {
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
         #[pallet::call_index(2)]
-        #[pallet::weight(10000)]
+        #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn deposit(
             origin: OriginFor<T>,
             request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, T::BlockNumber>,
@@ -436,7 +436,7 @@ pub mod pallet {
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
         #[pallet::call_index(3)]
-        #[pallet::weight(10000)]
+        #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn withdraw(
             origin: OriginFor<T>,
             request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, T::BlockNumber>,
@@ -514,7 +514,7 @@ pub mod pallet {
 
         /// Function used in test builds for time move
         #[pallet::call_index(6)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn set_now_millis_offset(
             origin: OriginFor<T>,
             offset: u64,

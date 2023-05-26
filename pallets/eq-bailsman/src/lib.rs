@@ -75,8 +75,8 @@ use eq_utils::{
     fixed::{eq_fixedu128_from_balance, fixedi128_from_balance, fixedi128_from_eq_fixedu128},
     vec_map::{SortedVec, VecMap},
 };
+use frame_support::dispatch::{Pays, PostDispatchInfo};
 use frame_support::traits::WithdrawReasons;
-use frame_support::weights::{Pays, PostDispatchInfo};
 use frame_support::{
     pallet_prelude::InvalidTransaction,
     traits::{ExistenceRequirement, Get, UnixTime},

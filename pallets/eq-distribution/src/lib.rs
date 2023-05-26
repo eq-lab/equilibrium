@@ -74,7 +74,7 @@ pub mod pallet {
 
         type PalletId: Get<PalletId>;
 
-        type ManagementOrigin: EnsureOrigin<Self::Origin>;
+        type ManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Gets vesting account (for vesting transfers).
         type VestingAccountId: Get<Self::AccountId>;
         /// Used to schedule vesting part of a claim.

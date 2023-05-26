@@ -138,7 +138,7 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type PoolsManagementOrigin: EnsureOrigin<Self::Origin>;
+        type PoolsManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Primitive integer type that [`XdotNumber`](#associatedtype.XdotNumber) based on.
         type FixedNumberBits: Copy + ToFixed + AddAssign + BitOrAssign + ShlAssign;

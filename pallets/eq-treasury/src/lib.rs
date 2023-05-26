@@ -569,11 +569,11 @@ impl From<ValidityError> for u8 {
 #[derive(Encode, Decode, Clone, Eq, PartialEq, scale_info::TypeInfo)]
 pub struct CheckBuyout<T: Config + Send + Sync + scale_info::TypeInfo>(PhantomData<T>)
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> Debug for CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     #[cfg(feature = "std")]
     fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -588,7 +588,7 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> Default for CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     fn default() -> Self {
         Self(PhantomData)
@@ -597,7 +597,7 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     pub fn new() -> Self {
         Self(PhantomData)
@@ -606,11 +606,11 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> SignedExtension for CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     const IDENTIFIER: &'static str = "CheckBuyout";
     type AccountId = T::AccountId;
-    type Call = T::Call;
+    type Call = T::RuntimeCall;
     type AdditionalSigned = ();
     type Pre = ();
 

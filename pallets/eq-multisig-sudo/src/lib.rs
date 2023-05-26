@@ -46,9 +46,8 @@ use sp_std::vec;
 use frame_support::Parameter;
 
 use frame_support::{
-    dispatch::DispatchResultWithPostInfo,
+    dispatch::{DispatchResultWithPostInfo, GetDispatchInfo},
     traits::{Get, UnfilteredDispatchable},
-    weights::{GetDispatchInfo, Pays},
 };
 
 #[allow(unused_imports)]
@@ -83,7 +82,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// A sudo-able call.
         type Call: Parameter
-            + UnfilteredDispatchable<Origin = Self::Origin>
+            + UnfilteredDispatchable<RuntimeOrigin = Self::RuntimeOrigin>
             + GetDispatchInfo
             + From<pallet::Call<Self>>;
         /// Maximal number of signatories

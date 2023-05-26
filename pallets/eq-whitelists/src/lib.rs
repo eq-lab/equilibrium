@@ -68,7 +68,7 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type WhitelistManagementOrigin: EnsureOrigin<Self::Origin>;
+        type WhitelistManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// External actions after removing account from whitelist
         type OnRemove: OnRemove<Self::AccountId>;
         /// Weight information for extrinsics in this pallet.

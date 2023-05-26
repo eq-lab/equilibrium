@@ -48,9 +48,9 @@ use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
 use eq_primitives::signed_balance::SignedBalance;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_support::{
+    dispatch::GetDispatchInfo,
     ensure,
     traits::{Currency, EnsureOrigin, ExistenceRequirement, Get},
-    weights::GetDispatchInfo,
     Parameter,
 };
 use frame_system::{self as system, ensure_signed};
@@ -158,7 +158,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Origin used to administer the pallet.
-        type AdminOrigin: EnsureOrigin<Self::Origin>;
+        type AdminOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Numerical representation of stored balances.
         type Balance: Parameter
@@ -188,7 +188,7 @@ pub mod pallet {
 
         /// Proposed dispatchable call.
         type Proposal: Parameter
-            + Dispatchable<Origin = Self::Origin>
+            + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin>
             + EncodeLike
             + From<frame_system::Call<Self>>
             + GetDispatchInfo;
@@ -221,7 +221,7 @@ pub mod pallet {
         /// - O(1) write
         /// # </weight>
         #[pallet::call_index(1)]
-        #[pallet::weight(100_000)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn set_fee(
             origin: OriginFor<T>,
             chain_id: ChainId,
@@ -238,7 +238,7 @@ pub mod pallet {
         /// - O(1) write
         /// # </weight>
         #[pallet::call_index(2)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn set_proposal_lifetime(
             origin: OriginFor<T>,
             lifetime: T::BlockNumber,
@@ -254,7 +254,7 @@ pub mod pallet {
         /// - O(1) write
         /// # </weight>
         #[pallet::call_index(3)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn toggle_chain(
             origin: OriginFor<T>,
             chain_id: ChainId,
@@ -1041,13 +1041,13 @@ impl<T: Config> Pallet<T> {
 
 /// Simple ensure origin for the bridge account.
 pub struct EnsureBridge<T>(sp_std::marker::PhantomData<T>);
-impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
+impl<T: Config> EnsureOrigin<T::RuntimeOrigin> for EnsureBridge<T> {
     type Success = T::AccountId;
-    fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
+    fn try_origin(o: T::RuntimeOrigin) -> Result<Self::Success, T::RuntimeOrigin> {
         let bridge_id = MODULE_ID.into_account_truncating();
         o.into().and_then(|o| match o {
             system::RawOrigin::Signed(who) if who == bridge_id => Ok(bridge_id),
-            r => Err(T::Origin::from(r)),
+            r => Err(T::RuntimeOrigin::from(r)),
         })
     }
 

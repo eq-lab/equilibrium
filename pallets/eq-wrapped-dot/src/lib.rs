@@ -48,7 +48,6 @@ use frame_support::{
     BoundedVec, PalletId,
 };
 pub use pallet::*;
-use pallet_staking::MaxUnlockingChunks;
 use sp_arithmetic::{
     traits::{AtLeast32BitUnsigned, BaseArithmetic, One, Zero},
     FixedI64, FixedPointNumber, FixedPointOperand, Permill,
@@ -85,6 +84,10 @@ pub struct UnlockChunk<Balance: HasCompact> {
     /// Era number at which point it'll be unlocked.
     #[codec(compact)]
     pub era: EraIndex,
+}
+
+frame_support::parameter_types! {
+    pub MaxUnlockingChunks: u32 = 32;
 }
 
 /// The ledger of a (bonded) stash.
@@ -179,7 +182,7 @@ pub mod pallet {
             + TryFrom<eq_primitives::balance::Balance>
             + FixedPointOperand;
 
-        type StakingInitializeOrigin: EnsureOrigin<Self::Origin>;
+        type StakingInitializeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Used to get total supply of EQDOT
         type Aggregates: Aggregates<Self::AccountId, Self::Balance>;
@@ -380,7 +383,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn initialize(
             origin: OriginFor<T>,
             account_id: T::AccountId,
@@ -398,7 +401,7 @@ pub mod pallet {
                 ),
                 StakingWeights::<T>::bond(),
             );
-            let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+            let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
 
             ensure!(result.is_ok(), Error::<T>::XcmStakingBondExtraFailed);
 
@@ -419,7 +422,7 @@ pub mod pallet {
 
         ///Set total unlocking. For maintenance purposes
         #[pallet::call_index(3)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::DbWeight::get().writes(7))]
         pub fn set_total_unlocking(
             origin: OriginFor<T>,
             value: T::Balance,
@@ -626,7 +629,7 @@ impl<T: Config> Pallet<T> {
             T::RelayChainCallBuilder::staking_bond_extra(bond_amount),
             StakingWeights::<T>::bond_extra(),
         );
-        let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+        let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingBondExtraFailed);
 
         Ok(())
@@ -643,7 +646,7 @@ impl<T: Config> Pallet<T> {
             T::RelayChainCallBuilder::staking_unbond(unbond_amount),
             StakingWeights::<T>::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS),
         );
-        let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+        let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingUnbondFailed);
 
         TotalUnlocking::<T>::mutate(|v| *v = v.saturating_add(value));
@@ -659,7 +662,7 @@ impl<T: Config> Pallet<T> {
             T::RelayChainCallBuilder::staking_withdraw_unbonded(NUM_SLASHING_SPANS),
             StakingWeights::<T>::withdraw_unbonded_kill(NUM_SLASHING_SPANS),
         );
-        let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+        let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingWithdrawUnbondedFailed);
 
         TotalUnlocking::<T>::mutate(|v| *v = v.saturating_sub(unlocking));
