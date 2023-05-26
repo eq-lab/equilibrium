@@ -36,10 +36,12 @@ use sp_runtime::{
 #[cfg(not(feature = "std"))]
 use sp_std::vec::Vec;
 use sp_std::{convert::TryFrom, marker::PhantomData};
-use xcm::latest::{AssetId, Error as XcmError, Fungibility, MultiAsset, Weight as XcmWeight};
-use xcm::v1::MultiLocation;
+use xcm::v3::{
+    AssetId, Error as XcmError, Fungibility, MultiAsset, MultiLocation, Weight as XcmWeight,
+    XcmContext,
+};
 use xcm_executor::{
-    traits::{FilterAssetLocation, TransactAsset, WeightTrader},
+    traits::{TransactAsset, WeightTrader},
     Assets,
 };
 
@@ -94,15 +96,31 @@ impl<
         CheckedAccount,
     >
 {
-    fn can_check_in(_origin: &MultiLocation, _what: &MultiAsset) -> XcmResult<()> {
+    fn can_check_in(
+        _origin: &MultiLocation,
+        _what: &MultiAsset,
+        _context: &XcmContext,
+    ) -> Result<(), XcmError> {
         Err(XcmError::Unimplemented)
     }
 
-    fn check_in(_origin: &MultiLocation, _what: &MultiAsset) {}
+    fn check_in(_origin: &MultiLocation, _what: &MultiAsset, _context: &XcmContext) {}
 
-    fn check_out(_dest: &MultiLocation, _what: &MultiAsset) {}
+    fn can_check_out(
+        _dest: &MultiLocation,
+        _what: &MultiAsset,
+        _context: &XcmContext,
+    ) -> Result<(), XcmError> {
+        Err(XcmError::Unimplemented)
+    }
 
-    fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult<()> {
+    fn check_out(_dest: &MultiLocation, _what: &MultiAsset, _context: &XcmContext) {}
+
+    fn deposit_asset(
+        what: &MultiAsset,
+        who: &MultiLocation,
+        _context: &XcmContext,
+    ) -> XcmResult<()> {
         log::trace!(target: "xcm::eq_currency_adapter", "deposit_asset {:?} to {:?}", what, who);
         let (asset, amount) = EqMatches::matches_fungible(&what).ok_or(XcmError::AssetNotFound)?;
         let who = AccountIdConverter::convert_ref(who)
@@ -145,7 +163,11 @@ impl<
         Ok(())
     }
 
-    fn withdraw_asset(what: &MultiAsset, who: &MultiLocation) -> XcmResult<Assets> {
+    fn withdraw_asset(
+        what: &MultiAsset,
+        who: &MultiLocation,
+        _maybe_context: Option<&XcmContext>,
+    ) -> XcmResult<Assets> {
         log::trace!(target: "xcm::eq_currency_adapter", "withdraw_asset {:?} from {:?}", what, who);
         let (asset, amount) = EqMatches::matches_fungible(what).ok_or(XcmError::AssetNotFound)?;
         let who = AccountIdConverter::convert_ref(who)
@@ -170,6 +192,7 @@ impl<
         what: &MultiAsset,
         from: &MultiLocation,
         to: &MultiLocation,
+        context: &XcmContext,
     ) -> XcmResult<Assets> {
         log::trace!(target: "xcm::eq_currency_adapter", "beam_asset {:?} from {:?} to {:?}", what, from, to);
         match <EqCurrency as Get<Option<XcmMode>>>::get() {
@@ -196,8 +219,8 @@ impl<
                 Ok(what.clone().into())
             }
             Some(XcmMode::Bridge(_)) => {
-                let assets = Self::withdraw_asset(what, from)?;
-                Self::deposit_asset(what, to)?;
+                let assets = Self::withdraw_asset(what, from, Some(context))?;
+                Self::deposit_asset(what, to, context)?;
                 Ok(assets)
             }
         }
@@ -231,26 +254,6 @@ impl<AssetGetter: asset::AssetGetter, Balance: TryFrom<B>> EqMatchesFungible<Ass
                 Some((asset.0, balance))
             }
             _ => None,
-        }
-    }
-}
-
-// filter assets that have prefix equal to xcm origin
-pub struct NativeAsset;
-
-impl FilterAssetLocation for NativeAsset {
-    fn filter_asset_location(asset: &MultiAsset, origin: &MultiLocation) -> bool {
-        log::trace!(target: "xcm::eq_filter_asset_location", "NativeAsset asset: {:?}, origin: {:?}", asset, origin);
-        match asset.id {
-            AssetId::Concrete(ref id) if id.parents == origin.parents => {
-                for i in 0..origin.interior.len() {
-                    if id.interior.at(i) != origin.interior.at(i) {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => false,
         }
     }
 }
@@ -340,7 +343,6 @@ impl<
         weight: &XcmWeight,
     ) -> Result<XcmBalance, EqTraderError> {
         if let Ok(price) = EqPrices::get_price::<FixedI64>(&asset.asset) {
-            let weight = Weight::from_ref_time(*weight);
             let fee_in_usd = eq_utils::balance_into_xcm(
                 UsdXcmWeightToFee::weight_to_fee(&weight),
                 asset.decimals,
@@ -403,7 +405,7 @@ impl<
                     asset: asset.id,
                     multi_location,
                     decimals,
-                    weight: 0,
+                    weight: XcmWeight::zero(),
                     amount: 0,
                 }),
                 None => None,
@@ -441,7 +443,7 @@ impl<
                             *payment_amount = unspent;
                             asset.weight = asset.weight.saturating_add(weight);
                             asset.amount = asset.amount.saturating_add(amount);
-                            weight = 0;
+                            weight = XcmWeight::zero();
                             break;
                         }
                     } else {
@@ -452,7 +454,7 @@ impl<
             };
         }
 
-        if weight > 0 {
+        if weight.all_gt(XcmWeight::zero()) {
             Err(XcmError::TooExpensive)
         } else {
             payment.fungible.retain(|_, amount| amount != &0);
@@ -462,7 +464,7 @@ impl<
 
     fn refund_weight(&mut self, weight: XcmWeight) -> Option<MultiAsset> {
         for asset in self.assets.iter_mut() {
-            if asset.weight < weight {
+            if asset.weight.all_lt(weight) {
                 continue;
             }
 

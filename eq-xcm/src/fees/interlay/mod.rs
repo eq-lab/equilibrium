@@ -33,5 +33,5 @@ pub fn dot_per_second() -> u128 {
 }
 
 parameter_types! {
-    pub const BaseXcmWeight: XcmWeight = 200_000_000;
+    pub const BaseXcmWeight: XcmWeight = Weight::from_parts(200_000_000, 0u64);
 }

@@ -21,7 +21,7 @@ use super::*;
 pub type XcmToFee = crate::fees::XcmToFee<BaseXcmWeight, WeightToFee>;
 
 parameter_types! {
-    pub const BaseXcmWeight: XcmWeight = 1_000_000_000;
+    pub const BaseXcmWeight: XcmWeight = XcmWeight::from_parts(1_000_000_000, 0);
 }
 
 /// Copy-paste from Cumulus's runtime constants.

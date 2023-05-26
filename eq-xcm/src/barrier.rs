@@ -18,9 +18,9 @@
 
 use core::marker::PhantomData;
 use eq_primitives::asset::AssetXcmGetter;
-use frame_support::traits::Contains;
-use xcm::latest::{
-    Instruction::*, Junction::*, Junctions::*, MultiLocation, Weight, WeightLimit::*, Xcm,
+use frame_support::traits::{Contains, ProcessMessageError};
+use xcm::v3::{
+    Instruction, Instruction::*, Junction::*, Junctions::*, MultiLocation, Weight, WeightLimit::*,
 };
 use xcm_executor::traits::ShouldExecute;
 
@@ -30,14 +30,14 @@ pub struct AllowReserveAssetDepositedFrom<EqAssets, AllowedOrigins>(
 impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldExecute
     for AllowReserveAssetDepositedFrom<EqAssets, AllowedOrigins>
 {
-    fn should_execute<Call>(
+    fn should_execute<RuntimeCall>(
         origin: &MultiLocation,
-        message: &mut Xcm<Call>,
+        instructions: &mut [Instruction<RuntimeCall>],
         max_weight: Weight,
         _weight_credit: &mut Weight,
-    ) -> Result<(), ()> {
+    ) -> Result<(), ProcessMessageError> {
         if AllowedOrigins::contains(origin) {
-            match &mut message.0[..] {
+            match instructions {
                 // We expect withdraw asset only for native asset with MultiLocation { 1, Here }
                 [WithdrawAsset(multi_assets), ClearOrigin, BuyExecution {
                     ref mut weight_limit,
@@ -52,7 +52,7 @@ impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldEx
                         *weight_limit = Limited(max_weight);
                         Ok(())
                     } else {
-                        Err(())
+                        Err(ProcessMessageError::Unsupported)
                     }
                 }
                 // End we expect reserve asset deposited for other assets
@@ -69,13 +69,13 @@ impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldEx
                         *weight_limit = Limited(max_weight);
                         Ok(())
                     } else {
-                        Err(())
+                        Err(ProcessMessageError::Unsupported)
                     }
                 }
-                _ => Err(()),
+                _ => Err(ProcessMessageError::Unsupported),
             }
         } else {
-            Err(())
+            Err(ProcessMessageError::Unsupported)
         }
     }
 }
@@ -83,21 +83,21 @@ impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldEx
 pub struct AllowReserveTransferAssetsFromAccountId;
 
 impl ShouldExecute for AllowReserveTransferAssetsFromAccountId {
-    fn should_execute<Call>(
+    fn should_execute<RuntimeCall>(
         origin: &MultiLocation,
-        message: &mut Xcm<Call>,
+        instructions: &mut [Instruction<RuntimeCall>],
         _max_weight: Weight,
         _weight_credit: &mut Weight,
-    ) -> Result<(), ()> {
+    ) -> Result<(), ProcessMessageError> {
         if eq_utils::chain_part(origin).is_none()
             && matches!(eq_utils::non_chain_part(origin), X1(AccountId32 { .. }))
         {
-            match message.0[..] {
+            match instructions {
                 [TransferReserveAsset { .. }] => Ok(()),
-                _ => Err(()),
+                _ => Err(ProcessMessageError::Unsupported),
             }
         } else {
-            Err(())
+            Err(ProcessMessageError::Unsupported)
         }
     }
 }

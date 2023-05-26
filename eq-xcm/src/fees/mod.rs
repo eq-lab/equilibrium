@@ -28,10 +28,10 @@ use frame_support::{
 use smallvec::smallvec;
 use sp_runtime::{traits::Convert, Perbill};
 use sp_std::marker::PhantomData;
-use xcm::latest::{Weight as XcmWeight, Xcm};
+use xcm::v3::{Weight as XcmWeight, Xcm};
 
 pub const WEIGHT_PER_SECOND: u128 =
-    frame_support::weights::constants::WEIGHT_PER_SECOND.ref_time() as u128;
+    frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND as u128;
 pub const WEIGHT_PER_MILLIS: u128 = WEIGHT_PER_SECOND / 1_000;
 pub const WEIGHT_PER_MICROS: u128 = WEIGHT_PER_MILLIS / 1_000;
 pub const WEIGHT_PER_NANOS: u128 = WEIGHT_PER_MICROS / 1_000;
@@ -61,26 +61,30 @@ where
     WeightToFee::Balance: Into<XcmBalance>,
 {
     fn convert(xcm: &'xcm Xcm<Call>) -> XcmBalance {
-        let weight = Weight::from_ref_time(xcm.len() as XcmWeight * BaseXcmWeight::get());
+        let base_xcm_weight = BaseXcmWeight::get();
+        let weight = Weight::from_parts(
+            xcm.len() as u64 * base_xcm_weight.ref_time(),
+            base_xcm_weight.proof_size(),
+        );
         2 * WeightToFee::weight_to_fee(&weight).into()
     }
 }
 
 #[test]
 fn expected_fees() {
-    use xcm::v2::{
-        AssetId::Concrete, Fungibility::Fungible, Instruction::*, Junctions::Here, MultiAsset,
+    use xcm::v3::{
+        AssetId::Concrete, Fungibility::Fungible, Instruction::*, MultiAsset, MultiLocation,
         WeightLimit, WildMultiAsset::All,
     };
 
-    let asset_multilocation = (1, Here).into();
+    let asset_multilocation = MultiLocation::parent();
 
     let multi_asset = MultiAsset {
         id: Concrete(asset_multilocation),
         fun: Fungible(1),
     };
     let multi_assets = vec![multi_asset.clone()].into();
-    let beneficiary = (1, Here).into();
+    let beneficiary = MultiLocation::parent();
     let xcm: Xcm<()> = Xcm(vec![
         ReserveAssetDeposited(multi_assets),
         ClearOrigin,
@@ -90,7 +94,6 @@ fn expected_fees() {
         },
         DepositAsset {
             assets: All.into(),
-            max_assets: 2, // transferable + fee
             beneficiary,
         },
     ]);

@@ -53,12 +53,12 @@ pub enum UtilityCall<RelayChainCall> {
 pub struct UtilityWeights<T>(PhantomData<T>);
 impl<T: frame_system::Config> UtilityWeights<T> {
     pub fn as_derivative() -> Weight {
-        Weight::from_ref_time(5_533_000 as u64).saturating_mul(2)
+        Weight::from_parts(5_533_000 as u64, 0).saturating_mul(2)
     }
 
     pub fn batch_all(c: u32) -> Weight {
-        Weight::from_ref_time(26_834_000 as u64)
-            .saturating_add(Weight::from_ref_time(3_527_000 as u64).saturating_mul(c as u64))
+        Weight::from_parts(26_834_000 as u64, 0)
+            .saturating_add(Weight::from_parts(3_527_000 as u64, 0).saturating_mul(c as u64))
             .saturating_mul(2)
     }
 }
@@ -79,51 +79,42 @@ pub enum StakingCall<T: Config> {
     WithdrawUnbonded(u32),
 }
 
-/// Wights from polkadot runtime multiplied by 2
-/// https://github.com/paritytech/polkadot/blob/v0.9.37/runtime/polkadot/src/weights/pallet_staking.rs
+/// Weights from polkadot runtime multiplied by 2
+/// https://github.com/paritytech/polkadot/blob/v0.9.42/runtime/polkadot/src/weights/pallet_staking.rs
 pub struct StakingWeights<T>(PhantomData<T>);
 impl<T: frame_system::Config> StakingWeights<T> {
-    pub fn bond() -> Weight {
-        Weight::from_ref_time(46_793_000 as u64)
-            .saturating_add(T::DbWeight::get().reads(4 as u64))
-            .saturating_add(T::DbWeight::get().writes(4 as u64))
-            .saturating_mul(2)
+    fn bond() -> Weight {
+        Weight::from_parts(52_752_000, 0)
+            .saturating_add(Weight::from_parts(0, 4764))
+            .saturating_add(T::DbWeight::get().reads(5))
+            .saturating_add(T::DbWeight::get().writes(4))
     }
 
-    pub fn bond_extra() -> Weight {
-        Weight::from_ref_time(85_921_000 as u64)
-            .saturating_add(T::DbWeight::get().reads(8 as u64))
-            .saturating_add(T::DbWeight::get().writes(7 as u64))
-            .saturating_mul(2)
+    fn bond_extra() -> Weight {
+        Weight::from_parts(92_365_000, 0)
+            .saturating_add(Weight::from_parts(0, 8877))
+            .saturating_add(T::DbWeight::get().reads(9))
+            .saturating_add(T::DbWeight::get().writes(7))
     }
 
-    pub fn unbond() -> Weight {
-        Weight::from_ref_time(92_682_000 as u64)
-            // было в сумме 1_190_775_000
-            // у нас было 2_009_062_000
-            // сейчас в dispatch_info 5_058_339_947
-            // было в dispatch_info 998_576_000
-            .saturating_add(T::DbWeight::get().reads(12 as u64))
-            .saturating_add(T::DbWeight::get().writes(8 as u64))
-            .saturating_mul(2)
+    fn nominate(n: u32) -> Weight {
+        Weight::from_parts(62_728_766, 0)
+            .saturating_add(Weight::from_parts(0, 6248))
+            .saturating_add(Weight::from_parts(3_227_358, 0).saturating_mul(n.into()))
+            .saturating_add(T::DbWeight::get().reads(12))
+            .saturating_add(T::DbWeight::get().reads((1_u64).saturating_mul(n.into())))
+            .saturating_add(T::DbWeight::get().writes(6))
+            .saturating_add(Weight::from_parts(0, 2520).saturating_mul(n.into()))
     }
 
-    pub fn nominate(n: u32) -> Weight {
-        Weight::from_ref_time(64_480_887 as u64)
-            .saturating_add(Weight::from_ref_time(2_387_381 as u64).saturating_mul(n as u64))
-            .saturating_add(T::DbWeight::get().reads(12 as u64))
-            .saturating_add(T::DbWeight::get().reads((1 as u64).saturating_mul(n as u64)))
-            .saturating_add(T::DbWeight::get().writes(6 as u64))
-            .saturating_mul(2)
-    }
-
-    pub fn withdraw_unbonded_kill(s: u32) -> Weight {
-        Weight::from_ref_time(83_564_707 as u64)
-            .saturating_add(Weight::from_ref_time(910_195).saturating_mul(s.into()))
-            .saturating_add(T::DbWeight::get().reads(13 as u64))
-            .saturating_add(T::DbWeight::get().writes(11 as u64))
+    fn withdraw_unbonded_kill(s: u32) -> Weight {
+        Weight::from_parts(94_303_687, 0)
+            .saturating_add(Weight::from_parts(0, 6248))
+            .saturating_add(Weight::from_parts(1_180_035, 0).saturating_mul(s.into()))
+            .saturating_add(T::DbWeight::get().reads(14))
+            .saturating_add(T::DbWeight::get().writes(12))
             .saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(s.into())))
-            .saturating_mul(2)
+            .saturating_add(Weight::from_parts(0, 4).saturating_mul(s.into()))
     }
 }
 
@@ -208,8 +199,8 @@ where
         call: Self::RelayChainCall,
         transact_weight: Weight,
     ) -> Xcm<()> {
-        let xcm_weight = Weight::from_ref_time(crate::fees::polkadot::BaseXcmWeight::get())
-            .saturating_mul(5)
+        let xcm_weight = crate::fees::polkadot::BaseXcmWeight::get()
+            .saturating_mul(4)
             .saturating_add(transact_weight);
         let xcm_fee: XcmBalance =
             crate::fees::polkadot::WeightToFee::weight_to_fee(&xcm_weight).into();
@@ -225,14 +216,12 @@ where
                 weight_limit: Unlimited,
             },
             Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: transact_weight.ref_time(),
+                origin_kind: OriginKind::SovereignAccount,
+                require_weight_at_most: transact_weight,
                 call: call.encode().into(),
             },
-            RefundSurplus,
             DepositAsset {
                 assets: All.into(),
-                max_assets: 1,
                 beneficiary: MultiLocation {
                     parents: 0,
                     interior: X1(Parachain(ParachainId::get().into())),

@@ -38,7 +38,7 @@ use sp_std::prelude::*;
 
 use asset::Asset;
 pub use polkadot_core_primitives::Balance as XcmBalance;
-use xcm::v3::{Junction::*, NetworkId};
+use xcm::v3::Junction::*;
 
 pub use crate::bailsman::*;
 pub use crate::dex::*;
@@ -479,16 +479,10 @@ impl Into<Vec<u8>> for AccountType {
 }
 
 impl AccountType {
-    pub fn multi_location(self, network: NetworkId) -> xcm::v3::Junction {
+    pub fn multi_location(self) -> xcm::v3::Junction {
         match self {
-            AccountType::Id32(id) => AccountId32 {
-                network: Some(network),
-                id,
-            },
-            AccountType::Key20(key) => AccountKey20 {
-                network: Some(network),
-                key,
-            },
+            AccountType::Id32(id) => AccountId32 { network: None, id },
+            AccountType::Key20(key) => AccountKey20 { network: None, key },
         }
     }
 }

@@ -22,5 +22,5 @@ pub mod cru;
 pub mod eqd;
 
 parameter_types! {
-    pub const BaseXcmWeight: XcmWeight = 1_000_000_000;
+    pub const BaseXcmWeight: XcmWeight = XcmWeight::from_parts(1_000_000_000, 0);
 }

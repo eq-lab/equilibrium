@@ -23,5 +23,5 @@ pub mod glmr;
 pub mod movr;
 
 parameter_types! {
-    pub const BaseXcmWeight: XcmWeight = 200_000_000;
+    pub const BaseXcmWeight: XcmWeight = XcmWeight::from_parts(200_000_000, 0);
 }
