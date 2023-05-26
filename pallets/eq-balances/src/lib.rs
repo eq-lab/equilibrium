@@ -81,11 +81,10 @@ use sp_std::{
     prelude::*,
 };
 pub use weights::WeightInfo;
-use xcm::latest::{
-    AssetId::Concrete, Fungibility::Fungible, Instruction::*, MultiAsset, NetworkId, SendResult,
-    SendXcm, WeightLimit, WildMultiAsset::*, Xcm,
+use xcm::v3::{
+    AssetId::Concrete, Fungibility::Fungible, Instruction::*, InteriorMultiLocation, MultiAsset,
+    MultiLocation, SendResult, SendXcm, WeightLimit, WildMultiAsset::*, Xcm,
 };
-use xcm::v1::MultiLocation;
 
 pub mod benchmarking;
 pub mod locked_balance_checker;
@@ -118,9 +117,9 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Origin for enable and disable transfers
-        type ToggleTransferOrigin: EnsureOrigin<Self::Origin>;
+        type ToggleTransferOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Origin to force xcm transfers
-        type ForceXcmTransferOrigin: EnsureOrigin<Self::Origin>;
+        type ForceXcmTransferOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Numerical representation of stored balances
         type Balance: Parameter
             + FixedPointOperand
@@ -177,7 +176,7 @@ pub mod pallet {
         /// Used to convert MultiLocation to AccountId for reserving assets
         type LocationToAccountId: xcm_executor::traits::Convert<MultiLocation, Self::AccountId>;
         /// Used to reanchoring asset with Ancestry
-        type LocationInverter: xcm_executor::traits::InvertLocation;
+        type UniversalLocation: Get<InteriorMultiLocation>;
         /// Weight information for extrinsics in this pallet
         type WeightInfo: WeightInfo;
         /// Account for storing reserved balance
@@ -228,7 +227,7 @@ pub mod pallet {
         /// Adds currency to account balance (sudo only). Used to deposit currency
         /// into system. Disabled in production.
         #[pallet::call_index(1)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::transfer())]
         pub fn deposit(
             origin: OriginFor<T>,
             asset: Asset,
@@ -247,7 +246,7 @@ pub mod pallet {
         /// Burns currency (sudo only). Used to withdraw currency from the system.
         /// Disabled in production.
         #[pallet::call_index(2)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::transfer())]
         pub fn burn(
             origin: OriginFor<T>,
             asset: Asset,
@@ -376,7 +375,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(9)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::xcm_transfer())]
         pub fn force_xcm_transfer(
             origin: OriginFor<T>,
             asset: Asset,
@@ -416,7 +415,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(11)]
-        #[pallet::weight(T::WeightInfo::xcm_transfer())]
+        #[pallet::weight(T::WeightInfo::xcm_transfer_native())]
         pub fn transfer_xcm_native(
             origin: OriginFor<T>,
             transfer: (Asset, T::Balance),

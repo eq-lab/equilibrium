@@ -83,6 +83,7 @@ pub enum StakingCall<T: Config> {
 /// https://github.com/paritytech/polkadot/blob/v0.9.42/runtime/polkadot/src/weights/pallet_staking.rs
 pub struct StakingWeights<T>(PhantomData<T>);
 impl<T: frame_system::Config> StakingWeights<T> {
+    #[allow(dead_code)]
     fn bond() -> Weight {
         Weight::from_parts(52_752_000, 0)
             .saturating_add(Weight::from_parts(0, 4764))
@@ -90,6 +91,7 @@ impl<T: frame_system::Config> StakingWeights<T> {
             .saturating_add(T::DbWeight::get().writes(4))
     }
 
+    #[allow(dead_code)]
     fn bond_extra() -> Weight {
         Weight::from_parts(92_365_000, 0)
             .saturating_add(Weight::from_parts(0, 8877))
@@ -97,6 +99,7 @@ impl<T: frame_system::Config> StakingWeights<T> {
             .saturating_add(T::DbWeight::get().writes(7))
     }
 
+    #[allow(dead_code)]
     fn nominate(n: u32) -> Weight {
         Weight::from_parts(62_728_766, 0)
             .saturating_add(Weight::from_parts(0, 6248))
@@ -107,6 +110,7 @@ impl<T: frame_system::Config> StakingWeights<T> {
             .saturating_add(Weight::from_parts(0, 2520).saturating_mul(n.into()))
     }
 
+    #[allow(dead_code)]
     fn withdraw_unbonded_kill(s: u32) -> Weight {
         Weight::from_parts(94_303_687, 0)
             .saturating_add(Weight::from_parts(0, 6248))

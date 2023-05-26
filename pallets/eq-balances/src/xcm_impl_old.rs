@@ -16,13 +16,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+use xcm::v3::send_xcm;
+
 use super::*;
 
 impl<T: Config> Pallet<T> {
     pub fn reanchor(mut this: MultiLocation, target: &MultiLocation) -> Option<MultiLocation> {
-        use xcm_executor::traits::InvertLocation;
-
-        let inverted_target = T::LocationInverter::invert_location(target).ok()?;
+        let inverted_target = T::UniversalLocation::get().invert_target(&target).ok()?;
         this.prepend_with(inverted_target).ok()?;
         this.simplify(target.interior());
 
@@ -49,7 +49,6 @@ impl<T: Config> Pallet<T> {
             },
             DepositAsset {
                 assets: All.into(),
-                max_assets: 2, // transferable + fee
                 beneficiary,
             },
         ])
@@ -72,7 +71,7 @@ impl<T: Config> Pallet<T> {
                 let destination = eq_utils::chain_part(&multi_location)
                     .ok_or(Error::<T>::XcmInvalidDestination)?;
                 let asset_location = eq_utils::non_chain_part(&multi_location).into();
-                let beneficiary = to.multi_location(NetworkId::Any).into();
+                let beneficiary = to.multi_location().into();
                 (destination, asset_location, beneficiary)
             }
         };
@@ -116,7 +115,7 @@ impl<T: Config> Pallet<T> {
                     id: Concrete(asset_location),
                     fun: Fungible(xcm_amount),
                 };
-                let multi_assets: xcm::v2::MultiAssets =
+                let multi_assets: xcm::v3::MultiAssets =
                     vec![multi_asset.clone(), multi_asset.clone()].into();
                 let temp_xcm = Xcm(vec![
                     WithdrawAsset(multi_assets.clone()),
@@ -127,7 +126,6 @@ impl<T: Config> Pallet<T> {
                     },
                     DepositAsset {
                         assets: All.into(),
-                        max_assets: 2, // transferable + fee
                         beneficiary: beneficiary.clone(),
                     },
                 ]);
@@ -155,7 +153,6 @@ impl<T: Config> Pallet<T> {
                     },
                     DepositAsset {
                         assets: All.into(),
-                        max_assets: 2, // transferable + fee
                         beneficiary: beneficiary.clone(),
                     },
                 ]);
@@ -247,7 +244,7 @@ impl<T: Config> Pallet<T> {
         // wrap in transaction all methods that could cause side effects
         // rollback on any error, but save send_result to show proper error
         let send_result = frame_support::storage::with_transaction(
-            || -> TransactionOutcome<Result<SendResult, DispatchError>> {
+            || -> TransactionOutcome<Result<SendResult<_>, DispatchError>> {
                 use TransactionOutcome::*;
 
                 for (to, asset, amount, reason) in to_transfer {
@@ -285,8 +282,8 @@ impl<T: Config> Pallet<T> {
                 }
 
                 log::trace!(target: "eq_balances", "Sending XcmMessage dest: {:?}, xcm: {:?}", destination, xcm);
-                match T::XcmRouter::send_xcm(destination.clone(), xcm) {
-                    Ok(()) => Commit(Ok(SendResult::Ok(()))),
+                match send_xcm::<T::XcmRouter>(destination.clone(), xcm) {
+                    Ok(send_result) => Commit(Ok(SendResult::Ok(send_result))),
                     Err(err) => Rollback(Ok(SendResult::Err(err))),
                 }
             },

@@ -394,7 +394,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
         type Call: From<Call<Self>>;
-        type FinMetricsRecalcToggleOrigin: EnsureOrigin<Self::Origin>;
+        type FinMetricsRecalcToggleOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         type Balance: Parameter
             + Member
             + AtLeast32BitUnsigned
@@ -496,7 +496,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(2)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::DbWeight::get().writes(1_u64))]
         /// Enables or disables auto recalculation of financial metrics
         pub fn set_fin_metrics_recalc_enabled(
             origin: OriginFor<T>,
@@ -651,7 +651,7 @@ pub mod pallet {
                 let _ = T::FinancialSystemTrait::recalc_inner();
             }
 
-            Weight::from_ref_time(10_000)
+            Weight::from_parts(10_000, 0)
         }
     }
 
