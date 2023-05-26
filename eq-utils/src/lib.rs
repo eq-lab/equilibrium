@@ -104,11 +104,11 @@ pub fn balance_swap_decimals(value: XcmBalance, from: u8, to: u8) -> Option<XcmB
     })
 }
 
-use xcm::latest::{
+use xcm::v3::{
     Junction::*,
     Junctions::{self, *},
+    MultiLocation,
 };
-use xcm::v1::MultiLocation;
 
 pub fn chain_part(this: &MultiLocation) -> Option<MultiLocation> {
     match (this.parents, this.first_interior()) {
