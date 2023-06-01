@@ -111,8 +111,8 @@ use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use polkadot_runtime_constants::weights::RocksDbWeight;
 use xcm::v3::{
-    InteriorMultiLocation, Junction::*, Junctions::*, MultiAsset, MultiLocation, NetworkId,
-    OriginKind, Weight as XcmWeight, Xcm,
+    InteriorMultiLocation, Junction::*, Junctions::*, MultiLocation, NetworkId, OriginKind,
+    Weight as XcmWeight, Xcm,
 };
 use xcm_builder::{
     AllowKnownQueryResponses, AllowSubscriptionsFrom, EnsureXcmOrigin, FixedWeightBounds,
@@ -456,13 +456,6 @@ parameter_types! {
 impl eq_aggregates::Config for Runtime {
     type Balance = Balance;
     type BalanceGetter = eq_balances::Pallet<Runtime>;
-}
-
-fn multiply_by_rational_weight(a: Weight, b: Weight, c: Weight) -> Weight {
-    Weight::from_parts(
-        a.ref_time() * b.ref_time() / c.proof_size(),
-        a.proof_size() * b.proof_size() / c.proof_size(),
-    )
 }
 
 pub struct FallbackWeightToFee;
@@ -1808,13 +1801,6 @@ parameter_types! {
         X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(<ParachainInfo as Get<ParaId>>::get().into()));
 }
 
-pub struct NoTeleport;
-impl ContainsPair<MultiAsset, MultiLocation> for NoTeleport {
-    fn contains(_asset: &MultiAsset, _origin: &MultiLocation) -> bool {
-        false
-    }
-}
-
 pub struct TreasuryAccount;
 impl Get<AccountId> for TreasuryAccount {
     fn get() -> AccountId {
@@ -2757,7 +2743,6 @@ impl_runtime_apis! {
         ) -> transaction_payment::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
         }
-
         fn query_weight_to_fee(weight: Weight) -> Balance {
             TransactionPayment::weight_to_fee(weight)
         }

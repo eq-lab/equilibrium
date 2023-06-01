@@ -22,12 +22,14 @@
 #![deny(warnings)]
 
 pub use eq_primitives::balance::Balance;
+use frame_support::{traits::ContainsPair, weights::Weight};
 pub use sp_runtime::{
     generic::DigestItem,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
     MultiSignature,
 };
 pub use sp_std::prelude::*;
+use xcm::v3::{MultiAsset, MultiLocation};
 
 pub mod mocks;
 
@@ -79,4 +81,18 @@ pub mod opaque {
     pub type SignedBlock = generic::SignedBlock<Block>;
     /// Opaque block identifier type.
     pub type BlockId = generic::BlockId<Block>;
+}
+
+pub struct NoTeleport;
+impl ContainsPair<MultiAsset, MultiLocation> for NoTeleport {
+    fn contains(_asset: &MultiAsset, _origin: &MultiLocation) -> bool {
+        false
+    }
+}
+
+pub fn multiply_by_rational_weight(a: Weight, b: Weight, c: Weight) -> Weight {
+    Weight::from_parts(
+        a.ref_time() * b.ref_time() / c.proof_size(),
+        a.proof_size() * b.proof_size() / c.proof_size(),
+    )
 }
