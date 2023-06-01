@@ -63,7 +63,7 @@ impl<T: Config> Pallet<T> {
             fun: Fungible(xcm_fee_amount),
         };
         // Common parameter for ReserveAssetDeposited and Withdraw.
-        // Join to one multi_asset if asset == fee_asset.
+        // Join to single multi_asset if asset == fee_asset.
         let multi_assets = if asset == fee_asset {
             let xcm_amount_and_fee = xcm_amount
                 .checked_add(xcm_fee_amount)

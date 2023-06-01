@@ -25,7 +25,6 @@ use jsonrpsee::{
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_rpc::number::NumberOrHex;
-use sp_runtime::generic::BlockId;
 use sp_runtime::traits::{Block as BlockT, MaybeDisplay};
 use std::convert::TryInto;
 use std::sync::Arc;
@@ -67,19 +66,19 @@ where
     AccountId: Codec + MaybeDisplay,
 {
     fn wallet_balance_in_usd(&self, account_id: AccountId) -> RpcResult<Balance> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
 
-        api.wallet_balance_in_usd(&at, account_id)
+        api.wallet_balance_in_usd(at, account_id)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
     }
 
     fn portfolio_balance_in_usd(&self, account_id: AccountId) -> RpcResult<Balance> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.portfolio_balance_in_usd(&at, account_id)
+        api.portfolio_balance_in_usd(at, account_id)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
