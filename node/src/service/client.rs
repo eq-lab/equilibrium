@@ -19,7 +19,7 @@
 #![allow(unused_imports)]
 use super::{FullBackend, FullClient};
 use common_runtime::{opaque::*, BlockNumber, Hash};
-use sc_client_api::KeyIterator;
+use sc_client_api::{Backend, KeysIter, PairsIter};
 use sp_api::NumberFor;
 use sp_consensus::BlockStatus;
 use sp_runtime::{
@@ -80,28 +80,25 @@ impl sc_client_api::UsageProvider<Block> for Client {
 impl sc_client_api::BlockBackend<Block> for Client {
     fn block_body(
         &self,
-        id: &BlockId<Block>,
+        hash: Hash,
     ) -> sp_blockchain::Result<Option<Vec<<Block as BlockT>::Extrinsic>>> {
-        match_client!(self, block_body(id))
+        match_client!(self, block_body(hash))
     }
 
-    fn block_indexed_body(
-        &self,
-        id: &BlockId<Block>,
-    ) -> sp_blockchain::Result<Option<Vec<Vec<u8>>>> {
-        match_client!(self, block_indexed_body(id))
+    fn block_indexed_body(&self, hash: Hash) -> sp_blockchain::Result<Option<Vec<Vec<u8>>>> {
+        match_client!(self, block_indexed_body(hash))
     }
 
-    fn block(&self, id: &BlockId<Block>) -> sp_blockchain::Result<Option<SignedBlock<Block>>> {
-        match_client!(self, block(id))
+    fn block(&self, hash: Hash) -> sp_blockchain::Result<Option<SignedBlock<Block>>> {
+        match_client!(self, block(hash))
     }
 
-    fn block_status(&self, id: &BlockId<Block>) -> sp_blockchain::Result<BlockStatus> {
-        match_client!(self, block_status(id))
+    fn block_status(&self, hash: Hash) -> sp_blockchain::Result<BlockStatus> {
+        match_client!(self, block_status(hash))
     }
 
-    fn justifications(&self, id: &BlockId<Block>) -> sp_blockchain::Result<Option<Justifications>> {
-        match_client!(self, justifications(id))
+    fn justifications(&self, hash: Hash) -> sp_blockchain::Result<Option<Justifications>> {
+        match_client!(self, justifications(hash))
     }
 
     fn block_hash(
@@ -111,17 +108,11 @@ impl sc_client_api::BlockBackend<Block> for Client {
         match_client!(self, block_hash(number))
     }
 
-    fn indexed_transaction(
-        &self,
-        hash: &<Block as BlockT>::Hash,
-    ) -> sp_blockchain::Result<Option<Vec<u8>>> {
+    fn indexed_transaction(&self, hash: Hash) -> sp_blockchain::Result<Option<Vec<u8>>> {
         match_client!(self, indexed_transaction(hash))
     }
 
-    fn has_indexed_transaction(
-        &self,
-        hash: &<Block as BlockT>::Hash,
-    ) -> sp_blockchain::Result<bool> {
+    fn has_indexed_transaction(&self, hash: Hash) -> sp_blockchain::Result<bool> {
         match_client!(self, has_indexed_transaction(hash))
     }
 
@@ -131,104 +122,80 @@ impl sc_client_api::BlockBackend<Block> for Client {
 }
 
 impl sc_client_api::StorageProvider<Block, FullBackend> for Client {
-    fn storage(
-        &self,
-        id: &BlockId<Block>,
-        key: &StorageKey,
-    ) -> sp_blockchain::Result<Option<StorageData>> {
-        match_client!(self, storage(id, key))
+    fn storage(&self, hash: Hash, key: &StorageKey) -> sp_blockchain::Result<Option<StorageData>> {
+        match_client!(self, storage(hash, key))
     }
 
     fn storage_keys(
         &self,
-        id: &BlockId<Block>,
-        key_prefix: &StorageKey,
-    ) -> sp_blockchain::Result<Vec<StorageKey>> {
-        match_client!(self, storage_keys(id, key_prefix))
+        hash: Hash,
+        prefix: Option<&StorageKey>,
+        start_key: Option<&StorageKey>,
+    ) -> sp_blockchain::Result<KeysIter<<FullBackend as sc_client_api::Backend<Block>>::State, Block>>
+    {
+        match_client!(self, storage_keys(hash, prefix, start_key))
     }
 
     fn storage_hash(
         &self,
-        id: &BlockId<Block>,
+        hash: Hash,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Option<<Block as BlockT>::Hash>> {
-        match_client!(self, storage_hash(id, key))
+        match_client!(self, storage_hash(hash, key))
     }
 
     fn storage_pairs(
         &self,
-        id: &BlockId<Block>,
-        key_prefix: &StorageKey,
-    ) -> sp_blockchain::Result<Vec<(StorageKey, StorageData)>> {
-        match_client!(self, storage_pairs(id, key_prefix))
-    }
-
-    fn storage_keys_iter<'a>(
-        &self,
-        id: &BlockId<Block>,
-        prefix: Option<&'a StorageKey>,
+        hash: Hash,
+        prefix: Option<&StorageKey>,
         start_key: Option<&StorageKey>,
-    ) -> sp_blockchain::Result<
-        KeyIterator<'a, <FullBackend as sc_client_api::Backend<Block>>::State, Block>,
-    > {
-        match_client!(self, storage_keys_iter(id, prefix, start_key))
+    ) -> sp_blockchain::Result<PairsIter<<FullBackend as Backend<Block>>::State, Block>> {
+        match_client!(self, storage_pairs(hash, prefix, start_key))
     }
 
     fn child_storage(
         &self,
-        id: &BlockId<Block>,
+        hash: Hash,
         child_info: &ChildInfo,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Option<StorageData>> {
-        match_client!(self, child_storage(id, child_info, key))
+        match_client!(self, child_storage(hash, child_info, key))
     }
 
     fn child_storage_keys(
         &self,
-        id: &BlockId<Block>,
-        child_info: &ChildInfo,
-        key_prefix: &StorageKey,
-    ) -> sp_blockchain::Result<Vec<StorageKey>> {
-        match_client!(self, child_storage_keys(id, child_info, key_prefix))
-    }
-
-    fn child_storage_keys_iter<'a>(
-        &self,
-        id: &BlockId<Block>,
+        hash: Hash,
         child_info: ChildInfo,
-        prefix: Option<&'a StorageKey>,
+        prefix: Option<&StorageKey>,
         start_key: Option<&StorageKey>,
-    ) -> sp_blockchain::Result<
-        KeyIterator<'a, <FullBackend as sc_client_api::Backend<Block>>::State, Block>,
-    > {
+    ) -> sp_blockchain::Result<KeysIter<<FullBackend as Backend<Block>>::State, Block>> {
         match_client!(
             self,
-            child_storage_keys_iter(id, child_info, prefix, start_key)
+            child_storage_keys(hash, child_info, prefix, start_key)
         )
     }
 
     fn child_storage_hash(
         &self,
-        id: &BlockId<Block>,
+        hash: Hash,
         child_info: &ChildInfo,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Option<<Block as BlockT>::Hash>> {
-        match_client!(self, child_storage_hash(id, child_info, key))
+        match_client!(self, child_storage_hash(hash, child_info, key))
     }
 }
 
 impl sp_blockchain::HeaderBackend<Block> for Client {
-    fn header(&self, id: BlockId<Block>) -> sp_blockchain::Result<Option<Header>> {
-        let id = &id;
-        match_client!(self, header(id))
+    fn header(&self, hash: Hash) -> sp_blockchain::Result<Option<Header>> {
+        match_client!(self, header(hash))
     }
 
     fn info(&self) -> sp_blockchain::Info<Block> {
         match_client!(self, info())
     }
 
-    fn status(&self, id: BlockId<Block>) -> sp_blockchain::Result<sp_blockchain::BlockStatus> {
-        match_client!(self, status(id))
+    fn status(&self, hash: Hash) -> sp_blockchain::Result<sp_blockchain::BlockStatus> {
+        match_client!(self, status(hash))
     }
 
     fn number(&self, hash: Hash) -> sp_blockchain::Result<Option<BlockNumber>> {

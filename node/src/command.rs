@@ -383,13 +383,13 @@ pub fn run() -> sc_cli::Result<()> {
 
             runner.run_node_until_exit(|config| async move {
                 let hwbench = if !cli.no_hardware_benchmarks {
-					config.database.path().map(|database_path| {
-						let _ = std::fs::create_dir_all(&database_path);
-						sc_sysinfo::gather_hwbench(Some(database_path))
-					})
-				} else {
-					None
-				};
+                    config.database.path().map(|database_path| {
+                        let _ = std::fs::create_dir_all(&database_path);
+                        sc_sysinfo::gather_hwbench(Some(database_path))
+                    })
+                } else {
+                    None
+                };
 
                 let para_id = Extensions::try_get(&*config.chain_spec)
                     .map(|e| e.para_id)
@@ -405,7 +405,9 @@ pub fn run() -> sc_cli::Result<()> {
                 let id = ParaId::from(para_id);
 
                 let parachain_account =
-                    AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
+                    AccountIdConversion::<polkadot_primitives::AccountId>::into_account_truncating(
+                        &id,
+                    );
 
                 let state_version =
                     RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
@@ -434,24 +436,32 @@ pub fn run() -> sc_cli::Result<()> {
                 );
 
                 match &config.chain_spec {
-					#[cfg(feature = "with-eq-runtime")]
-					spec if spec.is_equilibrium() => service::start_node::<
-						eq_node_runtime::RuntimeApi,
-						service::EquilibriumRuntimeExecutor,
-					>(config, polkadot_config, collator_options, id, hwbench)
-					.await
-					.map(|r| r.0)
-					.map_err(Into::into),
-					#[cfg(feature = "with-gens-runtime")]
-					spec if spec.is_genshiro() => service::start_node::<
-                        gens_node_runtime::RuntimeApi,
-                        service::GenshiroRuntimeExecutor,
-					>(config, polkadot_config, collator_options, id, hwbench)
-					.await
-					.map(|r| r.0)
-					.map_err(Into::into),
-					_ => panic!("invalid chain spec"),
-				}
+                    #[cfg(feature = "with-eq-runtime")]
+                    spec if spec.is_equilibrium() => {
+                        service::start_node::<
+                            eq_node_runtime::RuntimeApi,
+                            service::EquilibriumRuntimeExecutor,
+                        >(
+                            config, polkadot_config, collator_options, id, hwbench
+                        )
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                    }
+                    #[cfg(feature = "with-gens-runtime")]
+                    spec if spec.is_genshiro() => {
+                        service::start_node::<
+                            gens_node_runtime::RuntimeApi,
+                            service::GenshiroRuntimeExecutor,
+                        >(
+                            config, polkadot_config, collator_options, id, hwbench
+                        )
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
+                    }
+                    _ => panic!("invalid chain spec"),
+                }
             })
         }
     }

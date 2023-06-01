@@ -31,7 +31,7 @@ pub use sp_runtime::{
 };
 pub use std::time::SystemTime;
 pub use substrate_fixed::types::I64F64;
-pub use xcm::latest::{Junction::*, Junctions::*};
+pub use xcm::v3::{Junction::*, Junctions::*, MultiLocation};
 
 #[cfg(feature = "with-eq-runtime")]
 pub mod equilibrium;

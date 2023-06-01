@@ -13,13 +13,13 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 futures = "0.3.21"
-jsonrpsee = { version = "0.15.1", features = ["server"] }
+jsonrpsee = { version = "0.16.2", features = ["server"] }
 log = "0.4.17"
 parking_lot = "0.10.0"
 rand = "0.7.3"
 serde = { version = "1.0.136", features = ["derive"] }
 async-trait = "0.1.57"
-clap = { version = "3.1.18", features = ["derive"] }
+clap = { version = "4.2.3", features = ["derive"] }
 tracing = "0.1.36"
 hex-literal = "0.3.1"
 
@@ -36,6 +36,7 @@ parachains-common = { git = "https://github.com/paritytech/cumulus", branch = "p
 cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42" }
 cumulus-relay-chain-inprocess-interface = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42" }
 cumulus-relay-chain-rpc-interface = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42" }
+cumulus-relay-chain-minimal-node = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42" }
 
 # Polkadot dependencies
 polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.42" }
@@ -57,6 +58,7 @@ sp-storage = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-trie = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
 sc-sysinfo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
 try-runtime-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42", optional = true }
+sc-network-sync = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
 
 [dependencies.eq-xcm]
 package = "eq-xcm"
