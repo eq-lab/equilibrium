@@ -77,6 +77,11 @@ default-features = false
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.42"
 
+[dev-dependencies.polkadot-primitives]
+default-features = false
+git = "https://github.com/paritytech/polkadot"
+branch = "release-v0.9.42"
+
 [dependencies.eq-balances]
 default-features = false
 package = "eq-balances"

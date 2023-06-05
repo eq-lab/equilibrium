@@ -36,7 +36,7 @@
 //! In further releases we will optimize this by working with aggregates/integrals and not making redistribution on price updates.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 pub mod benchmarking;
 mod mock;

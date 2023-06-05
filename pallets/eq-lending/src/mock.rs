@@ -70,7 +70,7 @@ frame_support::construct_runtime!(
 );
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = MainAsset;
     type OnNewAsset = ();
@@ -99,8 +99,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -108,7 +108,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -180,15 +180,15 @@ parameter_types! {
 
 impl<LocalCall> SendTransactionTypes<LocalCall> for Test
 where
-    Call: From<LocalCall>,
+    RuntimeCall: From<LocalCall>,
 {
-    type OverarchingCall = Call;
-    type Extrinsic = TestXt<Call, ()>;
+    type OverarchingCall = RuntimeCall;
+    type Extrinsic = TestXt<RuntimeCall, ()>;
 }
 
 impl eq_bailsman::Config for Test {
     type AssetGetter = eq_assets::Pallet<Test>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type BalanceGetter = ModuleBalances;
     type EqCurrency = ModuleBalances;
@@ -210,7 +210,7 @@ impl eq_bailsman::Config for Test {
 }
 
 impl Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type AssetGetter = eq_assets::Pallet<Test>;
     type BalanceGetter = eq_balances::Pallet<Test>;
@@ -309,7 +309,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDeposit;
     type BalanceChecker = ModuleLending;
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Aggregates = eq_aggregates::Pallet<Test>;
     type TreasuryModuleId = TreasuryModuleId;
@@ -321,7 +321,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = eq_primitives::mocks::XcmRouterErrMock;
     type XcmToFee = eq_primitives::mocks::XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type UnixTime = TimeMock;
 }

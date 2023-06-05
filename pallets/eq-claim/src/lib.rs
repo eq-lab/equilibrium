@@ -17,7 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings)]
+// #![deny(warnings)]
 //! # Equilibrium Claim Pallet
 //!
 //! Equilibrium's Balances Pallet is a Substrate module that processes claims

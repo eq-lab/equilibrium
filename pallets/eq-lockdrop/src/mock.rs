@@ -72,7 +72,7 @@ frame_support::construct_runtime!(
 );
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = MainAsset;
     type OnNewAsset = ();
@@ -99,8 +99,8 @@ impl system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u32;
     type Hash = H256;
@@ -108,7 +108,7 @@ impl system::Config for Test {
     type AccountId = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header<u32, BlakeTwo256>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -124,7 +124,7 @@ impl system::Config for Test {
 pub type ModuleSystem = frame_system::Pallet<Test>;
 
 impl eq_session_manager::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ValidatorsManagementOrigin = EnsureRoot<AccountId>;
     type ValidatorId = DummyValidatorId;
     type RegistrationChecker = Session;
@@ -134,7 +134,7 @@ impl eq_session_manager::Config for Test {
 
 /*impl eq_bailsman::Config for Test {
     type AssetGetter = eq_assets::Pallet<Test>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type UnixTime = ModuleTimestamp;
     type Balance = u128;
     type BalanceGetter = ModuleBalances;
@@ -306,7 +306,7 @@ parameter_types! {
 
 impl eq_margin_call::Config for Test {
     type SubaccountsManager = SubaccountsManagerMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = u128;
     type UnixTime = ModuleTimestamp;
     type BailsmenManager = eq_bailsman::Pallet<Test>;
@@ -485,7 +485,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDeposit;
     type BalanceChecker = ();
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Aggregates = AggregatesMock;
     type TreasuryModuleId = TreasuryModuleId;
@@ -497,7 +497,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = ();
     type XcmToFee = ();
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type UnixTime = TimeZeroDurationMock;
 }
@@ -515,7 +515,7 @@ pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
 
 impl eq_vesting::Config for Test {
     type PalletId = VestingModuleId;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Currency = BasicCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
@@ -528,7 +528,7 @@ parameter_types! {
 }
 
 impl eq_lockdrop::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type PalletId = LockdropModuleId;
     type LockPeriod = LockPeriod;
     type Vesting = eq_vesting::Pallet<Test>;
@@ -538,13 +538,13 @@ impl eq_lockdrop::Config for Test {
     type WeightInfo = ();
 }
 
-pub type Extrinsic = sp_runtime::testing::TestXt<Call, ()>;
+pub type Extrinsic = sp_runtime::testing::TestXt<RuntimeCall, ()>;
 
 impl<LocalCall> SendTransactionTypes<LocalCall> for Test
 where
-    Call: From<LocalCall>,
+    RuntimeCall: From<LocalCall>,
 {
-    type OverarchingCall = Call;
+    type OverarchingCall = RuntimeCall;
     type Extrinsic = Extrinsic;
 }
 
@@ -570,7 +570,7 @@ impl pallet_session::Config for Test {
     type ValidatorId = u64;
     type ValidatorIdOf = sp_runtime::traits::ConvertInto;
     type Keys = SessionKeys;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     // type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type WeightInfo = ();
@@ -639,8 +639,6 @@ impl eq_rate::Config for Test {
 
 impl authorship::Config for Test {
     type FindAuthor = ();
-    type UncleGenerations = ();
-    type FilterUncle = ();
     type EventHandler = ();
 }
 

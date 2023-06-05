@@ -28,21 +28,30 @@ use eq_primitives::{
     xcm_origins as origins, XcmMode,
 };
 use eq_xcm::*;
-use frame_support::{assert_err, assert_ok, traits::GenesisBuild, weights::WeightToFee, PalletId};
+use frame_support::{
+    assert_err, assert_ok,
+    traits::{GenesisBuild, ProcessMessageError},
+    weights::WeightToFee,
+    PalletId,
+};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::{
     traits::{AccountIdConversion, TrailingZeroInput},
     Percent,
 };
 use sp_std::sync::{Arc, RwLock};
-use xcm::latest::{
-    AssetId, Error as XcmError, Fungibility, Instruction::*, Junction::*, Junctions::*, MultiAsset,
-    MultiAssetFilter, NetworkId, WeightLimit::*, Xcm,
+use xcm::v3::{
+    AssetId, Error as XcmError, ExecuteXcm, Fungibility,
+    Instruction::{self, *},
+    Junction::*,
+    Junctions::*,
+    MultiAsset, MultiAssetFilter, MultiLocation, NetworkId, SendError,
+    WeightLimit::*,
+    Xcm,
 };
-use xcm::v1::MultiLocation;
 use xcm_executor::traits::{Convert as _, ShouldExecute as _, WeightTrader as _};
 
-use cumulus_primitives_core::ParaId;
+use cumulus_primitives_core::{MultiAssets, Outcome, ParaId, SendResult, XcmHash};
 use polkadot_parachain::primitives::Sibling;
 use sp_arithmetic::FixedI64;
 
@@ -69,28 +78,41 @@ pub fn xcm_message_container() -> Vec<(MultiLocation, xcm::latest::Xcm<()>)> {
         .unwrap_or_default()
 }
 
+fn hash_xcm<T>(msg: Xcm<T>) -> XcmHash {
+    msg.using_encoded(sp_io::hashing::blake2_256)
+}
+
 pub struct XcmRouterMock;
 impl xcm::latest::SendXcm for XcmRouterMock {
-    fn send_xcm(
-        dest: impl Into<MultiLocation>,
-        msg: xcm::latest::Xcm<()>,
-    ) -> xcm::latest::SendResult {
-        let dest = dest.into();
-        match &dest {
-            MultiLocation {
+    type Ticket = (MultiLocation, Xcm<()>);
+
+    fn validate(
+        destination: &mut Option<MultiLocation>,
+        message: &mut Option<Xcm<()>>,
+    ) -> SendResult<Self::Ticket> {
+        match &destination {
+            Some(MultiLocation {
                 parents: 1,
                 interior: Here | X1(Parachain(_)),
-            } => {
-                if let Ok(mut vec) = XCM_MESSAGE_CONTAINER
-                    .try_with(|a| a.clone())
-                    .unwrap()
-                    .try_write()
-                {
-                    vec.push((dest, msg));
-                }
-                Ok(())
-            }
-            _ => Err(xcm::latest::SendError::CannotReachDestination(dest, msg)),
+            }) => Ok((
+                (destination.unwrap(), message.clone().unwrap()),
+                MultiAssets::new(),
+            )),
+            _ => Err(xcm::latest::SendError::Transport("")),
+        }
+    }
+
+    fn deliver(ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+        let (dest, msg) = ticket;
+        if let Ok(mut vec) = XCM_MESSAGE_CONTAINER
+            .try_with(|a| a.clone())
+            .unwrap()
+            .try_write()
+        {
+            vec.push((dest, msg.clone()));
+            Ok(hash_xcm(msg))
+        } else {
+            Err(SendError::NotApplicable)
         }
     }
 }
@@ -317,12 +339,11 @@ fn parachain_test_ext() -> Result<sp_io::TestExternalities, String> {
 #[test]
 fn location_to_account_id_works() {
     let original_account: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
-    let network = NetworkId::Any;
     let dest_multi_location = MultiLocation {
         parents: 0,
         interior: X1(AccountId32 {
             id: original_account.clone().into(),
-            network,
+            network: None,
         }),
     };
     let result = LocationToAccountId::convert(dest_multi_location);
@@ -335,7 +356,7 @@ fn location_to_account_id_works() {
 #[test]
 fn location_to_account_id_fails_on_network() {
     let original_account: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
-    let network = NetworkId::Polkadot;
+    let network = Some(NetworkId::Polkadot);
     let dest_multi_location = MultiLocation {
         parents: 0,
         interior: X1(AccountId32 {
@@ -367,14 +388,14 @@ fn transact_dispatch_origin_not_allowed() {
         MultiLocation {
             parents: 1,
             interior: X1(AccountId32 {
-                network: NetworkId::Any,
+                network: None,
                 id: account.clone().into(),
             }),
         },
         MultiLocation {
             parents: 0,
             interior: X1(AccountId32 {
-                network: NetworkId::Any,
+                network: None,
                 id: account.into(),
             }),
         },
@@ -385,7 +406,7 @@ fn transact_dispatch_origin_not_allowed() {
             OriginKind::Superuser,
             OriginKind::Xcm,
         ] {
-            let result: Result<Origin, _> =
+            let result: Result<RuntimeOrigin, _> =
                 XcmOriginToTransactDispatchOrigin::convert_origin(origin.clone(), kind);
             assert!(result.is_err());
             assert_eq!(result.err().unwrap(), origin);
@@ -411,7 +432,7 @@ const FEE_AMOUNT: Balance = 1 * ONE_TOKEN;
 #[allow(dead_code)]
 const INITIAL_AMOUNT: Balance = 10000 * ONE_TOKEN;
 #[allow(dead_code)]
-const XCM_MSG_WEIGHT: XcmWeight = 4_000_000;
+const XCM_MSG_WEIGHT: XcmWeight = XcmWeight::from_parts(4_000_000, 0);
 
 fn multi_asset_from<Balance>(amount: Balance, asset_xcm_data: &OtherReservedData) -> MultiAsset
 where
@@ -432,7 +453,7 @@ fn xcm_message_transferred() {
 
         System::set_block_number(1);
         assert_ok!(EqBalances::xcm_toggle(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(XcmMode::Bridge(true))
         ));
 
@@ -454,17 +475,16 @@ fn xcm_message_transferred() {
 
         let ksm_location = MultiLocation::here();
 
-        System::assert_has_event(Event::EqBalances(
+        System::assert_has_event(RuntimeEvent::EqBalances(
             eq_balances::Event::<Runtime>::XcmTransfer(
                 origins::RELAY,
-                (
+                MultiLocation::new(
                     0,
                     AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: USER_X.into(),
                     },
-                )
-                    .into(),
+                ),
             ),
         ));
 
@@ -502,17 +522,16 @@ fn xcm_transfer_native() {
             XcmDestination::Native(AccountType::try_from(USER_Y.encode()).unwrap()),
         ));
 
-        System::assert_has_event(Event::EqBalances(
+        System::assert_has_event(RuntimeEvent::EqBalances(
             eq_balances::Event::<Runtime>::XcmTransfer(
                 origins::RELAY,
-                (
+                MultiLocation::new(
                     0,
                     AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: USER_Y.into(),
                     },
-                )
-                    .into(),
+                ),
             ),
         ));
 
@@ -593,7 +612,7 @@ fn xcm_transfer_self_reserved() {
                 Parachain(2085),
                 AccountId32 {
                     id: USER_Y.into(),
-                    network: NetworkId::Any,
+                    network: None,
                 },
             ),
         };
@@ -614,7 +633,10 @@ fn xcm_transfer_self_reserved() {
                 Xcm(vec![
                     ReserveAssetDeposited(
                         vec![MultiAsset {
-                            id: AssetId::Concrete((1, X1(Parachain(GENS_PARACHAIN_ID))).into()),
+                            id: AssetId::Concrete(MultiLocation::new(
+                                1,
+                                X1(Parachain(GENS_PARACHAIN_ID))
+                            )),
                             fun: Fungibility::Fungible(send_amount as u128),
                         }]
                         .into()
@@ -622,16 +644,18 @@ fn xcm_transfer_self_reserved() {
                     ClearOrigin,
                     BuyExecution {
                         fees: MultiAsset {
-                            id: AssetId::Concrete((1, X1(Parachain(GENS_PARACHAIN_ID))).into()),
+                            id: AssetId::Concrete(MultiLocation::new(
+                                1,
+                                X1(Parachain(GENS_PARACHAIN_ID))
+                            )),
                             fun: Fungibility::Fungible(2 * 695_265_243_690),
                         },
                         weight_limit: xcm::latest::WeightLimit::Unlimited,
                     },
                     DepositAsset {
                         assets: xcm::latest::WildMultiAsset::All.into(),
-                        max_assets: 2,
                         beneficiary: X1(AccountId32 {
-                            network: NetworkId::Any,
+                            network: None,
                             id: USER_Y.into()
                         })
                         .into(),
@@ -640,7 +664,7 @@ fn xcm_transfer_self_reserved() {
             )]
         );
 
-        assert_matches_event!(Event::EqBalances(
+        assert_matches_event!(RuntimeEvent::EqBalances(
             eq_balances::Event::<Runtime>::XcmTransfer(
                 origins::ksm::PARACHAIN_HEIKO, // target_chain
                 to
@@ -685,7 +709,7 @@ fn xcm_transfer_other_reserved() {
             parents: 1,
             interior: X1(AccountId32 {
                 id: USER_Y.into(),
-                network: NetworkId::Any,
+                network: None,
             }),
         };
         assert_ok!(<EqBalances as EqCurrency<_, _>>::xcm_transfer(
@@ -697,7 +721,7 @@ fn xcm_transfer_other_reserved() {
 
         // println!("{:#?}", System::events());
 
-        assert_matches_event!(Event::EqBalances(
+        assert_matches_event!(RuntimeEvent::EqBalances(
             eq_balances::Event::<Runtime>::XcmTransfer(
                 origins::RELAY, // target_chain = Kusama
                 to
@@ -721,13 +745,13 @@ fn xcm_message_reseived_limited_weight_too_expensive_bridge() {
     parachain_test_ext().unwrap().execute_with(|| {
         System::set_block_number(1);
         assert_ok!(EqBalances::xcm_toggle(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(XcmMode::Bridge(true))
         ));
 
-        let weight = Weight::from_ref_time(4 * crate::BaseXcmWeight::get());
+        let weight = crate::BaseXcmWeight::get().saturating_mul(4);
         let fee = crate::fee::XcmWeightToFee::weight_to_fee(&weight) as Balance - 1;
-        let rcvd_xcm_message = Xcm::<Call>(vec![
+        let rcvd_xcm_message = Xcm::<RuntimeCall>(vec![
             ReserveAssetDeposited(vec![multi_asset_from(TO_RECV_AMOUNT + fee, &multi::KSM)].into()),
             ClearOrigin,
             BuyExecution {
@@ -738,11 +762,10 @@ fn xcm_message_reseived_limited_weight_too_expensive_bridge() {
                 assets: MultiAssetFilter::Definite(
                     vec![multi_asset_from(TO_RECV_AMOUNT, &multi::KSM)].into(),
                 ),
-                max_assets: 1,
                 beneficiary: MultiLocation {
                     parents: 0,
                     interior: X1(AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: BRIDGE_MODULE_ID.into_account_truncating(),
                     }),
                 },
@@ -751,11 +774,14 @@ fn xcm_message_reseived_limited_weight_too_expensive_bridge() {
 
         assert!(
             matches!(
-                XcmExecutor::<XcmConfig>::new(origins::RELAY).execute(rcvd_xcm_message),
-                Err(xcm_executor::ExecutorError {
-                    xcm_error: XcmError::TooExpensive,
-                    ..
-                })
+                XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+                    origins::RELAY,
+                    rcvd_xcm_message.clone(),
+                    hash_xcm(rcvd_xcm_message),
+                    XcmWeight::MAX,
+                    XcmWeight::MAX
+                ),
+                Outcome::Incomplete(_, XcmError::TooExpensive)
             ),
             "Should result with XcmError::TooExpensive"
         );
@@ -774,7 +800,7 @@ fn xcm_message_received_unlimited_weight() {
             INITIAL_AMOUNT
         );
 
-        let rcvd_xcm_message = Xcm::<Call>(vec![
+        let rcvd_xcm_message = Xcm::<RuntimeCall>(vec![
             ReserveAssetDeposited(
                 vec![multi_asset_from(TO_RECV_AMOUNT + FEE_AMOUNT, &multi::KSM)].into(),
             ),
@@ -787,18 +813,24 @@ fn xcm_message_received_unlimited_weight() {
                 assets: MultiAssetFilter::Definite(
                     vec![multi_asset_from(TO_RECV_AMOUNT, &multi::KSM)].into(),
                 ),
-                max_assets: 1,
                 beneficiary: MultiLocation {
                     parents: 0,
                     interior: X1(AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: USER_X.into(),
                     }),
                 },
             },
         ]);
 
-        assert_ok!(XcmExecutor::<XcmConfig>::new(origins::RELAY).execute(rcvd_xcm_message));
+        let execute_outcome = XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+            origins::RELAY,
+            rcvd_xcm_message.clone(),
+            hash_xcm(rcvd_xcm_message),
+            XcmWeight::MAX,
+            XcmWeight::MAX,
+        );
+        assert!(matches!(execute_outcome, Outcome::Complete(_),));
 
         assert_eq!(
             EqBalances::total_balance(&USER_X, asset::KSM),
@@ -810,7 +842,7 @@ fn xcm_message_received_unlimited_weight() {
             INITIAL_AMOUNT
         );
 
-        let rcvd_xcm_message = Xcm::<Call>(vec![
+        let rcvd_xcm_message = Xcm::<RuntimeCall>(vec![
             ReserveAssetDeposited(
                 vec![multi_asset_from(TO_RECV_AMOUNT + FEE_AMOUNT, &multi::MOVR)].into(),
             ),
@@ -823,21 +855,26 @@ fn xcm_message_received_unlimited_weight() {
                 assets: MultiAssetFilter::Definite(
                     vec![multi_asset_from(TO_RECV_AMOUNT, &multi::MOVR)].into(),
                 ),
-                max_assets: 1,
                 beneficiary: MultiLocation {
                     parents: 0,
                     interior: X1(AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: USER_X.into(),
                     }),
                 },
             },
         ]);
 
-        assert_ok!(
-            XcmExecutor::<XcmConfig>::new(origins::ksm::PARACHAIN_MOONRIVER)
-                .execute(rcvd_xcm_message)
-        );
+        assert!(matches!(
+            XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+                origins::ksm::PARACHAIN_MOONRIVER,
+                rcvd_xcm_message.clone(),
+                hash_xcm(rcvd_xcm_message),
+                XcmWeight::MAX,
+                XcmWeight::MAX
+            ),
+            Outcome::Complete(_)
+        ));
 
         assert_eq!(
             EqBalances::total_balance(&USER_X, asset::MOVR),
@@ -858,9 +895,9 @@ fn xcm_message_reseived_limited_weight_ok() {
             INITIAL_AMOUNT
         );
 
-        let weight = Weight::from_ref_time(4 * crate::BaseXcmWeight::get());
+        let weight = crate::BaseXcmWeight::get().saturating_mul(4);
         let fee_amount = crate::fee::XcmWeightToFee::weight_to_fee(&weight) as Balance;
-        let rcvd_xcm_message = Xcm::<Call>(vec![
+        let rcvd_xcm_message = Xcm::<RuntimeCall>(vec![
             ReserveAssetDeposited(
                 vec![multi_asset_from(TO_RECV_AMOUNT + fee_amount, &multi::KSM)].into(),
             ),
@@ -873,18 +910,26 @@ fn xcm_message_reseived_limited_weight_ok() {
                 assets: MultiAssetFilter::Definite(
                     vec![multi_asset_from(TO_RECV_AMOUNT, &multi::KSM)].into(),
                 ),
-                max_assets: 1,
                 beneficiary: MultiLocation {
                     parents: 0,
                     interior: X1(AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: USER_X.into(),
                     }),
                 },
             },
         ]);
 
-        assert_ok!(XcmExecutor::<XcmConfig>::new(origins::RELAY).execute(rcvd_xcm_message));
+        assert!(matches!(
+            XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+                origins::RELAY,
+                rcvd_xcm_message.clone(),
+                hash_xcm(rcvd_xcm_message),
+                XcmWeight::MAX,
+                XcmWeight::MAX
+            ),
+            Outcome::Complete(_)
+        ));
 
         assert_eq!(
             EqBalances::total_balance(&USER_X, asset::KSM),
@@ -898,11 +943,11 @@ fn xcm_message_reseived_limited_weight_too_expensive() {
     parachain_test_ext().unwrap().execute_with(|| {
         System::set_block_number(1);
 
-        let weight = Weight::from_ref_time(XCM_MSG_WEIGHT as XcmWeight);
+        let weight = XCM_MSG_WEIGHT;
         let fee_amount: Balance =
             eq_utils::balance_from_xcm(crate::fee::XcmWeightToFee::weight_to_fee(&weight) - 1, 12)
                 .unwrap();
-        let rcvd_xcm_message = Xcm::<Call>(vec![
+        let rcvd_xcm_message = Xcm::<RuntimeCall>(vec![
             ReserveAssetDeposited(
                 vec![multi_asset_from(TO_RECV_AMOUNT + fee_amount, &multi::KSM)].into(),
             ),
@@ -915,11 +960,10 @@ fn xcm_message_reseived_limited_weight_too_expensive() {
                 assets: MultiAssetFilter::Definite(
                     vec![multi_asset_from(TO_RECV_AMOUNT, &multi::KSM)].into(),
                 ),
-                max_assets: 1,
                 beneficiary: MultiLocation {
                     parents: 0,
                     interior: X1(AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: USER_X.into(),
                     }),
                 },
@@ -928,11 +972,14 @@ fn xcm_message_reseived_limited_weight_too_expensive() {
 
         assert!(
             matches!(
-                XcmExecutor::<XcmConfig>::new(origins::RELAY).execute(rcvd_xcm_message),
-                Err(xcm_executor::ExecutorError {
-                    xcm_error: XcmError::TooExpensive,
-                    ..
-                })
+                XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+                    origins::RELAY,
+                    rcvd_xcm_message.clone(),
+                    hash_xcm(rcvd_xcm_message),
+                    XcmWeight::MAX,
+                    XcmWeight::MAX
+                ),
+                Outcome::Incomplete(_, XcmError::TooExpensive)
             ),
             "Should result with XcmError::TooExpensive"
         );
@@ -942,15 +989,15 @@ fn xcm_message_reseived_limited_weight_too_expensive() {
 #[test]
 fn xcm_barrier() {
     parachain_test_ext().unwrap().execute_with(|| {
-        let mut error_xcm_message = Xcm::<Call>(vec![
+        let mut error_xcm_message: Vec<Instruction<()>> = vec![
             ReceiveTeleportedAsset(vec![multi_asset_from(TO_SEND_AMOUNT, &multi::KSM)].into()),
             ClearOrigin,
             BuyExecution {
                 fees: multi_asset_from(0u32, &multi::KSM),
                 weight_limit: Unlimited,
             },
-        ]);
-        let mut rcvd_xcm_message = Xcm::<Call>(vec![
+        ];
+        let mut rcvd_xcm_message: Vec<Instruction<()>> = vec![
             ReserveAssetDeposited(vec![multi_asset_from(TO_SEND_AMOUNT, &multi::KSM)].into()),
             ClearOrigin,
             BuyExecution {
@@ -961,18 +1008,17 @@ fn xcm_barrier() {
                 assets: MultiAssetFilter::Definite(
                     vec![multi_asset_from(TO_SEND_AMOUNT, &multi::KSM)].into(),
                 ),
-                max_assets: 1,
                 beneficiary: MultiLocation {
                     parents: 0,
                     interior: X1(AccountId32 {
-                        network: NetworkId::Any,
+                        network: None,
                         id: BRIDGE_MODULE_ID.into_account_truncating(),
                     }),
                 },
             },
-        ]);
-        let max_weight = 1_000_000_000;
-        let mut weight_credit = 0;
+        ];
+        let max_weight = XcmWeight::from_parts(1_000_000_000, 0);
+        let mut weight_credit = XcmWeight::zero();
 
         assert_ok!(crate::Barrier::should_execute(
             &origins::RELAY,
@@ -1005,7 +1051,7 @@ fn xcm_barrier() {
                 max_weight,
                 &mut weight_credit,
             ),
-            ()
+            ProcessMessageError::BadFormat
         );
 
         assert_err!(
@@ -1015,7 +1061,7 @@ fn xcm_barrier() {
                 max_weight,
                 &mut weight_credit,
             ),
-            ()
+            ProcessMessageError::BadFormat
         );
     })
 }
@@ -1099,7 +1145,7 @@ fn buy_weight_with_no_assets() {
             .fungible
             .insert(AssetId::Concrete(MultiLocation::parent()), payment_value);
 
-        let weight = Weight::from_ref_time(XCM_MSG_WEIGHT);
+        let weight = XCM_MSG_WEIGHT;
         assert_eq!(
             crate::fee::XcmWeightToFee::weight_to_fee(&weight),
             99_654_685
@@ -1107,10 +1153,7 @@ fn buy_weight_with_no_assets() {
         assert!(99_654_685 * 1000 <= payment_value);
 
         let mut trader = crate::EqTrader::new();
-        assert_err!(
-            trader.buy_weight(weight.ref_time() as XcmWeight, payment),
-            XcmError::AssetNotFound,
-        );
+        assert_err!(trader.buy_weight(weight, payment), XcmError::AssetNotFound,);
     })
 }
 
@@ -1141,7 +1184,7 @@ fn buy_weight_too_expensive() {
             .fungible
             .insert(AssetId::Concrete(MultiLocation::parent()), payment_value);
 
-        let weight = Weight::from_ref_time(XCM_MSG_WEIGHT);
+        let weight = XCM_MSG_WEIGHT;
         assert_eq!(
             crate::fee::XcmWeightToFee::weight_to_fee(&weight),
             99_654_685
@@ -1149,10 +1192,7 @@ fn buy_weight_too_expensive() {
         assert!(99_654_685 * 1000 > payment_value);
 
         let mut trader = crate::EqTrader::new();
-        assert_err!(
-            trader.buy_weight(weight.ref_time() as XcmWeight, payment),
-            XcmError::TooExpensive,
-        );
+        assert_err!(trader.buy_weight(weight, payment), XcmError::TooExpensive,);
     })
 }
 
@@ -1181,7 +1221,7 @@ fn buy_weight_ok() {
             99_654_685 * 1000,
         );
 
-        let weight = Weight::from_ref_time(XCM_MSG_WEIGHT);
+        let weight = XCM_MSG_WEIGHT;
         assert_eq!(
             crate::fee::XcmWeightToFee::weight_to_fee(&weight),
             99_654_685

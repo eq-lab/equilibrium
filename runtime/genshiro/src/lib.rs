@@ -373,7 +373,7 @@ impl eq_oracle::Config for Runtime {
     type FinMetricsRecalcToggleOrigin = EnsureRoot<AccountId>;
     type RuntimeEvent = RuntimeEvent;
     type AuthorityId = eq_oracle::crypto::AuthId;
-    type Call = RuntimeCall;
+    type RuntimeCall = RuntimeCall;
     type Balance = Balance;
     type UnixTime = EqRate;
     type Whitelist = Whitelists;
@@ -471,7 +471,7 @@ parameter_types! {
 
 impl eq_multisig_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type Call = RuntimeCall;
+    type RuntimeCall = RuntimeCall;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = weights::pallet_multisig_sudo::WeightInfo<Runtime>;
 }
@@ -1469,7 +1469,7 @@ construct_runtime!(
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>},
-        // Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
         Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,},
 

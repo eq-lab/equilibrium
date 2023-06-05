@@ -36,7 +36,7 @@ pub type Error = crate::Error<Test>;
 #[test]
 fn create_new_pool_ok() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
 
         let btc_account_id = MmPool::generate_pool_acc(asset::BTC).unwrap();
 
@@ -65,10 +65,10 @@ fn create_new_pool_ok() {
 #[test]
 fn create_new_pool_already_added() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
 
         assert_err!(
-            MmPool::create_pool(Origin::root(), asset::BTC, 300),
+            MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 300),
             Error::PoolAlreadyExists
         );
 
@@ -99,9 +99,13 @@ fn create_new_pool_already_added() {
 #[test]
 fn change_min_amount_ok() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
 
-        assert_ok!(MmPool::change_min_amount(Origin::root(), asset::BTC, 200));
+        assert_ok!(MmPool::change_min_amount(
+            RuntimeOrigin::root(),
+            asset::BTC,
+            200
+        ));
 
         let btc_account_id = MmPool::generate_pool_acc(asset::BTC).unwrap();
 
@@ -131,7 +135,7 @@ fn change_min_amount_ok() {
 fn change_min_amount_no_pool() {
     new_test_ext().execute_with(|| {
         assert_err!(
-            MmPool::change_min_amount(Origin::root(), asset::BTC, 300),
+            MmPool::change_min_amount(RuntimeOrigin::root(), asset::BTC, 300),
             Error::NoPoolWithCurrency
         );
 
@@ -220,19 +224,22 @@ fn epoch_set_next() {
         );
 
         assert_err!(
-            MmPool::set_epoch_duration(Origin::root(), 200),
+            MmPool::set_epoch_duration(RuntimeOrigin::root(), 200),
             Error::WrongNewDuration
         );
         assert_err!(
-            MmPool::set_epoch_duration(Origin::root(), 0),
+            MmPool::set_epoch_duration(RuntimeOrigin::root(), 0),
             Error::WrongNewDuration
         );
         assert_err!(
-            MmPool::set_epoch_duration(Origin::root(), MINIMAL_DURATION - 1),
+            MmPool::set_epoch_duration(RuntimeOrigin::root(), MINIMAL_DURATION - 1),
             Error::WrongNewDuration
         );
 
-        assert_ok!(MmPool::set_epoch_duration(Origin::root(), MINIMAL_DURATION));
+        assert_ok!(MmPool::set_epoch_duration(
+            RuntimeOrigin::root(),
+            MINIMAL_DURATION
+        ));
         assert_eq!(
             MmPool::epoch(),
             EpochInfo {
@@ -284,8 +291,8 @@ fn epoch_advance() {
         TimeMock::set_secs(0);
         // Epoch 0
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 1));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 1000, asset::BTC));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 1));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 1000, asset::BTC));
 
         let btc_account_id = MmPool::generate_pool_acc(asset::BTC).unwrap();
         assert_eq!(
@@ -309,7 +316,7 @@ fn epoch_advance() {
         );
 
         assert_ok!(MmPool::request_withdrawal(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             500,
             asset::BTC
         ));
@@ -326,7 +333,7 @@ fn epoch_advance() {
         TimeMock::move_secs(100);
         // Epoch 1
         assert_ok!(MmPool::request_withdrawal(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             55,
             asset::BTC
         ));
@@ -375,7 +382,7 @@ fn epoch_advance() {
                 requested: 0,
             }
         );
-        assert_ok!(MmPool::withdraw(Origin::signed(1), asset::BTC));
+        assert_ok!(MmPool::withdraw(RuntimeOrigin::signed(1), asset::BTC));
         assert_eq!(
             MmPool::pools()[0].1.total_pending_withdrawals,
             crate::PendingWithdrawal {
@@ -449,11 +456,11 @@ fn pending_withdrawal() {
 #[test]
 fn deposit_multiple_pools() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 10));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 10));
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::ETH, 300));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::ETH, 300));
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 100, asset::BTC,));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 100, asset::BTC,));
 
         let btc_account_id = MmPool::generate_pool_acc(asset::BTC).unwrap();
         let eth_account_id = MmPool::generate_pool_acc(asset::ETH).unwrap();
@@ -519,7 +526,7 @@ fn deposit_multiple_pools() {
 
         // one more deposit with the same currency
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 10, asset::BTC,));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 10, asset::BTC,));
 
         assert_eq!(
             MmPool::pools(),
@@ -582,7 +589,7 @@ fn deposit_multiple_pools() {
 
         // one more deposit with the another currency
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 333, asset::ETH,));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 333, asset::ETH,));
 
         assert_eq!(
             MmPool::pools(),
@@ -662,17 +669,17 @@ fn deposit_multiple_pools() {
 #[test]
 fn deposit_single_pool() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::ETH, 300));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::ETH, 300));
 
         assert_err!(
-            MmPool::deposit(Origin::signed(1), 100, asset::BTC,),
+            MmPool::deposit(RuntimeOrigin::signed(1), 100, asset::BTC,),
             Error::NoPoolWithCurrency
         );
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
 
         assert_err!(
-            MmPool::deposit(Origin::signed(1), 10, asset::BTC,),
+            MmPool::deposit(RuntimeOrigin::signed(1), 10, asset::BTC,),
             Error::AmountLessThanMin
         );
 
@@ -724,7 +731,7 @@ fn deposit_single_pool() {
             SignedBalance::zero()
         );
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 300, asset::BTC,));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 300, asset::BTC,));
 
         assert_eq!(
             MmPool::pools(),
@@ -792,9 +799,9 @@ fn withdraw_request_ok() {
     new_test_ext().execute_with(|| {
         TimeMock::set_secs(0);
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         let btc_account_id = MmPool::generate_pool_acc(asset::BTC).unwrap();
         assert_eq!(
@@ -833,7 +840,7 @@ fn withdraw_request_ok() {
         );
 
         assert_ok!(MmPool::request_withdrawal(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             150,
             asset::BTC
         ));
@@ -876,7 +883,7 @@ fn withdraw_request_ok() {
         TimeMock::move_secs(201); // two epochs passed
         assert_eq!(MmPool::epoch().counter, 2);
 
-        assert_ok!(MmPool::withdraw(Origin::signed(1), asset::BTC));
+        assert_ok!(MmPool::withdraw(RuntimeOrigin::signed(1), asset::BTC));
         assert_eq!(
             MmPool::pools(),
             vec![(
@@ -923,16 +930,16 @@ fn withdraw_no_deposit() {
     new_test_ext().execute_with(|| {
         TimeMock::set_secs(0);
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::ETH, 100));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::ETH, 100));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         assert_err!(
-            MmPool::request_withdrawal(Origin::signed(2), 150, asset::BTC),
+            MmPool::request_withdrawal(RuntimeOrigin::signed(2), 150, asset::BTC),
             Error::NoDeposit,
         );
         assert_err!(
-            MmPool::request_withdrawal(Origin::signed(1), 150, asset::ETH),
+            MmPool::request_withdrawal(RuntimeOrigin::signed(1), 150, asset::ETH),
             Error::NoDeposit,
         );
     });
@@ -943,8 +950,8 @@ fn withdraw_no_request() {
     new_test_ext().execute_with(|| {
         TimeMock::set_secs(0);
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         assert_eq!(
             EqBalances::get_balance(&1, &asset::BTC),
@@ -952,25 +959,25 @@ fn withdraw_no_request() {
         );
 
         assert_ok!(MmPool::request_withdrawal(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             150,
             asset::BTC
         ));
         // Too early
         assert_err!(
-            MmPool::withdraw(Origin::signed(1), asset::BTC),
+            MmPool::withdraw(RuntimeOrigin::signed(1), asset::BTC),
             Error::WithdrawalNotRequested
         );
 
         TimeMock::move_secs(200);
-        assert_ok!(MmPool::withdraw(Origin::signed(1), asset::BTC));
+        assert_ok!(MmPool::withdraw(RuntimeOrigin::signed(1), asset::BTC));
         assert_eq!(
             EqBalances::get_balance(&1, &asset::BTC),
             SignedBalance::Positive(950),
         );
         // Already withdrawed
         assert_err!(
-            MmPool::withdraw(Origin::signed(1), asset::BTC),
+            MmPool::withdraw(RuntimeOrigin::signed(1), asset::BTC),
             Error::WithdrawalNotRequested
         );
     });
@@ -981,20 +988,20 @@ fn withdraw_not_enough() {
     new_test_ext().execute_with(|| {
         TimeMock::set_secs(0);
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         assert_err!(
-            MmPool::request_withdrawal(Origin::signed(1), 250, asset::BTC),
+            MmPool::request_withdrawal(RuntimeOrigin::signed(1), 250, asset::BTC),
             Error::NotEnoughToWithdraw,
         );
         assert_ok!(MmPool::request_withdrawal(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             100,
             asset::BTC
         ));
         assert_err!(
-            MmPool::request_withdrawal(Origin::signed(1), 101, asset::BTC),
+            MmPool::request_withdrawal(RuntimeOrigin::signed(1), 101, asset::BTC),
             Error::NotEnoughToWithdraw,
         );
     })
@@ -1003,9 +1010,9 @@ fn withdraw_not_enough() {
 #[test]
 fn market_maker_create_allocation_ok() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
         assert_ok!(MmPool::set_allocations(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MM_ID[0],
             vec![
                 (asset::ETH, Perbill::from_percent(20)),
@@ -1038,10 +1045,10 @@ fn market_maker_create_allocation_ok() {
 #[test]
 fn market_maker_create_allocation_unknown_asset() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
         assert_err!(
             MmPool::set_allocations(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 MM_ID[0],
                 vec![
                     (asset::ETH, Perbill::from_percent(20)),
@@ -1057,7 +1064,11 @@ fn market_maker_create_allocation_unknown_asset() {
 #[test]
 fn borrower_add_ok() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
         let trading_acc = MmPool::generate_trade_acc(MM_ID[0], &TRADER_EXIST).unwrap();
         assert_eq!(
             MmPool::managers(TRADER_EXIST),
@@ -1069,9 +1080,13 @@ fn borrower_add_ok() {
 #[test]
 fn borrower_add_existing() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
         assert_err!(
-            MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[1]),
+            MmPool::add_manager(RuntimeOrigin::root(), TRADER_EXIST, MM_ID[1]),
             Error::BorrowerAlreadyExists,
         );
     });
@@ -1089,20 +1104,24 @@ fn borrow_ok() {
     new_test_ext().execute_with(|| {
         let btc_account_id = MmPool::generate_pool_acc(asset::BTC).unwrap();
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
         assert_ok!(MmPool::set_allocations(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MM_ID[0],
             vec![(asset::BTC, Perbill::from_percent(100))]
         ));
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
         let trading_acc = MmPool::generate_trade_acc(MM_ID[0], &TRADER_EXIST).unwrap();
         let borrower_subacc =
             SubaccountsManagerMock::get_subaccount_id(&TRADER_EXIST, &SubAccType::Trader).unwrap();
         let trading_subacc =
             SubaccountsManagerMock::get_subaccount_id(&trading_acc, &SubAccType::Trader).unwrap();
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         assert_eq!(
             MmPool::pools(),
@@ -1125,11 +1144,11 @@ fn borrow_ok() {
         );
 
         assert_err!(
-            MmPool::borrow(Origin::signed(TRADER_NOT_EXIST), 100, asset::BTC),
+            MmPool::borrow(RuntimeOrigin::signed(TRADER_NOT_EXIST), 100, asset::BTC),
             Error::BorrowerDoesNotExist,
         );
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             100,
             asset::BTC
         ));
@@ -1176,28 +1195,36 @@ fn borrow_ok() {
 #[test]
 fn borrow_overweight() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
         assert_ok!(MmPool::set_allocations(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MM_ID[0],
             vec![(asset::BTC, Perbill::from_percent(75))]
         ));
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             100,
             asset::BTC
         ));
         assert_err!(
-            MmPool::borrow(Origin::signed(TRADER_EXIST), 51, asset::BTC),
+            MmPool::borrow(RuntimeOrigin::signed(TRADER_EXIST), 51, asset::BTC),
             Error::Overweight,
         );
-        assert_ok!(MmPool::borrow(Origin::signed(TRADER_EXIST), 50, asset::BTC),);
+        assert_ok!(MmPool::borrow(
+            RuntimeOrigin::signed(TRADER_EXIST),
+            50,
+            asset::BTC
+        ),);
         assert_err!(
-            MmPool::borrow(Origin::signed(TRADER_EXIST), 50, asset::BTC),
+            MmPool::borrow(RuntimeOrigin::signed(TRADER_EXIST), 50, asset::BTC),
             Error::Overweight,
         );
     });
@@ -1209,12 +1236,12 @@ fn borrow_with_pending_withdrawals() {
         TimeMock::set_secs(0);
         // Epoch 0
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::ETH, 100));
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::DOT, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::ETH, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::DOT, 100));
 
         assert_ok!(MmPool::set_allocations(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MM_ID[0],
             vec![
                 (asset::BTC, Perbill::from_percent(100)),
@@ -1222,35 +1249,39 @@ fn borrow_with_pending_withdrawals() {
                 (asset::DOT, Perbill::from_percent(100))
             ]
         ));
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 1000, asset::BTC));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 1000, asset::ETH));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 1000, asset::DOT));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 1000, asset::BTC));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 1000, asset::ETH));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 1000, asset::DOT));
 
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             500,
             asset::BTC
         ));
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             500,
             asset::ETH
         ));
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             500,
             asset::DOT
         ));
 
         assert_ok!(MmPool::request_withdrawal(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             500,
             asset::BTC
         ));
         assert_ok!(MmPool::request_withdrawal(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             300,
             asset::DOT
         ));
@@ -1271,31 +1302,31 @@ fn borrow_with_pending_withdrawals() {
         );
 
         assert_err!(
-            MmPool::borrow(Origin::signed(TRADER_EXIST), 200, asset::BTC),
+            MmPool::borrow(RuntimeOrigin::signed(TRADER_EXIST), 200, asset::BTC),
             Error::NotEnoughToBorrow
         );
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             200,
             asset::ETH
         ));
         // assert_err!(
-        //     MmPool::borrow(Origin::signed(BORROWER_EXIST), 200, asset::DOT),
+        //     MmPool::borrow(RuntimeOrigin::signed(BORROWER_EXIST), 200, asset::DOT),
         //     Error::NotEnoughToBorrow
         // );
 
         TimeMock::move_secs(100);
         // Epoch 2
         assert_err!(
-            MmPool::borrow(Origin::signed(TRADER_EXIST), 200, asset::BTC),
+            MmPool::borrow(RuntimeOrigin::signed(TRADER_EXIST), 200, asset::BTC),
             Error::NotEnoughToBorrow
         );
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             200,
             asset::DOT
         ));
-        assert_ok!(MmPool::withdraw(Origin::signed(1), asset::BTC));
+        assert_ok!(MmPool::withdraw(RuntimeOrigin::signed(1), asset::BTC));
         assert_eq!(
             EqBalances::get_balance(&1, &asset::BTC),
             SignedBalance::Positive(500)
@@ -1304,11 +1335,11 @@ fn borrow_with_pending_withdrawals() {
         TimeMock::move_secs(100);
         // Epoch 3
         assert_err!(
-            MmPool::borrow(Origin::signed(TRADER_EXIST), 200, asset::BTC),
+            MmPool::borrow(RuntimeOrigin::signed(TRADER_EXIST), 200, asset::BTC),
             Error::NotEnoughToBorrow
         );
         assert_err!(
-            MmPool::borrow(Origin::signed(TRADER_EXIST), 200, asset::DOT),
+            MmPool::borrow(RuntimeOrigin::signed(TRADER_EXIST), 200, asset::DOT),
             Error::NotEnoughToBorrow
         );
     });
@@ -1327,15 +1358,19 @@ fn borrow_and_repay() {
             SignedBalance::Positive(0),
         );
 
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
         assert_ok!(MmPool::set_allocations(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MM_ID[0],
             vec![(asset::BTC, Perbill::from_percent(100))]
         ));
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
 
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         assert_eq!(
             MmPool::pools(),
@@ -1358,7 +1393,7 @@ fn borrow_and_repay() {
         );
 
         assert_ok!(MmPool::borrow(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             150,
             asset::BTC
         ));
@@ -1366,9 +1401,13 @@ fn borrow_and_repay() {
             EqBalances::get_balance(&&trading_subacc, &asset::BTC),
             SignedBalance::Positive(150),
         );
-        assert_ok!(MmPool::repay(Origin::signed(TRADER_EXIST), 100, asset::BTC));
+        assert_ok!(MmPool::repay(
+            RuntimeOrigin::signed(TRADER_EXIST),
+            100,
+            asset::BTC
+        ));
         assert_err!(
-            MmPool::repay(Origin::signed(TRADER_EXIST), 1000, asset::BTC),
+            MmPool::repay(RuntimeOrigin::signed(TRADER_EXIST), 1000, asset::BTC),
             Error::NoFundsToRepay
         );
         assert_eq!(
@@ -1401,14 +1440,18 @@ fn borrow_and_repay() {
 #[test]
 fn create_order_ok() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
         assert_ok!(MmPool::set_allocations(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MM_ID[0],
             vec![(asset::BTC, Perbill::from_percent(100))]
         ));
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         let asset = asset::BTC;
         let price = FixedI64::from(250);
@@ -1417,7 +1460,7 @@ fn create_order_ok() {
         let expiration_time = 100u64;
 
         assert_ok!(MmPool::create_order(
-            Origin::signed(TRADER_EXIST),
+            RuntimeOrigin::signed(TRADER_EXIST),
             asset,
             OrderType::Limit {
                 price,
@@ -1432,14 +1475,18 @@ fn create_order_ok() {
 #[test]
 fn create_order_not_borrower() {
     new_test_ext().execute_with(|| {
-        assert_ok!(MmPool::create_pool(Origin::root(), asset::BTC, 100));
+        assert_ok!(MmPool::create_pool(RuntimeOrigin::root(), asset::BTC, 100));
         assert_ok!(MmPool::set_allocations(
-            Origin::root(),
+            RuntimeOrigin::root(),
             MM_ID[0],
             vec![(asset::BTC, Perbill::from_percent(100))]
         ));
-        assert_ok!(MmPool::add_manager(Origin::root(), TRADER_EXIST, MM_ID[0]));
-        assert_ok!(MmPool::deposit(Origin::signed(1), 200, asset::BTC));
+        assert_ok!(MmPool::add_manager(
+            RuntimeOrigin::root(),
+            TRADER_EXIST,
+            MM_ID[0]
+        ));
+        assert_ok!(MmPool::deposit(RuntimeOrigin::signed(1), 200, asset::BTC));
 
         let asset = asset::BTC;
         let price = FixedI64::from(250);
@@ -1449,7 +1496,7 @@ fn create_order_not_borrower() {
 
         assert_err!(
             MmPool::create_order(
-                Origin::signed(TRADER_NOT_EXIST),
+                RuntimeOrigin::signed(TRADER_NOT_EXIST),
                 asset,
                 OrderType::Limit {
                     price,

@@ -24,7 +24,7 @@ use eq_primitives::{
     asset::{Asset, AssetType},
     balance_number::EqFixedU128,
     mocks::{
-        LocationInverterMock, TimeZeroDurationMock, UpdateTimeManagerEmptyMock, XcmRouterErrMock,
+        TimeZeroDurationMock, UniversalLocationMock, UpdateTimeManagerEmptyMock, XcmRouterErrMock,
         XcmToFeeZeroMock,
     },
     subaccount::{SubAccType, SubaccountsManager},
@@ -70,8 +70,8 @@ impl system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -79,7 +79,7 @@ impl system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = ConstU64<250>;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -104,7 +104,7 @@ parameter_types! {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = MainAsset;
     type OnNewAsset = ();
@@ -247,7 +247,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDeposit;
     type BalanceChecker = eq_balances::locked_balance_checker::CheckLocked<Test>;
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Aggregates = AggregatesMock;
     type TreasuryModuleId = TreasuryModuleId;
@@ -259,7 +259,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = XcmRouterErrMock;
     type XcmToFee = XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = LocationInverterMock;
+    type UniversalLocation = UniversalLocationMock;
     type OrderAggregates = ();
     type UnixTime = TimeZeroDurationMock;
 }
@@ -284,7 +284,7 @@ parameter_types! {
 }
 
 impl eq_staking::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type EqCurrency = EqBalances;
     type BalanceGetter = EqBalances;

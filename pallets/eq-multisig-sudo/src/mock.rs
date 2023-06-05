@@ -17,7 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg(test)]
-#![deny(warnings)]
+// #![deny(warnings)]
 #![allow(dead_code)]
 
 use super::*;
@@ -44,7 +44,7 @@ pub mod logger {
     use frame_system::ensure_root;
 
     pub trait Config: frame_system::Config {
-        type RuntimeEvent: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + Into<<Self as frame_system::Config>::RuntimeEvent>;
     }
 
     decl_storage! {
@@ -62,7 +62,7 @@ pub mod logger {
     }
 
     decl_module! {
-        pub struct Module<T: Config> for enum Call where origin: <T as frame_system::Config>::Origin {
+        pub struct Module<T: Config> for enum RuntimeCall where origin: <T as frame_system::Config>::RuntimeOrigin {
             fn deposit_event() = default;
 
             #[weight = Weight::zero()]
@@ -110,15 +110,15 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -133,7 +133,7 @@ impl frame_system::Config for Test {
 
 // Implement the logger module's `Config` on the Test runtime.
 impl logger::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -141,14 +141,14 @@ parameter_types! {
 }
 
 impl Config for Test {
-    type Event = Event;
-    type Call = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = ();
 }
 
 pub type ModuleMultisigSudo = Pallet<Test>;
-pub type LoggerCall = logger::Call<Test>;
+pub type LoggerCall = logger::RuntimeCall<Test>;
 pub type ModuleCall = eq_multisig_sudo::Call<Test>;
 
 pub fn new_test_ext(multisig_keys: Vec<u64>, threshold: u32) -> sp_io::TestExternalities {

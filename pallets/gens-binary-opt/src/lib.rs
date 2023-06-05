@@ -110,7 +110,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self, I>>
             + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Origin for binary creation
-        type ToggleBinaryCreateOrigin: EnsureOrigin<Self::Origin>;
+        type ToggleBinaryCreateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         type Balance: Parameter
             + Member
             + AtLeast32BitUnsigned
@@ -170,7 +170,7 @@ pub mod pallet {
                 Binaries::<T, I>::translate(Self::update_binary);
                 <T as pallet::Config<I>>::WeightInfo::on_initialize()
             } else {
-                Weight::from_ref_time(1)
+                Weight::from_parts(1, 0)
             }
         }
 
@@ -179,7 +179,7 @@ pub mod pallet {
             EqPalletAccountInitializer::<T>::initialize(
                 &T::PalletId::get().into_account_truncating(),
             );
-            Weight::from_ref_time(1)
+            Weight::from_parts(1, 0)
         }
     }
 

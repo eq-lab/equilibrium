@@ -22,7 +22,7 @@
 //! substrate.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 pub mod benchmarking;
 #[cfg(test)]

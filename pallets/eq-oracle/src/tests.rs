@@ -67,7 +67,7 @@ fn check_price(asset: Asset, price: f64) {
 
 fn check_error(dr: DispatchResultWithPostInfo, msg: &str) {
     let a: &str = From::<
-        sp_runtime::DispatchErrorWithPostInfo<frame_support::weights::PostDispatchInfo>,
+        sp_runtime::DispatchErrorWithPostInfo<frame_support::dispatch::PostDispatchInfo>,
     >::from(dr.expect_err(""));
     assert_eq!(a, msg);
 }

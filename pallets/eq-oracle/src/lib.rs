@@ -393,7 +393,7 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
-        type Call: From<Call<Self>>;
+        type RuntimeCall: From<Call<Self>>;
         type FinMetricsRecalcToggleOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         type Balance: Parameter
             + Member

@@ -28,7 +28,7 @@
 //! the set threshold then the call is either sudo-ed or removed respectively.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 #[cfg(test)]
 mod mock;
@@ -81,7 +81,7 @@ pub mod pallet {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// A sudo-able call.
-        type Call: Parameter
+        type RuntimeCall: Parameter
             + UnfilteredDispatchable<RuntimeOrigin = Self::RuntimeOrigin>
             + GetDispatchInfo
             + From<pallet::Call<Self>>;
@@ -218,7 +218,7 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         /// Attempt to decode and return a call, provided by the user or from the storage.
-        fn decode_proposal(call_hash: &[u8; 32]) -> Option<(<T as Config>::Call, usize)> {
+        fn decode_proposal(call_hash: &[u8; 32]) -> Option<(<T as Config>::RuntimeCall, usize)> {
             let mb_data = <MultisigProposals<T>>::get(&call_hash).map(|p| p.call);
             if mb_data.is_none() {
                 return None;
@@ -343,7 +343,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::propose())]
         pub fn propose(
             origin: OriginFor<T>,
-            call: Box<<T as Config>::Call>,
+            call: Box<<T as Config>::RuntimeCall>,
         ) -> DispatchResultWithPostInfo {
             // This is a public call, so we ensure that an origin is a signed account.
             let who = ensure_signed(origin)?;

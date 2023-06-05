@@ -20,7 +20,7 @@
 
 use super::*;
 use crate::mock::{
-    new_test_ext, BalancesModuleId, ModuleBalances, OracleMock, Origin, SlashMock, Test,
+    new_test_ext, BalancesModuleId, ModuleBalances, OracleMock, RuntimeOrigin, SlashMock, Test,
 };
 use crate::mock::{Balance, TimeMock, FAIL_ACC};
 use eq_primitives::asset::*;
@@ -59,21 +59,21 @@ fn no_balances() {
         assert_balance!(account_id_2, 0, 0, EQD);
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             EQD,
             account_id_2,
             10
         ));
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             EQD,
             account_id_2,
             0
         ));
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             EQD,
             account_id_1,
             100
@@ -105,7 +105,12 @@ fn unknown_asset() {
         assert_balance!(account_id_2, 0, 0, unknown);
 
         assert_err!(
-            ModuleBalances::transfer(Origin::signed(account_id_1), unknown, account_id_2, 10),
+            ModuleBalances::transfer(
+                RuntimeOrigin::signed(account_id_1),
+                unknown,
+                account_id_2,
+                10
+            ),
             eq_assets::Error::<Test>::AssetNotExists
         );
 
@@ -130,7 +135,7 @@ fn get_balances() {
         );
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             EQD,
             account_id_2,
             10
@@ -318,7 +323,7 @@ fn enable_disable_transfers() {
         assert_ok!(ModuleBalances::disable_transfers(RawOrigin::Root.into()));
 
         assert_err!(
-            ModuleBalances::transfer(Origin::signed(account_id_2), EQD, account_id_1, 10),
+            ModuleBalances::transfer(RuntimeOrigin::signed(account_id_2), EQD, account_id_1, 10),
             Error::<Test>::TransfersAreDisabled
         );
 
@@ -330,7 +335,7 @@ fn enable_disable_transfers() {
         assert_ok!(ModuleBalances::enable_transfers(RawOrigin::Root.into()));
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_2),
+            RuntimeOrigin::signed(account_id_2),
             EQD,
             account_id_1,
             10
@@ -352,7 +357,7 @@ fn test_aggregates_balances() {
         assert_balance!(&account_id_30, 30_000_000_000, 0, EQD);
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_10),
+            RuntimeOrigin::signed(account_id_10),
             EQD,
             account_id_20,
             25_000_000_000
@@ -363,7 +368,7 @@ fn test_aggregates_balances() {
         assert_balance!(&account_id_30, 30_000_000_000, 0, EQD);
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_20),
+            RuntimeOrigin::signed(account_id_20),
             EQD,
             account_id_30,
             57_000_000_000
@@ -374,7 +379,7 @@ fn test_aggregates_balances() {
         assert_balance!(&account_id_30, 87_000_000_000, 0, EQD);
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_30),
+            RuntimeOrigin::signed(account_id_30),
             EQD,
             account_id_10,
             90_000_000_000
@@ -596,12 +601,22 @@ fn balance_checker_not_allow() {
         );
 
         assert_err!(
-            ModuleBalances::transfer(Origin::signed(account_forbidden), DOT, account_id_1, 10),
+            ModuleBalances::transfer(
+                RuntimeOrigin::signed(account_forbidden),
+                DOT,
+                account_id_1,
+                10
+            ),
             DispatchError::Other("Expected error")
         );
 
         assert_err!(
-            ModuleBalances::transfer(Origin::signed(account_id_1), DOT, account_forbidden, 10),
+            ModuleBalances::transfer(
+                RuntimeOrigin::signed(account_id_1),
+                DOT,
+                account_forbidden,
+                10
+            ),
             DispatchError::Other("Expected error")
         );
 
@@ -643,7 +658,7 @@ fn test_transfer_enabling_disabling() {
         assert_ok!(ModuleBalances::enable_transfers(RawOrigin::Root.into()));
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             EQD,
             account_id_2,
             10
@@ -652,14 +667,14 @@ fn test_transfer_enabling_disabling() {
         assert_ok!(ModuleBalances::disable_transfers(RawOrigin::Root.into()));
 
         assert_err!(
-            ModuleBalances::transfer(Origin::signed(account_id_2), EQD, account_id_1, 10),
+            ModuleBalances::transfer(RuntimeOrigin::signed(account_id_2), EQD, account_id_1, 10),
             Error::<Test>::TransfersAreDisabled
         );
 
         assert_ok!(ModuleBalances::enable_transfers(RawOrigin::Root.into()));
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_2),
+            RuntimeOrigin::signed(account_id_2),
             EQD,
             account_id_1,
             10
@@ -679,7 +694,7 @@ fn free_balance() {
         );
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             EQD,
             account_id_2,
             10
@@ -710,7 +725,7 @@ fn overflow() {
         );
 
         assert_err!(
-            ModuleBalances::transfer(Origin::signed(account_id_2), EQD, account_id_1, 10),
+            ModuleBalances::transfer(RuntimeOrigin::signed(account_id_2), EQD, account_id_1, 10),
             ArithmeticError::Overflow
         );
 
@@ -865,7 +880,7 @@ fn minimal_existential_deposit_basic_when_transfer() {
 
         assert_err!(
             ModuleBalances::transfer(
-                Origin::signed(account_with_minimal_balance),
+                RuntimeOrigin::signed(account_with_minimal_balance),
                 asset::EQ,
                 destination_account,
                 not_enough_transfer_amount
@@ -874,7 +889,7 @@ fn minimal_existential_deposit_basic_when_transfer() {
         );
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_with_minimal_balance),
+            RuntimeOrigin::signed(account_with_minimal_balance),
             asset::EQ,
             destination_account,
             success_transfer_amount
@@ -892,7 +907,7 @@ fn delete_account() {
 
         // transfer
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             EQD,
             account_id_2,
             29_999_999_999
@@ -1318,7 +1333,7 @@ fn ensure_xcm_transfer_limit_not_exceeded_works() {
         let account_id: u64 = 0;
 
         assert_ok!(ModuleBalances::update_xcm_transfer_native_limit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(10_000 * ONE_TOKEN)
         ));
 
@@ -1367,7 +1382,7 @@ fn ensure_xcm_transfer_limit_not_exceeded_should_reset_old_transfers() {
         let account_id = 1;
 
         assert_ok!(ModuleBalances::update_xcm_transfer_native_limit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(10_000 * ONE_TOKEN)
         ));
 
@@ -1404,7 +1419,7 @@ fn ensure_xcm_transfer_limit_not_exceeded_should_forbid() {
         let account_id = 1;
 
         assert_ok!(ModuleBalances::update_xcm_transfer_native_limit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(10_000 * ONE_TOKEN)
         ));
 
@@ -1419,7 +1434,7 @@ fn ensure_xcm_transfer_limit_not_exceeded_should_forbid() {
 fn allow_xcm_transfers_native_for_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(ModuleBalances::update_xcm_transfer_native_limit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(10_000 * ONE_TOKEN)
         ));
 
@@ -1450,7 +1465,7 @@ fn allow_xcm_transfers_native_for_works() {
 fn forbid_xcm_transfers_native_for_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(ModuleBalances::update_xcm_transfer_native_limit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(10_000 * ONE_TOKEN)
         ));
 
@@ -1505,7 +1520,7 @@ fn update_xcm_native_transfers_storage() {
             vec![1]
         ));
         assert_ok!(ModuleBalances::update_xcm_transfer_native_limit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             Some(10_000 * ONE_TOKEN)
         ));
 
@@ -1518,7 +1533,7 @@ fn update_xcm_native_transfers_storage() {
         );
 
         assert_ok!(ModuleBalances::update_xcm_transfer_native_limit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             None
         ));
         Pallet::<Test>::update_xcm_native_transfers(&account_id, 1 * ONE_TOKEN);

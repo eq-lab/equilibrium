@@ -75,7 +75,7 @@ fn reinit_on_debt() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let reinit = match ex.call {
-            crate::mock::Call::EqRate(crate::Call::reinit { request, .. }) => request,
+            crate::mock::RuntimeCall::EqRate(crate::Call::reinit { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -149,7 +149,7 @@ fn reinit_on_debt_wrong_client() {
 
         for ext in exts {
             let reinit = match ext.call {
-                crate::mock::Call::EqRate(crate::Call::reinit { request, .. }) => request,
+                crate::mock::RuntimeCall::EqRate(crate::Call::reinit { request, .. }) => request,
                 e => panic!("Unexpected call: {:?}", e),
             };
             if reinit.higher_priority {
@@ -200,7 +200,7 @@ fn reinit_on_debt_wrong_client() {
 
         for ext in exts {
             let reinit = match ext.call {
-                crate::mock::Call::EqRate(crate::Call::reinit { request, .. }) => request,
+                crate::mock::RuntimeCall::EqRate(crate::Call::reinit { request, .. }) => request,
                 e => panic!("Unexpected call: {:?}", e),
             };
 
@@ -287,7 +287,7 @@ fn reinit_on_margincall() {
 
         for ext in exts {
             let reinit = match ext.call {
-                crate::mock::Call::EqRate(crate::Call::reinit { request, .. }) => request,
+                crate::mock::RuntimeCall::EqRate(crate::Call::reinit { request, .. }) => request,
                 e => panic!("Unexpected call: {:?}", e),
             };
 
@@ -490,7 +490,9 @@ fn acc_delete_offchain() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let del_request = match ex.call {
-            crate::mock::Call::EqRate(crate::Call::delete_account { request, .. }) => request,
+            crate::mock::RuntimeCall::EqRate(crate::Call::delete_account { request, .. }) => {
+                request
+            }
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -550,7 +552,7 @@ fn offchain_worker_turn_off() {
             false
         ));
         assert_noop!(
-            ModuleRate::set_auto_reinit_enabled(Origin::signed(99), false),
+            ModuleRate::set_auto_reinit_enabled(RuntimeOrigin::signed(99), false),
             BadOrigin
         );
         assert_eq!(
@@ -594,7 +596,7 @@ fn offchain_worker_turn_off() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let reinit = match ex.call {
-            crate::mock::Call::EqRate(crate::Call::reinit { request, .. }) => request,
+            crate::mock::RuntimeCall::EqRate(crate::Call::reinit { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -645,7 +647,10 @@ fn reinit_on_bailsman_do_distribution_first() {
 
         assert_eq!(distribution_before.remaining_bailsmen, 1);
 
-        assert_ok!(ModuleRate::reinit_external(Origin::signed(1), borrower));
+        assert_ok!(ModuleRate::reinit_external(
+            RuntimeOrigin::signed(1),
+            borrower
+        ));
 
         assert_eq!(
             eq_bailsman::DistributionQueue::<Test>::get()
@@ -655,7 +660,10 @@ fn reinit_on_bailsman_do_distribution_first() {
             distribution_before
         );
 
-        assert_ok!(ModuleRate::reinit_external(Origin::signed(1), bailsman));
+        assert_ok!(ModuleRate::reinit_external(
+            RuntimeOrigin::signed(1),
+            bailsman
+        ));
 
         let queue = eq_bailsman::DistributionQueue::<Test>::get();
         let distribution_after = queue.1.get(&1).expect("Non empty queue");
@@ -785,7 +793,7 @@ fn asset_removal_non_zero_collateral() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let withdraw = match ex.call {
-            crate::mock::Call::EqRate(crate::Call::withdraw { request, .. }) => request,
+            crate::mock::RuntimeCall::EqRate(crate::Call::withdraw { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -847,7 +855,7 @@ fn asset_removal_non_zero_debt() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let deposit = match ex.call {
-            crate::mock::Call::EqRate(crate::Call::deposit { request, .. }) => request,
+            crate::mock::RuntimeCall::EqRate(crate::Call::deposit { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -915,7 +923,7 @@ fn asset_removal_non_zero_collateral_and_debt() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let deposit = match ex.call {
-            crate::mock::Call::EqRate(crate::Call::deposit { request, .. }) => request,
+            crate::mock::RuntimeCall::EqRate(crate::Call::deposit { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 

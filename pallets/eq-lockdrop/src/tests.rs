@@ -51,7 +51,7 @@ fn lock_in_out_of_period_err() {
 
         // Before StartLock
         let lock_1 = 42;
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id), lock_1));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id), lock_1));
 
         assert_eq!(
             ModuleBalances::get_balance(&acc_id, &Eq),
@@ -70,7 +70,7 @@ fn lock_in_out_of_period_err() {
         ModuleTimestamp::set_timestamp(now * MILLISECS_PER_SEC);
 
         assert_err!(
-            EqLockdrop::lock(Origin::signed(acc_id), 42),
+            EqLockdrop::lock(RuntimeOrigin::signed(acc_id), 42),
             Error::<Test>::OutOfLockPeriod
         );
 
@@ -81,7 +81,7 @@ fn lock_in_out_of_period_err() {
         // After EndLock
         let lock_2 = 42;
         assert_noop!(
-            EqLockdrop::lock(Origin::signed(acc_id), lock_2),
+            EqLockdrop::lock(RuntimeOrigin::signed(acc_id), lock_2),
             Error::<Test>::OutOfLockPeriod
         );
 
@@ -133,7 +133,7 @@ fn lock_in_period_ok() {
 
         let lock_1 = 1;
 
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id_1), lock_1));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id_1), lock_1));
 
         assert_eq!(
             ModuleBalances::get_balance(&acc_id_1, &Eq),
@@ -168,8 +168,8 @@ fn lock_in_period_ok() {
         assert_ok!(ModuleLockdrop::do_set_lock_start(lock_start));
 
         let lock_2 = 2;
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id_1), lock_2));
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id_2), lock_2));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id_1), lock_2));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id_2), lock_2));
 
         assert_eq!(
             ModuleBalances::get_balance(&acc_id_1, &Eq),
@@ -214,7 +214,7 @@ fn unlock_in_period_err() {
         ));
 
         assert_noop!(
-            ModuleLockdrop::unlock_external(Origin::signed(acc_id_1)),
+            ModuleLockdrop::unlock_external(RuntimeOrigin::signed(acc_id_1)),
             Error::<Test>::LockPeriodNotOver
         );
 
@@ -225,10 +225,10 @@ fn unlock_in_period_err() {
         assert_ok!(ModuleLockdrop::do_set_lock_start(lock_start));
 
         let lock_1 = 1;
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id_1), lock_1));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id_1), lock_1));
 
         assert_noop!(
-            ModuleLockdrop::unlock_external(Origin::signed(acc_id_1)),
+            ModuleLockdrop::unlock_external(RuntimeOrigin::signed(acc_id_1)),
             Error::<Test>::LockPeriodNotOver
         );
 
@@ -237,7 +237,7 @@ fn unlock_in_period_err() {
         ModuleTimestamp::set_timestamp(now * MILLISECS_PER_SEC);
 
         assert_noop!(
-            ModuleLockdrop::unlock_external(Origin::signed(acc_id_1)),
+            ModuleLockdrop::unlock_external(RuntimeOrigin::signed(acc_id_1)),
             Error::<Test>::LockPeriodNotOver
         );
 
@@ -289,7 +289,7 @@ fn unlock_ok() {
         ));
 
         assert_noop!(
-            ModuleLockdrop::unlock_external(Origin::signed(acc_id_1)),
+            ModuleLockdrop::unlock_external(RuntimeOrigin::signed(acc_id_1)),
             Error::<Test>::LockPeriodNotOver
         );
 
@@ -300,16 +300,18 @@ fn unlock_ok() {
         assert_ok!(ModuleLockdrop::do_set_lock_start(lock_start));
 
         let lock_1 = 1;
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id_1), lock_1));
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id_2), lock_1));
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id_3), lock_1));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id_1), lock_1));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id_2), lock_1));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id_3), lock_1));
 
         // move time 4
         let now = lock_start + LockPeriod::get() + 1;
         ModuleTimestamp::set_timestamp(now * MILLISECS_PER_SEC);
 
         // unlock acc_id_1
-        assert_ok!(ModuleLockdrop::unlock_external(Origin::signed(acc_id_1)));
+        assert_ok!(ModuleLockdrop::unlock_external(RuntimeOrigin::signed(
+            acc_id_1
+        )));
 
         // assert balances
         assert_eq!(
@@ -337,7 +339,9 @@ fn unlock_ok() {
         assert_eq!(ModuleLockdrop::locks(acc_id_3), lock_1);
 
         // unlock acc_id_2
-        assert_ok!(ModuleLockdrop::unlock_external(Origin::signed(acc_id_2)));
+        assert_ok!(ModuleLockdrop::unlock_external(RuntimeOrigin::signed(
+            acc_id_2
+        )));
 
         // assert balances
         assert_eq!(
@@ -365,7 +369,9 @@ fn unlock_ok() {
         assert_eq!(ModuleLockdrop::locks(acc_id_3), lock_1);
 
         // unlock acc_id_3
-        assert_ok!(ModuleLockdrop::unlock_external(Origin::signed(acc_id_3)));
+        assert_ok!(ModuleLockdrop::unlock_external(RuntimeOrigin::signed(
+            acc_id_3
+        )));
 
         // assert balances
         assert_eq!(
@@ -419,7 +425,7 @@ fn block_multiple_transfers_with_vesting() {
         ));
 
         assert_ok!(ModuleVesting::force_vested_transfer(
-            Origin::root(),
+            RuntimeOrigin::root(),
             acc_id,
             acc_id,
             eq_vesting::VestingInfo {
@@ -429,10 +435,10 @@ fn block_multiple_transfers_with_vesting() {
             }
         ));
 
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id), lock));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id), lock));
         // Second transfer with vesting!
         assert_err!(
-            EqLockdrop::lock(Origin::signed(acc_id), lock),
+            EqLockdrop::lock(RuntimeOrigin::signed(acc_id), lock),
             Error::<Test>::MultipleTransferWithVesting
         );
     });
@@ -445,7 +451,7 @@ fn set_clear_lock_start() {
         let lock_start_2 = 2;
         // no root
         assert_noop!(
-            ModuleLockdrop::set_lock_start(Origin::signed(1), lock_start_1),
+            ModuleLockdrop::set_lock_start(RuntimeOrigin::signed(1), lock_start_1),
             DispatchError::BadOrigin
         );
 
@@ -465,7 +471,7 @@ fn set_clear_lock_start() {
 
         // clear no root
         assert_noop!(
-            ModuleLockdrop::clear_lock_start(Origin::signed(1)),
+            ModuleLockdrop::clear_lock_start(RuntimeOrigin::signed(1)),
             DispatchError::BadOrigin
         );
 
@@ -515,9 +521,9 @@ fn unlock_from_offchain_worker() {
         ModuleTimestamp::set_timestamp(lock_start * MILLISECS_PER_SEC + 1);
         let lock = 3;
         let acc_id = 1;
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id), lock));
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id), lock));
-        assert_ok!(EqLockdrop::lock(Origin::signed(acc_id), lock));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id), lock));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id), lock));
+        assert_ok!(EqLockdrop::lock(RuntimeOrigin::signed(acc_id), lock));
 
         let now = lock_start + LockPeriod::get() + 1;
         ModuleTimestamp::set_timestamp(now * MILLISECS_PER_SEC);
@@ -528,7 +534,7 @@ fn unlock_from_offchain_worker() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let req = match ex.call {
-            crate::mock::Call::EqLockdrop(crate::Call::unlock {
+            RuntimeCall::EqLockdrop(crate::Call::unlock {
                 request: r,
                 signature: _,
             }) => r,
@@ -556,7 +562,7 @@ fn unlock_from_offchain_worker() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let req = match ex.call {
-            crate::mock::Call::EqLockdrop(crate::Call::unlock {
+            RuntimeCall::EqLockdrop(crate::Call::unlock {
                 request: r,
                 signature: _,
             }) => r,

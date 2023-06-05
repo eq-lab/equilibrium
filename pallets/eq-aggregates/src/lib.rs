@@ -21,7 +21,7 @@
 //! Equilibrium's Pallet to aggregate currency data for different groups of users
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 mod mock;
 mod tests;

@@ -25,6 +25,7 @@ use eq_primitives::balance::{DepositReason, EqCurrency, WithdrawReason};
 use eq_primitives::mocks::VestingAccountMock;
 use frame_support::parameter_types;
 use frame_support::traits::{EitherOfDiverse, LockIdentifier, WithdrawReasons};
+use frame_support::weights::constants::WEIGHT_REF_TIME_PER_SECOND;
 use frame_support::weights::Weight;
 use frame_system::pallet_prelude::BlockNumberFor;
 use frame_system::EnsureRoot;
@@ -96,8 +97,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -105,7 +106,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -489,16 +490,22 @@ parameter_types! {
     pub const MotionDuration: BlockNumberFor<Test> = 1;
     pub const MaxProposals: u32 = 1;
     pub const MaxMembers: u32 = 1;
+    pub const MaxProposalWeight: Weight = Weight::from_parts(
+        WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
+        polkadot_primitives::MAX_POV_SIZE as u64,
+    );
 }
 
 impl pallet_collective::Config<()> for Test {
-    type Origin = OriginFor<Test>;
-    type Proposal = Call;
-    type Event = Event;
+    type RuntimeOrigin = OriginFor<Test>;
+    type Proposal = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type MotionDuration = MotionDuration;
     type MaxProposals = MaxProposals;
     type MaxMembers = MaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type SetMembersOrigin = EnsureRoot<AccountId>;
+    type MaxProposalWeight = MaxProposalWeight;
     type WeightInfo = ();
 }
 

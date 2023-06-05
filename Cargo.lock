@@ -2865,6 +2865,7 @@ dependencies = [
  "pallet-collective",
  "pallet-timestamp",
  "parity-scale-codec",
+ "polkadot-primitives",
  "safe-mix",
  "scale-info",
  "serde",

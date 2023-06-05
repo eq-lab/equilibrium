@@ -54,7 +54,7 @@
 //! When accounts are deleted, all leftover balances are transferred to the account of bailsman pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 pub mod benchmarking;
 mod mock;

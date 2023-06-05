@@ -21,7 +21,7 @@
 
 pub mod benchmarking;
 mod mock;
-mod test;
+mod tests;
 pub mod weights;
 pub use weights::WeightInfo;
 

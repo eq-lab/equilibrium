@@ -21,7 +21,7 @@
 use sp_std::ops::{Add, Sub};
 use substrate_fixed::types::I64F64;
 
-use crate::mock::{new_test_ext, Balance, Balances, Origin, Test, Timestamp, Xdot, XDOT};
+use crate::mock::{new_test_ext, Balance, Balances, RuntimeOrigin, Test, Timestamp, Xdot, XDOT};
 use crate::yield_math::YieldMath;
 
 use super::*;
@@ -90,7 +90,7 @@ fn mint_adds_initial_liquidity() {
         let pool_id = setup_pool();
         let account_id: u64 = 2;
         assert_ok!(Xdot::mint(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             pool_id,
             (0, 1),
             (1, 1),
@@ -130,7 +130,7 @@ fn mint_adds_liquidity_with_zero_fy_token() {
         let pool_id = setup_pool();
         let first_mint = ONE_MILLION;
         assert_ok!(Xdot::mint(
-            Origin::signed(temp_acc),
+            RuntimeOrigin::signed(temp_acc),
             pool_id,
             (0, 1),
             (1, 1),
@@ -152,7 +152,7 @@ fn mint_adds_liquidity_with_zero_fy_token() {
         // because we expect that pool has fy tokens after initialization
         assert_err!(
             Xdot::mint(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 pool_id,
                 (0, 1),
                 (1, 1),
@@ -187,7 +187,7 @@ const TEST_ACC: u64 = 12345;
 
 fn initial_liquidity(pool_id: PoolId, base: Balance, xbase: Balance) -> XdotPoolInfo<Test> {
     assert_ok!(Xdot::mint(
-        Origin::signed(TEST_ACC),
+        RuntimeOrigin::signed(TEST_ACC),
         pool_id,
         (0, 1),
         (1, 1),
@@ -216,7 +216,7 @@ fn init_liquidity_for_trade_with_extra_fy_token(pool_id: PoolId) -> XdotPoolInfo
     let additional_fy_token = ONE_TOKEN * 30;
 
     assert_ok!(Xdot::sell_xbase(
-        Origin::signed(TEST_ACC),
+        RuntimeOrigin::signed(TEST_ACC),
         pool_id,
         additional_fy_token,
         0
@@ -247,7 +247,7 @@ fn mint_with_initial_liquidity_mints_liquidity_tokens_returning_base_surplus() {
         let pool_base_balance_before = Balances::get_balance(&pool(pool_id).account, &BASE_TOKEN);
 
         assert_ok!(Xdot::mint(
-            Origin::signed(TEST_ACC),
+            RuntimeOrigin::signed(TEST_ACC),
             pool_id,
             (0, 1),
             (u32::MAX, 1),
@@ -303,7 +303,7 @@ fn mint_with_initial_liquidity_mints_liquidity_tokens_with_base_only() {
         let virtual_xbase_before = pool_before.virtual_xbase_balance().unwrap();
 
         assert_ok!(Xdot::mint(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             pool_id,
             (0, 1),
             (u32::MAX, 1),
@@ -356,7 +356,7 @@ fn mint_with_initial_liquidity_doesnt_mint_if_ratio_drops() {
 
         assert_noop!(
             Xdot::mint(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 pool_id,
                 min_ratio,
                 (u32::MAX, 1),
@@ -394,7 +394,7 @@ fn mint_with_initial_liquidity_doesnt_mint_if_ratio_rises() {
         );
         assert_noop!(
             Xdot::mint(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 pool_id,
                 (0, 1),
                 max_ratio,
@@ -423,7 +423,7 @@ fn mint_with_initial_liquidity_burns_liquidity_tokens() {
         let expected_fy_token_out = 111111111; // 0.111111111
 
         assert_ok!(Xdot::burn(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             pool_id,
             (0, 1),
             (u32::MAX, 1),
@@ -471,7 +471,7 @@ fn mint_with_initial_liquidity_burns_liquidity_tokens_to_base() {
         let expected_base_out = 2221615752; // 2.221615752 (original yield is 2.221614753)
 
         assert_ok!(Xdot::burn(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             pool_id,
             (0, 1),
             (u32::MAX, 1),
@@ -513,7 +513,7 @@ fn mint_with_initial_liquidity_doesnt_burn_if_ratio_drops() {
 
         assert_noop!(
             Xdot::burn(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 pool_id,
                 min_ratio,
                 (u32::MAX, 1),
@@ -546,7 +546,7 @@ fn mint_with_initial_liquidity_doesnt_burn_if_ratio_rises() {
         );
         assert_noop!(
             Xdot::burn(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 pool_id,
                 (0, 1),
                 max_ratio,
@@ -585,7 +585,7 @@ fn sells_fy_token() {
         let expected_base_out = 982182102; // 0.982182102; in original yield tests 0.982181107697934918
 
         assert_ok!(Xdot::sell_xbase(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             fy_token_in,
             0
@@ -618,7 +618,12 @@ fn does_not_sell_fy_token_beyond_slippage() {
         init_liquidity_for_trade(pool_id);
 
         assert_noop!(
-            Xdot::sell_xbase(Origin::signed(acc), pool_id, fy_token_in, Balance::MAX),
+            Xdot::sell_xbase(
+                RuntimeOrigin::signed(acc),
+                pool_id,
+                fy_token_in,
+                Balance::MAX
+            ),
             Error::<Test>::SellXBaseTooLowForMin
         );
     });
@@ -642,7 +647,7 @@ fn donates_base_and_sells_fy_token() {
         );
 
         assert_ok!(Xdot::sell_xbase(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             fy_token_in,
             0
@@ -681,7 +686,7 @@ fn buys_base() {
         let expected_fy_token_in = 1018141134; // 1.018141134;  in yield test 1.018142118489570119
 
         assert_ok!(Xdot::buy_base(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             base_out,
             ONE_MILLION,
@@ -721,7 +726,13 @@ fn does_not_buy_base_beyond_slippage() {
         init_liquidity_for_trade(pool_id);
 
         assert_noop!(
-            Xdot::buy_base(Origin::signed(acc), pool_id, base_out, ONE_MILLION, 0),
+            Xdot::buy_base(
+                RuntimeOrigin::signed(acc),
+                pool_id,
+                base_out,
+                ONE_MILLION,
+                0
+            ),
             Error::<Test>::BuyBaseTooMuchForMax
         );
     });
@@ -745,7 +756,7 @@ fn donates_fy_token_and_buys_base() {
         );
 
         assert_ok!(Xdot::buy_base(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             base_out,
             ONE_MILLION,
@@ -778,7 +789,12 @@ fn sells_base() {
         .unwrap();
         let expected_fy_token_out = 1016359012; // 1.016359012; yield: 1.016357964987807283
 
-        assert_ok!(Xdot::sell_base(Origin::signed(acc), pool_id, base_in, 0));
+        assert_ok!(Xdot::sell_base(
+            RuntimeOrigin::signed(acc),
+            pool_id,
+            base_in,
+            0
+        ));
 
         let fy_token_out = Balances::get_balance(&acc, &X_BASE_TOKEN);
 
@@ -806,7 +822,7 @@ fn does_not_sell_base_beyond_slippage() {
         let pool_id = setup_pool();
         init_liquidity_for_trade_with_extra_fy_token(pool_id);
         assert_noop!(
-            Xdot::sell_base(Origin::signed(acc), pool_id, base_in, Balance::MAX),
+            Xdot::sell_base(RuntimeOrigin::signed(acc), pool_id, base_in, Balance::MAX),
             Error::<Test>::SellBaseTooLowForMin
         );
     });
@@ -829,7 +845,12 @@ fn donates_fy_token_and_sells_base() {
             Some(pool_xbase_balance_before + fy_token_donation),
         );
 
-        assert_ok!(Xdot::sell_base(Origin::signed(acc), pool_id, base_in, 0),);
+        assert_ok!(Xdot::sell_base(
+            RuntimeOrigin::signed(acc),
+            pool_id,
+            base_in,
+            0
+        ),);
 
         assert_eq!(pool.base_balance(), pool_base_balance_before + base_in);
     })
@@ -859,7 +880,7 @@ fn buys_fy_token() {
         let expected_base_in = 983904297; // 0.983904297; yield 0.983905317931461992
 
         assert_ok!(Xdot::buy_xbase(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             ONE_MILLION,
             fy_token_out,
@@ -897,7 +918,13 @@ fn does_not_buy_fy_token_beyond_slippage() {
         let pool_id = setup_pool();
         init_liquidity_for_trade_with_extra_fy_token(pool_id);
         assert_noop!(
-            Xdot::buy_xbase(Origin::signed(acc), pool_id, ONE_MILLION, fy_token_out, 0),
+            Xdot::buy_xbase(
+                RuntimeOrigin::signed(acc),
+                pool_id,
+                ONE_MILLION,
+                fy_token_out,
+                0
+            ),
             Error::<Test>::BuyXbaseTooMuchForMax
         );
     });
@@ -918,7 +945,7 @@ fn donates_base_and_buys_fy_token() {
 
         // await pool.buyFYToken(user2, fy_token_out, MAX, OVERRIDES)
         assert_ok!(Xdot::buy_xbase(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             base_donation,
             fy_token_out,
@@ -942,7 +969,12 @@ fn once_mature() {
         let mut base_balance = Balances::get_balance(&acc, &pool.base_asset);
         let mut xbase_balance = Balances::get_balance(&acc, &pool.xbase_asset);
 
-        assert_ok!(Xdot::sell_base(Origin::signed(acc), pool_id, ONE_TOKEN, 0));
+        assert_ok!(Xdot::sell_base(
+            RuntimeOrigin::signed(acc),
+            pool_id,
+            ONE_TOKEN,
+            0
+        ));
         let base_balance_1 = Balances::get_balance(&acc, &pool.base_asset);
         let xbase_balance_1 = Balances::get_balance(&acc, &pool.xbase_asset);
         assert_eq!(
@@ -957,7 +989,7 @@ fn once_mature() {
         xbase_balance = xbase_balance_1;
 
         assert_ok!(Xdot::buy_base(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             ONE_TOKEN,
             ONE_MILLION,
@@ -976,7 +1008,12 @@ fn once_mature() {
         base_balance = base_balance_2;
         xbase_balance = xbase_balance_2;
 
-        assert_ok!(Xdot::sell_xbase(Origin::signed(acc), pool_id, ONE_TOKEN, 0));
+        assert_ok!(Xdot::sell_xbase(
+            RuntimeOrigin::signed(acc),
+            pool_id,
+            ONE_TOKEN,
+            0
+        ));
         let base_balance_3 = Balances::get_balance(&acc, &pool.base_asset);
         let xbase_balance_3 = Balances::get_balance(&acc, &pool.xbase_asset);
         assert_eq!(
@@ -991,7 +1028,7 @@ fn once_mature() {
         xbase_balance = xbase_balance_3;
 
         assert_ok!(Xdot::buy_xbase(
-            Origin::signed(acc),
+            RuntimeOrigin::signed(acc),
             pool_id,
             ONE_MILLION,
             ONE_TOKEN,
@@ -1020,7 +1057,7 @@ fn create_and_init_pool_for_max_values_check(
     g2: I64F64,
 ) -> PoolId {
     assert_ok!(Xdot::create_pool(
-        Origin::root(),
+        RuntimeOrigin::root(),
         creator,
         BASE_TOKEN,
         X_BASE_TOKEN,
@@ -1032,7 +1069,7 @@ fn create_and_init_pool_for_max_values_check(
     let pool_id = Xdot::pool_count() - 1;
 
     assert_ok!(Xdot::initialize(
-        Origin::signed(creator),
+        RuntimeOrigin::signed(creator),
         pool_id,
         pool_base_init,
         pool_xbase_init,
@@ -1099,7 +1136,7 @@ fn max_base_out_calculation() {
         );
 
         let mut result_ex = Xdot::buy_base(
-            Origin::signed(trader),
+            RuntimeOrigin::signed(trader),
             pool_id,
             base_to_buy,
             xbase_to_sell,
@@ -1116,7 +1153,7 @@ fn max_base_out_calculation() {
                 g2,
             );
             result_ex = Xdot::buy_base(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 base_to_buy,
                 xbase_to_sell,
@@ -1209,7 +1246,7 @@ fn max_xbase_out_test() {
 
         assert_err!(
             Xdot::buy_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 base_to_sell,
                 max_fy_token_out + 1,
@@ -1219,7 +1256,7 @@ fn max_xbase_out_test() {
         );
 
         assert_ok!(Xdot::buy_xbase(
-            Origin::signed(trader),
+            RuntimeOrigin::signed(trader),
             pool_id,
             base_to_sell,
             max_fy_token_out,
@@ -1245,7 +1282,7 @@ fn max_xbase_out_test() {
 
         for _ in 0..1000 {
             assert_ok!(Xdot::buy_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 base_to_sell,
                 trade_amount,
@@ -1253,7 +1290,7 @@ fn max_xbase_out_test() {
             ));
 
             assert_ok!(Xdot::sell_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 trade_amount,
                 0
@@ -1289,7 +1326,7 @@ fn max_xbase_out_test() {
 
         assert_err!(
             Xdot::buy_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 base_to_sell,
                 max_fy_token_out + 2,
@@ -1299,7 +1336,7 @@ fn max_xbase_out_test() {
         );
 
         assert_ok!(Xdot::buy_xbase(
-            Origin::signed(trader),
+            RuntimeOrigin::signed(trader),
             pool_id,
             base_to_sell,
             max_fy_token_out,
@@ -1344,7 +1381,7 @@ fn max_xbase_out_test() {
 
         assert_err!(
             Xdot::buy_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 base_to_sell,
                 max_fy_token_out + 1,
@@ -1354,7 +1391,7 @@ fn max_xbase_out_test() {
         );
 
         assert_ok!(Xdot::buy_xbase(
-            Origin::signed(trader),
+            RuntimeOrigin::signed(trader),
             pool_id,
             base_to_sell,
             max_fy_token_out,
@@ -1378,7 +1415,7 @@ fn max_xbase_out_test() {
 
         for _ in 0..1000 {
             assert_ok!(Xdot::buy_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 base_to_sell,
                 trade_amount,
@@ -1386,7 +1423,7 @@ fn max_xbase_out_test() {
             ));
 
             assert_ok!(Xdot::sell_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 trade_amount,
                 0
@@ -1421,7 +1458,7 @@ fn max_xbase_out_test() {
 
         assert_err!(
             Xdot::buy_xbase(
-                Origin::signed(trader),
+                RuntimeOrigin::signed(trader),
                 pool_id,
                 base_to_sell,
                 max_fy_token_out + 1,
@@ -1431,7 +1468,7 @@ fn max_xbase_out_test() {
         );
 
         assert_ok!(Xdot::buy_xbase(
-            Origin::signed(trader),
+            RuntimeOrigin::signed(trader),
             pool_id,
             base_to_sell,
             max_fy_token_out,
@@ -1598,7 +1635,7 @@ fn init_for_prod() {
         );
 
         assert_ok!(Xdot::create_pool(
-            Origin::root(),
+            RuntimeOrigin::root(),
             creator,
             BASE_TOKEN,
             X_BASE_TOKEN,
@@ -1609,7 +1646,7 @@ fn init_for_prod() {
         ));
 
         assert_ok!(Xdot::initialize(
-            Origin::signed(creator),
+            RuntimeOrigin::signed(creator),
             0,
             50000_000000000,
             9853_000000000,

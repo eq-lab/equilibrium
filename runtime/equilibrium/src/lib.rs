@@ -402,7 +402,7 @@ parameter_types! {
 
 impl eq_multisig_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type Call = RuntimeCall;
+    type RuntimeCall = RuntimeCall;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = weights::pallet_multisig_sudo::WeightInfo<Runtime>;
 }
@@ -1950,7 +1950,7 @@ impl eq_oracle::Config for Runtime {
     type FinMetricsRecalcToggleOrigin = EnsureRootOrTwoThirdsTechnicalCommittee;
     type RuntimeEvent = RuntimeEvent;
     type AuthorityId = eq_oracle::crypto::AuthId;
-    type Call = RuntimeCall;
+    type RuntimeCall = RuntimeCall;
     type Balance = Balance;
     type UnixTime = EqRate;
     type Whitelist = Whitelists;

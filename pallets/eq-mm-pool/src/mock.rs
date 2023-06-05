@@ -91,8 +91,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -100,7 +100,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -286,7 +286,7 @@ impl MarginCallManager<AccountId, Balance> for MarginCallManagerMock {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = BasicCurrencyGet;
     type OnNewAsset = ();
@@ -304,7 +304,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDeposit;
     type BalanceChecker = BalanceCheckerMock;
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Aggregates = EqAggregates;
     type TreasuryModuleId = TreasuryModuleId;
@@ -316,7 +316,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = eq_primitives::mocks::XcmRouterErrMock;
     type XcmToFee = eq_primitives::mocks::XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type UnixTime = TimeMock;
 }
@@ -379,7 +379,7 @@ parameter_types! {
 }
 
 impl eq_dex::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DeleteOrderOrigin = EnsureRoot<AccountId>;
     type UpdateAssetCorridorOrigin = EnsureRoot<AccountId>;
     type PriceStepCount = PriceStepCount;
@@ -391,8 +391,6 @@ impl eq_dex::Config for Test {
 
 impl authorship::Config for Test {
     type FindAuthor = ();
-    type UncleGenerations = ();
-    type FilterUncle = ();
     type EventHandler = ();
 }
 
@@ -455,10 +453,10 @@ impl eq_rate::Config for Test {
 
 impl<LocalCall> SendTransactionTypes<LocalCall> for Test
 where
-    Call: From<LocalCall>,
+    RuntimeCall: From<LocalCall>,
 {
-    type OverarchingCall = Call;
-    type Extrinsic = sp_runtime::testing::TestXt<Call, ()>;
+    type OverarchingCall = RuntimeCall;
+    type Extrinsic = sp_runtime::testing::TestXt<RuntimeCall, ()>;
 }
 
 impl_opaque_keys! {
@@ -474,7 +472,7 @@ impl session::Config for Test {
     type ValidatorId = u64;
     type ValidatorIdOf = sp_runtime::traits::ConvertInto;
     type Keys = SessionKeys;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type NextSessionRotation = session::PeriodicSessions<Period, Offset>;
     type WeightInfo = ();
 }
@@ -491,7 +489,7 @@ pub const TRADER_EXIST: AccountId = 420;
 impl eq_mm_pool::Config for Test {
     type ModuleId = MmPoolModuleId;
     type MarketMakersManagementOrigin = EnsureRoot<AccountId>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type EqCurrency = EqBalances;
     type WeightInfo = ();
     type Balance = Balance;
