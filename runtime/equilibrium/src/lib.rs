@@ -253,7 +253,7 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
     fn contains(c: &RuntimeCall) -> bool {
         #[cfg(feature = "production")]
         match (eq_migration::Migration::<Runtime>::exists(), c) {
-            (_, Call::EqWrappedDot(eq_wrapped_dot::Call::initialize { .. })) => false,
+            (_, RuntimeCall::EqWrappedDot(eq_wrapped_dot::Call::initialize { .. })) => false,
 
             // no migration, custom filter
             // (false, Call::Sudo(sudo_call)) => match sudo_call {
@@ -267,16 +267,16 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
             //     }
             //     _ => true,
             // },
-            (false, Call::EqMultisigSudo(proposal_call)) => match proposal_call {
+            (false, RuntimeCall::EqMultisigSudo(proposal_call)) => match proposal_call {
                 eq_multisig_sudo::Call::propose { call } => match *call.clone() {
-                    Call::PolkadotXcm(_) => true, // allow send xcm from msig
-                    Call::Utility(utility_call) => {
+                    RuntimeCall::PolkadotXcm(_) => true, // allow send xcm from msig
+                    RuntimeCall::Utility(utility_call) => {
                         // allow send xcm batch from msig
                         match utility_call {
                             pallet_utility::Call::batch { calls, .. }
                             | pallet_utility::Call::batch_all { calls, .. } => {
                                 calls.iter().all(|call| {
-                                    if let Call::PolkadotXcm(_) = call {
+                                    if let RuntimeCall::PolkadotXcm(_) = call {
                                         true
                                     } else {
                                         Self::contains(call)
@@ -290,32 +290,35 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
                 },
                 _ => true,
             },
-            (false, Call::Utility(utility_call)) => match utility_call {
+            (false, RuntimeCall::Utility(utility_call)) => match utility_call {
                 pallet_utility::Call::batch { calls, .. }
                 | pallet_utility::Call::batch_all { calls, .. } => {
                     calls.iter().all(|call| Self::contains(call))
                 }
                 _ => true,
             },
-            (false, Call::EqBalances(call)) => match call {
+            (false, RuntimeCall::EqBalances(call)) => match call {
                 eq_balances::Call::deposit { .. } | eq_balances::Call::burn { .. } => false,
                 _ => true,
             },
-            (false, Call::Oracle(eq_oracle::Call::set_fin_metrics_recalc_enabled { .. })) => false,
-            (false, Call::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
-            (false, Call::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, Call::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, Call::Xdot(eq_xdot_pool::Call::remove_pool { .. })) => false,
+            (
+                false,
+                RuntimeCall::Oracle(eq_oracle::Call::set_fin_metrics_recalc_enabled { .. }),
+            ) => false,
+            (false, RuntimeCall::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
+            (false, RuntimeCall::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::Xdot(eq_xdot_pool::Call::remove_pool { .. })) => false,
             // XCM disallowed
-            (_, &Call::PolkadotXcm(_)) => false,
+            (_, &RuntimeCall::PolkadotXcm(_)) => false,
             (false, _) => true,
 
             // only system and sudo are allowed during migration
-            (true, &Call::ParachainSystem(_)) => true,
-            (true, &Call::System(_)) => true,
+            (true, &RuntimeCall::ParachainSystem(_)) => true,
+            (true, &RuntimeCall::System(_)) => true,
             // (true, &Call::Sudo(_)) => true,
-            (true, &Call::Timestamp(_)) => true,
-            (true, &Call::EqMultisigSudo(_)) => true,
+            (true, &RuntimeCall::Timestamp(_)) => true,
+            (true, &RuntimeCall::EqMultisigSudo(_)) => true,
 
             // all other pallets are disallowed during migration
             (true, _) => false,
