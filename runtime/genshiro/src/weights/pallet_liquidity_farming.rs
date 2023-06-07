@@ -33,20 +33,20 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> eq_liquidity_farming::WeightInfo for WeightInfo<T> {
     fn set_auto_reward_enabled() -> Weight {
-        (Weight::from_ref_time(3_000_000)).saturating_add(T::DbWeight::get().writes(1))
+        (Weight::from_parts(3_000_000, 0)).saturating_add(T::DbWeight::get().writes(1))
     }
     fn reward() -> Weight {
-        (Weight::from_ref_time(285_900_000))
+        (Weight::from_parts(285_900_000, 0))
             .saturating_add(T::DbWeight::get().reads(22))
             .saturating_add(T::DbWeight::get().writes(7))
     }
     fn reward_external() -> Weight {
-        (Weight::from_ref_time(323_300_000))
+        (Weight::from_parts(323_300_000, 0))
             .saturating_add(T::DbWeight::get().reads(24))
             .saturating_add(T::DbWeight::get().writes(7))
     }
     fn validate_unsigned() -> Weight {
-        (Weight::from_ref_time(411_000_000))
+        (Weight::from_parts(411_000_000, 0))
             .saturating_add(T::DbWeight::get().reads(26))
             .saturating_add(T::DbWeight::get().writes(7))
     }

@@ -45,9 +45,9 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: EqRate NowMillisOffset (r:1 w:0)
 	/// The range of component `b` is `[2, 6]`.
 	fn create_pool(b: u32, ) -> Weight {
-		Weight::from_ref_time(425_183_000 as u64)
+		Weight::from_parts(425_183_000 as u64, 0)
 			// Standard Error: 463_000
-			.saturating_add(Weight::from_ref_time(43_417_000 as u64).saturating_mul(b as u64))
+			.saturating_add(Weight::from_parts(43_417_000 as u64, 0).saturating_mul(b as u64))
 			.saturating_add(T::DbWeight::get().reads(26 as u64))
 			.saturating_add(T::DbWeight::get().reads((2 as u64).saturating_mul(b as u64)))
 			.saturating_add(T::DbWeight::get().writes(7 as u64))
@@ -60,9 +60,9 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: EqAggregates AccountUserGroups (r:6 w:0)
 	/// The range of component `b` is `[2, 6]`.
 	fn add_liquidity_without_fee(b: u32, ) -> Weight {
-		Weight::from_ref_time(429_228_000 as u64)
+		Weight::from_parts(429_228_000 as u64, 0)
 			// Standard Error: 6_387_000
-			.saturating_add(Weight::from_ref_time(12_595_000 as u64).saturating_mul(b as u64))
+			.saturating_add(Weight::from_parts(12_595_000 as u64, 0).saturating_mul(b as u64))
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().reads((1 as u64).saturating_mul(b as u64)))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
@@ -76,9 +76,9 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: EqAggregates AccountUserGroups (r:6 w:0)
 	/// The range of component `b` is `[2, 6]`.
 	fn add_liquidity_with_fee(b: u32, ) -> Weight {
-		Weight::from_ref_time(101_855_000 as u64)
+		Weight::from_parts(101_855_000 as u64, 0)
 			// Standard Error: 212_000
-			.saturating_add(Weight::from_ref_time(74_436_000 as u64).saturating_mul(b as u64))
+			.saturating_add(Weight::from_parts(74_436_000 as u64, 0).saturating_mul(b as u64))
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().reads((1 as u64).saturating_mul(b as u64)))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
@@ -91,7 +91,7 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: EqAggregates AccountUserGroups (r:6 w:0)
 	// Storage: EqAggregates TotalUserGroups (r:2 w:2)
 	fn exchange() -> Weight {
-		Weight::from_ref_time(221_727_000 as u64)
+		Weight::from_parts(221_727_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(14 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -103,9 +103,9 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: Subaccounts OwnerAccount (r:2 w:0)
 	/// The range of component `b` is `[2, 6]`.
 	fn remove_liquidity(b: u32, ) -> Weight {
-		Weight::from_ref_time(78_330_000 as u64)
+		Weight::from_parts(78_330_000 as u64, 0)
 			// Standard Error: 206_000
-			.saturating_add(Weight::from_ref_time(74_340_000 as u64).saturating_mul(b as u64))
+			.saturating_add(Weight::from_parts(74_340_000 as u64, 0).saturating_mul(b as u64))
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().reads((1 as u64).saturating_mul(b as u64)))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
@@ -119,9 +119,9 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: Subaccounts OwnerAccount (r:2 w:0)
 	/// The range of component `b` is `[2, 6]`.
 	fn remove_liquidity_imbalance(b: u32, ) -> Weight {
-		Weight::from_ref_time(80_737_000 as u64)
+		Weight::from_parts(80_737_000 as u64, 0)
 			// Standard Error: 309_000
-			.saturating_add(Weight::from_ref_time(78_641_000 as u64).saturating_mul(b as u64))
+			.saturating_add(Weight::from_parts(78_641_000 as u64, 0).saturating_mul(b as u64))
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().reads((1 as u64).saturating_mul(b as u64)))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
@@ -134,7 +134,7 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: EqAggregates AccountUserGroups (r:6 w:0)
 	// Storage: Subaccounts OwnerAccount (r:2 w:0)
 	fn remove_liquidity_one_coin() -> Weight {
-		Weight::from_ref_time(196_053_000 as u64)
+		Weight::from_parts(196_053_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(14 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -145,7 +145,7 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 	// Storage: EqAggregates AccountUserGroups (r:6 w:0)
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	fn withdraw_admin_fees() -> Weight {
-		Weight::from_ref_time(127_601_000 as u64)
+		Weight::from_parts(127_601_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(12 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}

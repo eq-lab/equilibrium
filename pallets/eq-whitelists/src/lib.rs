@@ -22,7 +22,7 @@
 //! There are methods to check if an account is whitelisted and to get the list of all whitelisted accounts.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 pub mod benchmarking;
 mod mock;

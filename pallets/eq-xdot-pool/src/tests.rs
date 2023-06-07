@@ -684,7 +684,7 @@ fn buys_base() {
             .unwrap();
 
         let expected_fy_token_in = 1018141134; // 1.018141134;  in yield test 1.018142118489570119
-
+        frame_system::Pallet::<Test>::inc_providers(&acc);
         assert_ok!(Xdot::buy_base(
             RuntimeOrigin::signed(acc),
             pool_id,
@@ -789,6 +789,7 @@ fn sells_base() {
         .unwrap();
         let expected_fy_token_out = 1016359012; // 1.016359012; yield: 1.016357964987807283
 
+        frame_system::Pallet::<Test>::inc_providers(&acc);
         assert_ok!(Xdot::sell_base(
             RuntimeOrigin::signed(acc),
             pool_id,
@@ -878,7 +879,7 @@ fn buys_fy_token() {
         )
         .unwrap();
         let expected_base_in = 983904297; // 0.983904297; yield 0.983905317931461992
-
+        frame_system::Pallet::<Test>::inc_providers(&acc);
         assert_ok!(Xdot::buy_xbase(
             RuntimeOrigin::signed(acc),
             pool_id,
@@ -968,7 +969,7 @@ fn once_mature() {
         Timestamp::set_timestamp((pool.maturity + 1) * 1000);
         let mut base_balance = Balances::get_balance(&acc, &pool.base_asset);
         let mut xbase_balance = Balances::get_balance(&acc, &pool.xbase_asset);
-
+        frame_system::Pallet::<Test>::inc_providers(&acc);
         assert_ok!(Xdot::sell_base(
             RuntimeOrigin::signed(acc),
             pool_id,

@@ -32,7 +32,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 use codec::Codec;
 pub use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
@@ -871,6 +871,10 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
             );
         } // AllowDeath, for new account will be removed by offchain worker
 
+        if providers == 0 {
+            frame_system::Pallet::<T>::inc_providers(dest);
+        }
+
         T::AccountStore::mutate(transactor, |from_account| -> DispatchResult {
             T::AccountStore::mutate(dest, |to_account| -> DispatchResult {
                 if ensure_can_change {
@@ -1005,6 +1009,11 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
 
         Self::ensure_asset_exists(asset)?;
 
+        let providers = frame_system::Pallet::<T>::providers(who);
+        if providers == 0 {
+            frame_system::Pallet::<T>::inc_providers(who);
+        }
+
         T::AccountStore::mutate(who, |balances| -> DispatchResult {
             if !ensure_can_change
                 || T::BalanceChecker::can_change_balance(
@@ -1101,6 +1110,10 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
                     .expect("deposit_creating failed");
             }
             Negative(d) => {
+                let providers = frame_system::Pallet::<T>::providers(who);
+                if providers == 0 {
+                    frame_system::Pallet::<T>::inc_providers(who);
+                }
                 Self::withdraw(
                     who,
                     asset,
@@ -1203,7 +1216,7 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
 
         // dec_providers also remove account
         // we checked that it's last provider
-        T::AccountStore::remove(who).expect("Unexpected dec_providers error");
+        frame_system::Pallet::<T>::dec_providers(who).expect("Unexpected dec_providers error");
 
         Locked::<T>::remove(who);
 

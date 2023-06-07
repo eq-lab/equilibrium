@@ -405,10 +405,11 @@ pub mod pallet {
 
             ensure!(result.is_ok(), Error::<T>::XcmStakingBondExtraFailed);
 
-            T::EqCurrency::deposit_into_existing(
+            T::EqCurrency::deposit_creating(
                 &account_id,
                 asset::EQDOT,
                 bond,
+                true,
                 Some(DepositReason::Staking),
             )?;
 
@@ -523,10 +524,11 @@ impl<T: Config> Pallet<T> {
             if *transferable < *withdraw_amount {
                 break;
             }
-            T::EqCurrency::deposit_into_existing(
+            T::EqCurrency::deposit_creating(
                 beneficiary,
                 asset::DOT,
                 *withdraw_amount,
+                true,
                 Some(DepositReason::Staking),
             )?;
 
@@ -745,10 +747,11 @@ impl<T: Config> Pallet<T> {
         )?;
 
         let mint_amount = Self::calc_mint_wrapped_amount(deposit_amount)?;
-        T::EqCurrency::deposit_into_existing(
+        T::EqCurrency::deposit_creating(
             &account_id,
             asset::EQDOT,
             mint_amount,
+            true,
             Some(DepositReason::Staking),
         )
     }
@@ -758,10 +761,11 @@ impl<T: Config> Pallet<T> {
         deposit_amount: T::Balance,
         burn_amount: T::Balance,
     ) -> DispatchResult {
-        T::EqCurrency::deposit_into_existing(
+        T::EqCurrency::deposit_creating(
             &account_id,
             asset::DOT,
             deposit_amount,
+            true,
             Some(DepositReason::Staking),
         )?;
 

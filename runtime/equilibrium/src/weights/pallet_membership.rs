@@ -39,9 +39,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Council Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 99]`.
 	fn add_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(18_601_000 as u64)
+		Weight::from_parts(18_601_000 as u64, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(10_000 as u64).saturating_mul(m as u64))
+			.saturating_add(Weight::from_parts(10_000 as u64, 0).saturating_mul(m as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -52,9 +52,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Council Prime (r:0 w:1)
 	/// The range of component `m` is `[2, 100]`.
 	fn remove_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(20_206_000 as u64)
+		Weight::from_parts(20_206_000 as u64, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(18_000 as u64).saturating_mul(m as u64))
+			.saturating_add(Weight::from_parts(18_000 as u64, 0).saturating_mul(m as u64))
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -65,9 +65,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Council Prime (r:0 w:1)
 	/// The range of component `m` is `[2, 100]`.
 	fn swap_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(20_178_000 as u64)
+		Weight::from_parts(20_178_000 as u64, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(22_000 as u64).saturating_mul(m as u64))
+			.saturating_add(Weight::from_parts(22_000 as u64, 0).saturating_mul(m as u64))
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -78,9 +78,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Council Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn reset_member(m: u32, ) -> Weight {
-		Weight::from_ref_time(19_943_000 as u64)
+		Weight::from_parts(19_943_000 as u64, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(91_000 as u64).saturating_mul(m as u64))
+			.saturating_add(Weight::from_parts(91_000 as u64, 0).saturating_mul(m as u64))
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -91,9 +91,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Council Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn change_key(m: u32, ) -> Weight {
-		Weight::from_ref_time(20_892_000 as u64)
+		Weight::from_parts(20_892_000 as u64, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(21_000 as u64).saturating_mul(m as u64))
+			.saturating_add(Weight::from_parts(21_000 as u64, 0).saturating_mul(m as u64))
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
@@ -102,9 +102,9 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Council Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn set_prime(m: u32, ) -> Weight {
-		Weight::from_ref_time(7_325_000 as u64)
+		Weight::from_parts(7_325_000 as u64, 0)
 			// Standard Error: 0
-			.saturating_add(Weight::from_ref_time(5_000 as u64).saturating_mul(m as u64))
+			.saturating_add(Weight::from_parts(5_000 as u64, 0).saturating_mul(m as u64))
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -112,7 +112,7 @@ impl<T: frame_system::Config> pallet_membership::WeightInfo for WeightInfo<T> {
 	// Storage: Council Prime (r:0 w:1)
 	/// The range of component `m` is `[1, 100]`.
 	fn clear_prime(_m: u32, ) -> Weight {
-		Weight::from_ref_time(3_996_000 as u64)
+		Weight::from_parts(3_996_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 }

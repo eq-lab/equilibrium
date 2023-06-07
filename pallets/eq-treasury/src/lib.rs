@@ -25,7 +25,7 @@
 //! yet lacks sufficient funds in the basic asset (Treasury buyout).
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 pub mod benchmarking;
 mod mock;

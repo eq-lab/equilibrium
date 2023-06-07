@@ -267,7 +267,7 @@ pub struct EqTraderAssetInfo {
     amount: B,
 }
 
-enum EqTraderError {
+pub enum EqTraderError {
     Overflow,
     NoFee,
 }
@@ -338,7 +338,7 @@ impl<
         FallbackXcmWeightToFee,
     >
 {
-    fn weight_to_fee(
+    pub fn weight_to_fee(
         asset: &EqTraderAssetInfo,
         weight: &XcmWeight,
     ) -> Result<XcmBalance, EqTraderError> {
@@ -453,8 +453,7 @@ impl<
                 _ => continue,
             };
         }
-
-        if weight.all_gt(XcmWeight::zero()) {
+        if weight.any_gt(XcmWeight::zero()) {
             Err(XcmError::TooExpensive)
         } else {
             payment.fungible.retain(|_, amount| amount != &0);

@@ -26,7 +26,7 @@
 //! to operate with funds on a given MM pool.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 pub mod benchmarking;
 pub mod migration;

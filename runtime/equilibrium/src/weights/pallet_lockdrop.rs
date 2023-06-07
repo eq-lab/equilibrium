@@ -41,7 +41,7 @@ impl<T: frame_system::Config> eq_lockdrop::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	// Storage: EqLockdrop Locks (r:1 w:1)
 	fn lock() -> Weight {
-		Weight::from_ref_time(122_000_000 as u64)
+		Weight::from_parts(122_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(17 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -57,7 +57,7 @@ impl<T: frame_system::Config> eq_lockdrop::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn unlock() -> Weight {
-		Weight::from_ref_time(121_000_000 as u64)
+		Weight::from_parts(121_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(16 as u64))
 			.saturating_add(T::DbWeight::get().writes(6 as u64))
 	}
@@ -73,24 +73,24 @@ impl<T: frame_system::Config> eq_lockdrop::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn unlock_external() -> Weight {
-		Weight::from_ref_time(121_000_000 as u64)
+		Weight::from_parts(121_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(15 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
 	// Storage: EqLockdrop LockStart (r:1 w:1)
 	fn set_lock_start() -> Weight {
-		Weight::from_ref_time(7_000_000 as u64)
+		Weight::from_parts(7_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqLockdrop LockStart (r:0 w:1)
 	fn clear_lock_start() -> Weight {
-		Weight::from_ref_time(5_000_000 as u64)
+		Weight::from_parts(5_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqLockdrop AutoUnlockEnabled (r:0 w:1)
 	fn set_auto_unlock() -> Weight {
-		Weight::from_ref_time(5_000_000 as u64)
+		Weight::from_parts(5_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqRate Keys (r:1 w:0)
@@ -106,7 +106,7 @@ impl<T: frame_system::Config> eq_lockdrop::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn validate_unsigned() -> Weight {
-		Weight::from_ref_time(161_000_000 as u64)
+		Weight::from_parts(161_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(17 as u64))
 			.saturating_add(T::DbWeight::get().writes(6 as u64))
 	}

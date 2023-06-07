@@ -44,9 +44,9 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 	// Storage: Scheduler Agenda (r:1 w:1)
 	/// The range of component `s` is `[0, 10]`.
 	fn schedule(s: u32, ) -> Weight {
-		Weight::from_ref_time(15_704_000 as u64)
+		Weight::from_parts(15_704_000 as u64, 0)
 			// Standard Error: 5_000
-			.saturating_add(Weight::from_ref_time(56_000 as u64).saturating_mul(s as u64))
+			.saturating_add(Weight::from_parts(56_000 as u64, 0).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -54,9 +54,9 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 	// Storage: Scheduler Lookup (r:0 w:1)
 	/// The range of component `s` is `[1, 10]`.
 	fn cancel(s: u32, ) -> Weight {
-		Weight::from_ref_time(15_505_000 as u64)
+		Weight::from_parts(15_505_000 as u64, 0)
 			// Standard Error: 11_000
-			.saturating_add(Weight::from_ref_time(929_000 as u64).saturating_mul(s as u64))
+			.saturating_add(Weight::from_parts(929_000 as u64, 0).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -64,9 +64,9 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 	// Storage: Scheduler Agenda (r:1 w:1)
 	/// The range of component `s` is `[0, 10]`.
 	fn schedule_named(s: u32, ) -> Weight {
-		Weight::from_ref_time(17_635_000 as u64)
+		Weight::from_parts(17_635_000 as u64, 0)
 			// Standard Error: 11_000
-			.saturating_add(Weight::from_ref_time(382_000 as u64).saturating_mul(s as u64))
+			.saturating_add(Weight::from_parts(382_000 as u64, 0).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -74,9 +74,9 @@ impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
 	// Storage: Scheduler Agenda (r:1 w:1)
 	/// The range of component `s` is `[1, 10]`.
 	fn cancel_named(s: u32, ) -> Weight {
-		Weight::from_ref_time(16_079_000 as u64)
+		Weight::from_parts(16_079_000 as u64, 0)
 			// Standard Error: 8_000
-			.saturating_add(Weight::from_ref_time(1_285_000 as u64).saturating_mul(s as u64))
+			.saturating_add(Weight::from_parts(1_285_000 as u64, 0).saturating_mul(s as u64))
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}

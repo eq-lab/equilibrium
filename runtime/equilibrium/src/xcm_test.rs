@@ -84,7 +84,10 @@ fn general_key(id: &[u8; 3]) -> Junction {
     let id = id.to_vec();
     let mut data = [0u8; 32];
     data[..id.len()].copy_from_slice(&id[..]);
-    GeneralKey { length: 2, data }
+    GeneralKey {
+        length: id.len() as u8,
+        data,
+    }
 }
 
 pub struct XcmRouterMock;
@@ -657,7 +660,7 @@ fn xcm_transfer_eqd_native_bridge() {
                                 1,
                                 X2(Parachain(EQ_PARACHAIN_ID), general_key(b"eqd"))
                             )),
-                            fun: Fungibility::Fungible(2 * 92_696_000),
+                            fun: Fungibility::Fungible(2 * 70_392_000),
                         },
                         weight_limit: xcm::latest::WeightLimit::Unlimited,
                     },
@@ -1138,7 +1141,7 @@ fn xcm_transfer_deal_with_fee_ok() {
         .unwrap();
 
         assert_eq!(fee_asset, asset::DOT);
-        assert_eq!(fee_amount, 2 * 46_351_012);
+        assert_eq!(fee_amount, 2 * 35_199_492);
 
         let fee_in_usdt = (fee_amount * 5) / 10_000; // DOT - 10 decimals; USDT - 6 decimals
         let fee_in_usdt_local = fee_in_usdt * 1_000;
@@ -1449,16 +1452,15 @@ fn xcm_message_received_unlimited_weight_bridge() {
             },
         ]);
 
-        assert!(matches!(
-            XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
-                xcm_origins::dot::PARACHAIN_STATEMINT,
-                rcvd_xcm_message.clone(),
-                hash_xcm(rcvd_xcm_message),
-                XcmWeight::MAX,
-                XcmWeight::MAX
-            ),
-            Outcome::Complete(_)
-        ));
+        let execute_result = XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+            xcm_origins::dot::PARACHAIN_STATEMINT,
+            rcvd_xcm_message.clone(),
+            hash_xcm(rcvd_xcm_message),
+            XcmWeight::MAX,
+            XcmWeight::MAX,
+        );
+        println!("{:?}", execute_result);
+        assert!(matches!(execute_result, Outcome::Complete(_)));
 
         System::assert_has_event(RuntimeEvent::EqBridge(
             eq_bridge::Event::<Runtime>::ToBridgeTransfer(
@@ -1742,15 +1744,13 @@ fn xcm_message_received_unlimited_weight() {
             INITIAL_AMOUNT
         );
 
-        //let fee_in_usd = crate::fee::XcmWeightToFee::weight_to_fee(&XCM_MSG_WEIGHT) as Balance;
-        let fee_in_usdt = fee_in_usd / 1000;
         let rcvd_xcm_message = Xcm::<RuntimeCall>(vec![
             ReserveAssetDeposited(
-                vec![multi_asset_from(TO_RECV_AMOUNT + fee_in_usdt, &multi::USDT)].into(),
+                vec![multi_asset_from(TO_RECV_AMOUNT + fee_in_usd, &multi::USDT)].into(),
             ),
             ClearOrigin,
             BuyExecution {
-                fees: multi_asset_from(2 * fee_in_usdt, &multi::USDT),
+                fees: multi_asset_from(2 * fee_in_usd, &multi::USDT),
                 weight_limit: Unlimited,
             },
             DepositAsset {
@@ -1767,16 +1767,15 @@ fn xcm_message_received_unlimited_weight() {
             },
         ]);
 
-        assert!(matches!(
-            XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
-                xcm_origins::dot::PARACHAIN_STATEMINT,
-                rcvd_xcm_message.clone(),
-                hash_xcm(rcvd_xcm_message),
-                XcmWeight::MAX,
-                XcmWeight::MAX
-            ),
-            Outcome::Complete(_),
-        ));
+        let execute_result = XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+            xcm_origins::dot::PARACHAIN_STATEMINT,
+            rcvd_xcm_message.clone(),
+            hash_xcm(rcvd_xcm_message),
+            XcmWeight::MAX,
+            XcmWeight::MAX,
+        );
+        println!("{:?}", execute_result);
+        assert!(matches!(execute_result, Outcome::Complete(_),));
 
         assert_eq!(
             EqBalances::total_balance(&USER_X, asset::USDT),
@@ -2053,7 +2052,7 @@ fn xcm_barrier() {
                 max_weight,
                 &mut weight_credit,
             ),
-            ProcessMessageError::BadFormat
+            ProcessMessageError::Unsupported
         );
 
         assert_noop!(
@@ -2063,7 +2062,7 @@ fn xcm_barrier() {
                 max_weight,
                 &mut weight_credit,
             ),
-            ProcessMessageError::BadFormat
+            ProcessMessageError::Unsupported
         );
     })
 }
@@ -2136,7 +2135,7 @@ fn xcm_barrier_self_and_other_reserved() {
                 max_weight,
                 &mut weight_credit
             ),
-            ProcessMessageError::BadFormat
+            ProcessMessageError::Unsupported
         );
 
         assert_noop!(
@@ -2146,7 +2145,7 @@ fn xcm_barrier_self_and_other_reserved() {
                 max_weight,
                 &mut weight_credit
             ),
-            ProcessMessageError::BadFormat
+            ProcessMessageError::Unsupported
         );
         assert_ok!(Barrier::should_execute(
             &xcm_origins::dot::PARACHAIN_STATEMINT,
@@ -2310,15 +2309,13 @@ fn buy_weight_too_expensive() {
 
         let mut payment = xcm_executor::Assets::new();
 
-        let payment_value = (100_000_000 * 10) / 5 - 1;
+        let payment_value = fee::XcmWeightToFee::weight_to_fee(&XCM_MSG_WEIGHT) - 1;
 
         payment
             .fungible
             .insert(AssetId::Concrete(MultiLocation::parent()), payment_value);
 
         let mut trader = crate::EqTrader::new();
-
-        assert!((100_000_000 * 10) / 5 > payment_value);
 
         assert_noop!(
             trader.buy_weight(XCM_MSG_WEIGHT, payment),

@@ -28,7 +28,7 @@
 //! the set threshold then the call is either sudo-ed or removed respectively.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 #[cfg(test)]
 mod mock;

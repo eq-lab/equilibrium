@@ -884,6 +884,7 @@ fn lender_pool_borrow_ok() {
         assert_ok!(EqLending::do_deposit(&lender, asset::BTC, 50));
 
         // Alright, get your BTC
+        frame_system::Pallet::<Test>::inc_providers(&borr);
         assert_ok!(EqBalances::currency_transfer(
             &borr,
             &main,
@@ -1244,6 +1245,7 @@ fn check_bails_pool_after_unreg_when_enough_liquidity() {
         );
 
         assert_ok!(EqLending::do_deposit(&lender, asset::BTC, 10));
+        frame_system::Pallet::<Test>::inc_providers(&borr);
         assert_ok!(EqBalances::currency_transfer(
             &borr,
             &main,
@@ -1293,6 +1295,7 @@ fn check_bails_pool_after_unreg_when_not_enough_liquidity() {
 
         assert_ok!(EqLending::do_deposit(&lender, asset::BTC, 10));
         // liquidity = .2 * 45 = 9
+        frame_system::Pallet::<Test>::inc_providers(&borr);
         assert_ok!(EqBalances::currency_transfer(
             &borr,
             &main,

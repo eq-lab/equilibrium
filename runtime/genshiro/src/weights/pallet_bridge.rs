@@ -45,7 +45,7 @@ impl<T: frame_system::Config> eq_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: EqAssets Assets (r:1 w:0)
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	fn transfer_native() -> Weight {
-		Weight::from_ref_time(133_506_000 as u64)
+		Weight::from_parts(133_506_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -61,7 +61,7 @@ impl<T: frame_system::Config> eq_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:2 w:2)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn transfer() -> Weight {
-		Weight::from_ref_time(261_189_000 as u64)
+		Weight::from_parts(261_189_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(19 as u64))
 			.saturating_add(T::DbWeight::get().writes(6 as u64))
 	}
@@ -76,28 +76,28 @@ impl<T: frame_system::Config> eq_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate NowMillisOffset (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn transfer_basic() -> Weight {
-		Weight::from_ref_time(145_939_000 as u64)
+		Weight::from_parts(145_939_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(16 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
 	fn remark() -> Weight {
-		Weight::from_ref_time(16_978_000 as u64)
+		Weight::from_parts(16_978_000 as u64, 0)
 	}
 	// Storage: EqBridge Resources (r:0 w:1)
 	// Storage: EqBridge AssetResource (r:0 w:1)
 	fn set_resource() -> Weight {
-		Weight::from_ref_time(8_414_000 as u64)
+		Weight::from_parts(8_414_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: EqBridge EnabledWithdrawals (r:1 w:1)
 	fn enable_withdrawals() -> Weight {
-		Weight::from_ref_time(23_057_000 as u64)
+		Weight::from_parts(23_057_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqBridge EnabledWithdrawals (r:1 w:1)
 	fn disable_withdrawals() -> Weight {
-		Weight::from_ref_time(24_146_000 as u64)
+		Weight::from_parts(24_146_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -105,7 +105,7 @@ impl<T: frame_system::Config> eq_bridge::WeightInfo for WeightInfo<T> {
 	// Storage: EqBridge Resources (r:1 w:0)
 	// Storage: EqBridge MinimumTransferAmount (r:0 w:1)
 	fn set_minimum_transfer_amount() -> Weight {
-		Weight::from_ref_time(29_159_000 as u64)
+		Weight::from_parts(29_159_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}

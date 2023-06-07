@@ -35,12 +35,12 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 	// Storage: EqBalances IsTransfersEnabled (r:0 w:1)
 	fn enable_transfers() -> Weight {
-		Weight::from_ref_time(4_000_000 as u64)
+		Weight::from_parts(4_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqBalances IsTransfersEnabled (r:0 w:1)
 	fn disable_transfers() -> Weight {
-		Weight::from_ref_time(4_000_000 as u64)
+		Weight::from_parts(4_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqBalances IsTransfersEnabled (r:1 w:0)
@@ -53,7 +53,7 @@ impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 	// Storage: Timestamp Now (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn transfer() -> Weight {
-		Weight::from_ref_time(82_000_000 as u64)
+		Weight::from_parts(82_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(15 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
@@ -61,9 +61,9 @@ impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 	// Storage: EqBalances XcmNativeTransfers (r:1 w:1)
 	/// The range of component `z` is `[1, 100]`.
 	fn allow_xcm_transfers_native_for(z: u32, ) -> Weight {
-		Weight::from_ref_time(7_607_000 as u64)
+		Weight::from_parts(7_607_000 as u64, 0)
 			// Standard Error: 2_000
-			.saturating_add(Weight::from_ref_time(1_740_000 as u64).saturating_mul(z as u64))
+			.saturating_add(Weight::from_parts(1_740_000 as u64, 0).saturating_mul(z as u64))
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().reads((1 as u64).saturating_mul(z as u64)))
 			.saturating_add(T::DbWeight::get().writes((1 as u64).saturating_mul(z as u64)))
@@ -71,14 +71,14 @@ impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 	// Storage: EqBalances XcmNativeTransfers (r:0 w:1)
 	/// The range of component `z` is `[1, 100]`.
 	fn forbid_xcm_transfers_native_for(z: u32, ) -> Weight {
-		Weight::from_ref_time(3_381_000 as u64)
+		Weight::from_parts(3_381_000 as u64, 0)
 			// Standard Error: 2_000
-			.saturating_add(Weight::from_ref_time(873_000 as u64).saturating_mul(z as u64))
+			.saturating_add(Weight::from_parts(873_000 as u64, 0).saturating_mul(z as u64))
 			.saturating_add(T::DbWeight::get().writes((1 as u64).saturating_mul(z as u64)))
 	}
 	// Storage: EqBalances DailyXcmLimit (r:0 w:1)
 	fn update_xcm_transfer_native_limit() -> Weight {
-		Weight::from_ref_time(4_000_000 as u64)
+		Weight::from_parts(4_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqBalances IsXcmTransfersEnabled (r:1 w:0)
@@ -88,7 +88,7 @@ impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates AccountUserGroups (r:3 w:0)
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	fn xcm_transfer_native() -> Weight {
-		Weight::from_ref_time(58_000_000 as u64)
+		Weight::from_parts(58_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(8 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -100,7 +100,7 @@ impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates AccountUserGroups (r:3 w:0)
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	fn xcm_transfer() -> Weight {
-		Weight::from_ref_time(63_000_000 as u64)
+		Weight::from_parts(63_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(9 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -111,9 +111,9 @@ impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	/// The range of component `a` is `[1, 100]`.
 	fn on_initialize(a: u32, ) -> Weight {
-		Weight::from_ref_time(0 as u64)
+		Weight::from_parts(0 as u64, 0)
 			// Standard Error: 48_000
-			.saturating_add(Weight::from_ref_time(47_510_000 as u64).saturating_mul(a as u64))
+			.saturating_add(Weight::from_parts(47_510_000 as u64, 0).saturating_mul(a as u64))
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().reads((3 as u64).saturating_mul(a as u64)))
 			.saturating_add(T::DbWeight::get().writes((3 as u64).saturating_mul(a as u64)))

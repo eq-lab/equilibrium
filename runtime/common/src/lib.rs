@@ -29,7 +29,7 @@ pub use sp_runtime::{
     MultiSignature,
 };
 pub use sp_std::prelude::*;
-use xcm::v3::{MultiAsset, MultiLocation};
+use xcm::v3::{AssetId, Junction::Parachain, Junctions::X1, MultiAsset, MultiLocation};
 
 pub mod mocks;
 
@@ -92,7 +92,43 @@ impl ContainsPair<MultiAsset, MultiLocation> for NoTeleport {
 
 pub fn multiply_by_rational_weight(a: Weight, b: Weight, c: Weight) -> Weight {
     Weight::from_parts(
-        a.ref_time() * b.ref_time() / c.proof_size(),
-        a.proof_size() * b.proof_size() / c.proof_size(),
+        (a.ref_time() * b.ref_time()).saturating_div(c.ref_time()),
+        0, // zero proof size till it start working
+           // (a.proof_size() * b.proof_size()).saturating_div(c.proof_size()),
     )
+}
+
+pub trait Reserve {
+    /// Returns assets reserve location.
+    fn reserve(&self) -> Option<MultiLocation>;
+}
+
+// Takes the chain part of a MultiAsset
+impl Reserve for MultiAsset {
+    fn reserve(&self) -> Option<MultiLocation> {
+        if let AssetId::Concrete(location) = self.id.clone() {
+            let first_interior = location.first_interior();
+            let parents = location.parent_count();
+            match (parents, first_interior.clone()) {
+                (0, Some(Parachain(id))) => Some(MultiLocation::new(0, X1(Parachain(id.clone())))),
+                (1, Some(Parachain(id))) => Some(MultiLocation::new(1, X1(Parachain(id.clone())))),
+                (1, _) => Some(MultiLocation::parent()),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+}
+
+pub struct MultiNativeAsset;
+impl ContainsPair<MultiAsset, MultiLocation> for MultiNativeAsset {
+    fn contains(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+        if let Some(ref reserve) = asset.reserve() {
+            if reserve == origin {
+                return true;
+            }
+        }
+        false
+    }
 }

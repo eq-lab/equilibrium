@@ -41,9 +41,9 @@ impl<T: frame_system::Config> eq_oracle::WeightInfo for WeightInfo<T> {
 	// Storage: FinancialModule PriceLogs (r:1 w:0)
 	/// The range of component `b` is `[1, 20]`.
 	fn set_price(b: u32, ) -> Weight {
-		Weight::from_ref_time(42_914_000 as u64)
+		Weight::from_parts(42_914_000 as u64, 0)
 			// Standard Error: 7_000
-			.saturating_add(Weight::from_ref_time(156_000 as u64).saturating_mul(b as u64))
+			.saturating_add(Weight::from_parts(156_000 as u64, 0).saturating_mul(b as u64))
 			.saturating_add(T::DbWeight::get().reads(6 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}

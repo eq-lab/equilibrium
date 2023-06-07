@@ -17,7 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg(test)]
-// #![deny(warnings)]
+#![deny(warnings)]
 #![allow(dead_code)]
 use super::*;
 
@@ -113,7 +113,7 @@ fn propose() {
         // propose a call
         let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);
@@ -125,7 +125,7 @@ fn propose() {
         // call not accepted
         let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         assert_noop!(
             ModuleMultisigSudo::propose(RuntimeOrigin::signed(DAVE_ID), call),
@@ -139,7 +139,7 @@ fn cancel_proposal() {
     new_test_ext(vec![1u64, 2u64, 3u64], THRESHOLD).execute_with(|| {
         let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);
@@ -182,7 +182,7 @@ fn approve() {
         ));
         let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);
@@ -221,7 +221,7 @@ fn check_all_sudo() {
         ));
         let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);

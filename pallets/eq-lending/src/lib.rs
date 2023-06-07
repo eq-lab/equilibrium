@@ -17,7 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 use codec::{Codec, Decode, Encode, MaxEncodedLen};
 use eq_primitives::{
@@ -427,7 +427,7 @@ impl<T: Config> Pallet<T> {
     fn check_bails_pool_after_unreg(who: &T::AccountId) -> DispatchResult {
         T::BalanceGetter::iterate_account_balances(who)
             .into_iter()
-            // exclude EQD from check, EQD debt not covered by bailsman pool
+            // exclude EQD from check
             .filter(|(asset, _)| *asset != asset::EQD)
             .try_for_each(|(asset, balance)| {
                 let total_debt = Self::get_total_debt(asset);

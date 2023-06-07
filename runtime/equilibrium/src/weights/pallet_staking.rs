@@ -32,7 +32,7 @@ impl<T: frame_system::Config> eq_staking::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate NowMillisOffset (r:1 w:0)
 	// Storage: EqStaking Stakes (r:1 w:1)
 	fn stake() -> Weight {
-		Weight::from_ref_time(37_000_000 as u64)
+		Weight::from_parts(37_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(4 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -47,7 +47,7 @@ impl<T: frame_system::Config> eq_staking::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	// Storage: EqBalances Locked (r:1 w:1)
 	fn reward() -> Weight {
-		Weight::from_ref_time(92_000_000 as u64)
+		Weight::from_parts(92_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(17 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
@@ -56,7 +56,7 @@ impl<T: frame_system::Config> eq_staking::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate NowMillisOffset (r:1 w:0)
 	// Storage: EqBalances Locked (r:1 w:1)
 	fn unlock_stake() -> Weight {
-		Weight::from_ref_time(34_000_000 as u64)
+		Weight::from_parts(34_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(4 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -65,7 +65,7 @@ impl<T: frame_system::Config> eq_staking::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate NowMillisOffset (r:1 w:0)
 	// Storage: EqBalances Locked (r:1 w:1)
 	fn unlock_reward() -> Weight {
-		Weight::from_ref_time(35_000_000 as u64)
+		Weight::from_parts(35_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(4 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}

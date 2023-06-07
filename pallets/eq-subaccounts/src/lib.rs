@@ -54,7 +54,7 @@
 //! When accounts are deleted, all leftover balances are transferred to the account of bailsman pallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 pub mod benchmarking;
 mod mock;
@@ -387,7 +387,6 @@ pub mod pallet {
                                 None,
                             )
                             .expect("eq-subaccounts. deposit_creating failed");
-                            // deposit_into_existing()
                         } else {
                             T::EqCurrency::withdraw(
                                 subaccount,

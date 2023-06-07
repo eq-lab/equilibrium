@@ -648,7 +648,7 @@ fn xcm_transfer_self_reserved() {
                                 1,
                                 X1(Parachain(GENS_PARACHAIN_ID))
                             )),
-                            fun: Fungibility::Fungible(2 * 695_265_243_690),
+                            fun: Fungibility::Fungible(2 * 527_992_396_909),
                         },
                         weight_limit: xcm::latest::WeightLimit::Unlimited,
                     },
@@ -750,7 +750,7 @@ fn xcm_message_reseived_limited_weight_too_expensive_bridge() {
         ));
 
         let weight = crate::BaseXcmWeight::get().saturating_mul(4);
-        let fee = crate::fee::XcmWeightToFee::weight_to_fee(&weight) as Balance - 1;
+        let fee = 0;
         let rcvd_xcm_message = Xcm::<RuntimeCall>(vec![
             ReserveAssetDeposited(vec![multi_asset_from(TO_RECV_AMOUNT + fee, &multi::KSM)].into()),
             ClearOrigin,
@@ -772,15 +772,16 @@ fn xcm_message_reseived_limited_weight_too_expensive_bridge() {
             },
         ]);
 
+        let execute_result = XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+            origins::RELAY,
+            rcvd_xcm_message.clone(),
+            hash_xcm(rcvd_xcm_message),
+            weight,
+            weight,
+        );
         assert!(
             matches!(
-                XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
-                    origins::RELAY,
-                    rcvd_xcm_message.clone(),
-                    hash_xcm(rcvd_xcm_message),
-                    XcmWeight::MAX,
-                    XcmWeight::MAX
-                ),
+                execute_result,
                 Outcome::Incomplete(_, XcmError::TooExpensive)
             ),
             "Should result with XcmError::TooExpensive"
@@ -1051,7 +1052,7 @@ fn xcm_barrier() {
                 max_weight,
                 &mut weight_credit,
             ),
-            ProcessMessageError::BadFormat
+            ProcessMessageError::Unsupported
         );
 
         assert_err!(
@@ -1061,7 +1062,7 @@ fn xcm_barrier() {
                 max_weight,
                 &mut weight_credit,
             ),
-            ProcessMessageError::BadFormat
+            ProcessMessageError::Unsupported
         );
     })
 }
@@ -1145,15 +1146,11 @@ fn buy_weight_with_no_assets() {
             .fungible
             .insert(AssetId::Concrete(MultiLocation::parent()), payment_value);
 
-        let weight = XCM_MSG_WEIGHT;
-        assert_eq!(
-            crate::fee::XcmWeightToFee::weight_to_fee(&weight),
-            99_654_685
-        );
-        assert!(99_654_685 * 1000 <= payment_value);
-
         let mut trader = crate::EqTrader::new();
-        assert_err!(trader.buy_weight(weight, payment), XcmError::AssetNotFound,);
+        assert_err!(
+            trader.buy_weight(XCM_MSG_WEIGHT, payment),
+            XcmError::AssetNotFound,
+        );
     })
 }
 
@@ -1177,22 +1174,17 @@ fn buy_weight_too_expensive() {
 
         let mut payment = xcm_executor::Assets::new();
 
-        let payment_value = 99_654_685 * 1000 - 1;
-        let weight = 4_000_000;
+        let payment_value = 117_331_640 - 1;
 
         payment
             .fungible
             .insert(AssetId::Concrete(MultiLocation::parent()), payment_value);
 
-        let weight = XCM_MSG_WEIGHT;
-        assert_eq!(
-            crate::fee::XcmWeightToFee::weight_to_fee(&weight),
-            99_654_685
-        );
-        assert!(99_654_685 * 1000 > payment_value);
-
         let mut trader = crate::EqTrader::new();
-        assert_err!(trader.buy_weight(weight, payment), XcmError::TooExpensive,);
+        assert_err!(
+            trader.buy_weight(XCM_MSG_WEIGHT, payment),
+            XcmError::TooExpensive,
+        );
     })
 }
 
@@ -1216,16 +1208,9 @@ fn buy_weight_ok() {
 
         let mut payment = xcm_executor::Assets::new();
 
-        payment.fungible.insert(
-            AssetId::Concrete(MultiLocation::parent()),
-            99_654_685 * 1000,
-        );
-
-        let weight = XCM_MSG_WEIGHT;
-        assert_eq!(
-            crate::fee::XcmWeightToFee::weight_to_fee(&weight),
-            99_654_685
-        );
+        payment
+            .fungible
+            .insert(AssetId::Concrete(MultiLocation::parent()), 117331640);
 
         let mut trader = crate::EqTrader::new();
         assert_ok!(

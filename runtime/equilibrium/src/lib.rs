@@ -20,7 +20,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 #![forbid(unsafe_code)]
-// #![deny(warnings)]
+#![deny(warnings)]
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -116,7 +116,7 @@ use xcm::v3::{
 };
 use xcm_builder::{
     AllowKnownQueryResponses, AllowSubscriptionsFrom, EnsureXcmOrigin, FixedWeightBounds,
-    NativeAsset, ParentIsPreset, SiblingParachainConvertsVia,
+    ParentIsPreset, SiblingParachainConvertsVia,
 };
 use xcm_executor::traits::{ConvertOrigin, WithOriginFilter};
 use xcm_executor::{Config, XcmExecutor};
@@ -1852,7 +1852,7 @@ impl Config for XcmConfig {
     // How to withdraw and deposit an asset.
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
-    type IsReserve = NativeAsset;
+    type IsReserve = MultiNativeAsset;
     type IsTeleporter = NoTeleport;
     type UniversalLocation = UniversalLocation;
     type Barrier = Barrier;

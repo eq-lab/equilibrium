@@ -516,42 +516,10 @@ fn test_ensure_can_withdraw_and_withdraw() {
             0
         ));
 
-        assert_ok!(ModuleBalances::withdraw(
-            &account_id_100,
-            EQD,
-            100,
-            true,
-            None,
-            WithdrawReasons::empty(),
-            ExistenceRequirement::KeepAlive,
-        ));
-        assert_ok!(ModuleBalances::withdraw(
-            &account_id_200,
-            EQD,
-            200,
-            true,
-            None,
-            WithdrawReasons::empty(),
-            ExistenceRequirement::AllowDeath,
-        ));
-        assert_ok!(ModuleBalances::withdraw(
-            &account_id_300,
-            EQD,
-            300,
-            true,
-            None,
-            WithdrawReasons::empty(),
-            ExistenceRequirement::KeepAlive,
-        ));
-        assert_ok!(ModuleBalances::withdraw(
-            &account_id_400,
-            EQD,
-            400,
-            true,
-            None,
-            WithdrawReasons::empty(),
-            ExistenceRequirement::AllowDeath,
-        ));
+        ModuleBalances::make_free_balance_be(&account_id_100, EQD, SignedBalance::Negative(100));
+        ModuleBalances::make_free_balance_be(&account_id_200, EQD, SignedBalance::Negative(200));
+        ModuleBalances::make_free_balance_be(&account_id_300, EQD, SignedBalance::Negative(300));
+        ModuleBalances::make_free_balance_be(&account_id_400, EQD, SignedBalance::Negative(400));
 
         assert_balance!(&account_id_100, 0, 100, EQD);
         assert_balance!(&account_id_200, 0, 200, EQD);

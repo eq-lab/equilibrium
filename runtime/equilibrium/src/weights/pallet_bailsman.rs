@@ -35,7 +35,7 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> eq_bailsman::WeightInfo for WeightInfo<T> {
 	// Storage: Bailsman AutoRedistributionEnabled (r:0 w:1)
 	fn toggle_auto_redistribution() -> Weight {
-		Weight::from_ref_time(6_000_000 as u64)
+		Weight::from_parts(6_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqRate Keys (r:1 w:0)
@@ -48,9 +48,9 @@ impl<T: frame_system::Config> eq_bailsman::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:42 w:42)
 	/// The range of component `z` is `[1, 50]`.
 	fn redistribute_unsigned(z: u32, ) -> Weight {
-		Weight::from_ref_time(835_494_000 as u64)
+		Weight::from_parts(835_494_000 as u64, 0)
 			// Standard Error: 43_000
-			.saturating_add(Weight::from_ref_time(7_178_000 as u64).saturating_mul(z as u64))
+			.saturating_add(Weight::from_parts(7_178_000 as u64, 0).saturating_mul(z as u64))
 			.saturating_add(T::DbWeight::get().reads(56 as u64))
 			.saturating_add(T::DbWeight::get().writes(46 as u64))
 	}
@@ -63,9 +63,9 @@ impl<T: frame_system::Config> eq_bailsman::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:42 w:42)
 	/// The range of component `z` is `[1, 50]`.
 	fn redistribute(z: u32, ) -> Weight {
-		Weight::from_ref_time(805_144_000 as u64)
+		Weight::from_parts(805_144_000 as u64, 0)
 			// Standard Error: 42_000
-			.saturating_add(Weight::from_ref_time(6_541_000 as u64).saturating_mul(z as u64))
+			.saturating_add(Weight::from_parts(6_541_000 as u64, 0).saturating_mul(z as u64))
 			.saturating_add(T::DbWeight::get().reads(55 as u64))
 			.saturating_add(T::DbWeight::get().writes(46 as u64))
 	}
@@ -79,16 +79,16 @@ impl<T: frame_system::Config> eq_bailsman::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates AccountUserGroups (r:6 w:1)
 	// Storage: Bailsman DistributionQueue (r:1 w:1)
 	fn on_initialize() -> Weight {
-		Weight::from_ref_time(1_111_000_000 as u64)
+		Weight::from_parts(1_111_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(79 as u64))
 			.saturating_add(T::DbWeight::get().writes(46 as u64))
 	}
 	// Storage: Bailsman DistributionQueue (r:1 w:1)
 	/// The range of component `z` is `[1, 50]`.
 	fn on_finalize(z: u32, ) -> Weight {
-		Weight::from_ref_time(4_585_000 as u64)
+		Weight::from_parts(4_585_000 as u64, 0)
 			// Standard Error: 8_000
-			.saturating_add(Weight::from_ref_time(613_000 as u64).saturating_mul(z as u64))
+			.saturating_add(Weight::from_parts(613_000 as u64, 0).saturating_mul(z as u64))
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}

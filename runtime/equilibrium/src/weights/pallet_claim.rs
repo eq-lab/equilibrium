@@ -48,7 +48,7 @@ impl<T: frame_system::Config> eq_claim::WeightInfo for WeightInfo<T> {
 	// Storage: Vesting Vested (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn claim() -> Weight {
-		Weight::from_ref_time(277_000_000 as u64)
+		Weight::from_parts(277_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(21 as u64))
 			.saturating_add(T::DbWeight::get().writes(11 as u64))
 	}
@@ -57,7 +57,7 @@ impl<T: frame_system::Config> eq_claim::WeightInfo for WeightInfo<T> {
 	// Storage: Claims Vesting (r:1 w:1)
 	// Storage: Claims Signing (r:0 w:1)
 	fn mint_claim() -> Weight {
-		Weight::from_ref_time(62_000_000 as u64)
+		Weight::from_parts(62_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
@@ -76,7 +76,7 @@ impl<T: frame_system::Config> eq_claim::WeightInfo for WeightInfo<T> {
 	// Storage: Vesting Vested (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn claim_attest() -> Weight {
-		Weight::from_ref_time(280_000_000 as u64)
+		Weight::from_parts(280_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(21 as u64))
 			.saturating_add(T::DbWeight::get().writes(11 as u64))
 	}
@@ -96,7 +96,7 @@ impl<T: frame_system::Config> eq_claim::WeightInfo for WeightInfo<T> {
 	// Storage: Vesting Vested (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn attest() -> Weight {
-		Weight::from_ref_time(197_000_000 as u64)
+		Weight::from_parts(197_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(22 as u64))
 			.saturating_add(T::DbWeight::get().writes(12 as u64))
 	}

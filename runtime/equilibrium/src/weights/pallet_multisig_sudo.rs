@@ -35,21 +35,21 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> eq_multisig_sudo::WeightInfo for WeightInfo<T> {
 	// Storage: EqMultisigSudo Keys (r:1 w:1)
 	fn add_key() -> Weight {
-		Weight::from_ref_time(23_067_000 as u64)
+		Weight::from_parts(23_067_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqMultisigSudo Keys (r:4 w:1)
 	// Storage: EqMultisigSudo Threshold (r:1 w:0)
 	fn remove_key() -> Weight {
-		Weight::from_ref_time(43_589_000 as u64)
+		Weight::from_parts(43_589_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(5 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: EqMultisigSudo Keys (r:3 w:0)
 	// Storage: EqMultisigSudo Threshold (r:0 w:1)
 	fn modify_threshold() -> Weight {
-		Weight::from_ref_time(33_278_000 as u64)
+		Weight::from_parts(33_278_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -57,7 +57,7 @@ impl<T: frame_system::Config> eq_multisig_sudo::WeightInfo for WeightInfo<T> {
 	// Storage: EqMultisigSudo Threshold (r:1 w:0)
 	// Storage: EqMultisigSudo MultisigProposals (r:0 w:1)
 	fn propose() -> Weight {
-		Weight::from_ref_time(27_871_000 as u64)
+		Weight::from_parts(27_871_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -65,7 +65,7 @@ impl<T: frame_system::Config> eq_multisig_sudo::WeightInfo for WeightInfo<T> {
 	// Storage: EqMultisigSudo MultisigProposals (r:1 w:1)
 	// Storage: EqMultisigSudo Threshold (r:1 w:0)
 	fn approve() -> Weight {
-		Weight::from_ref_time(32_362_000 as u64)
+		Weight::from_parts(32_362_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -73,7 +73,7 @@ impl<T: frame_system::Config> eq_multisig_sudo::WeightInfo for WeightInfo<T> {
 	// Storage: EqMultisigSudo Keys (r:1 w:0)
 	// Storage: EqMultisigSudo Threshold (r:1 w:0)
 	fn cancel_proposal() -> Weight {
-		Weight::from_ref_time(20_742_000 as u64)
+		Weight::from_parts(20_742_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}

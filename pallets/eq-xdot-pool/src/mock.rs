@@ -70,7 +70,7 @@ parameter_types! {
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
+        frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
     pub const Period: u64 = 1;
     pub const Offset: u64 = 0;
     pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(16);

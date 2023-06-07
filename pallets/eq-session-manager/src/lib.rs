@@ -22,7 +22,7 @@
 //! validation of Equilibrium POA substrate
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 use core::convert::TryInto;
 use eq_primitives::{AccountRefCounter, AccountRefCounts};
