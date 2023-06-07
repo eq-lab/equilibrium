@@ -37,8 +37,8 @@ tags
 # Persistent undo
 [._]*.un~
 
+### EOF VIM ###
+
 .DS_STORE
 
 *.sqlite
-
-### EOF VIM ###
