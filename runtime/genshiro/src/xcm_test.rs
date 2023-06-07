@@ -43,15 +43,12 @@ use sp_std::sync::{Arc, RwLock};
 use xcm::v3::{
     AssetId, Error as XcmError, ExecuteXcm, Fungibility,
     Instruction::{self, *},
-    Junction::*,
-    Junctions::*,
-    MultiAsset, MultiAssetFilter, MultiLocation, NetworkId, SendError,
+    MultiAsset, MultiAssetFilter, MultiAssets, MultiLocation, Outcome, SendError, SendResult,
     WeightLimit::*,
-    Xcm,
+    Xcm, XcmHash,
 };
 use xcm_executor::traits::{Convert as _, ShouldExecute as _, WeightTrader as _};
 
-use cumulus_primitives_core::{MultiAssets, Outcome, ParaId, SendResult, XcmHash};
 use polkadot_parachain::primitives::Sibling;
 use sp_arithmetic::FixedI64;
 
@@ -326,7 +323,7 @@ fn parachain_test_ext() -> Result<sp_io::TestExternalities, String> {
     )?;
 
     let parachain_info_config = parachain_info::GenesisConfig {
-        parachain_id: cumulus_primitives_core::ParaId::from(2024),
+        parachain_id: ParaId::from(2024),
     };
     <parachain_info::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
         &parachain_info_config,

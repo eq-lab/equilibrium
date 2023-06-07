@@ -325,7 +325,7 @@ pub mod pallet {
         /// <dev>
         /// Set new duration for current epoch and restart timer
         #[pallet::call_index(3)]
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn force_set_epoch(
             origin: OriginFor<T>,
             epoch_duration: Timestamp,

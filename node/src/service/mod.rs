@@ -28,10 +28,8 @@ use cumulus_client_service::{
     build_network, prepare_node_config, start_collator, start_full_node, BuildNetworkParams,
     StartCollatorParams, StartFullNodeParams,
 };
-use cumulus_primitives_core::{
-    relay_chain::{Hash as PHash, PersistedValidationData},
-    ParaId,
-};
+use cumulus_primitives_core::relay_chain::{Hash as PHash, PersistedValidationData};
+use eq_xcm::ParaId;
 
 use cumulus_client_consensus_relay_chain::Verifier as RelayChainVerifier;
 use cumulus_client_service::build_relay_chain_interface;

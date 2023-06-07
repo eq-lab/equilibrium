@@ -27,7 +27,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub use chainbridge;
 use core::convert::{TryFrom, TryInto};
-use cumulus_primitives_core::ParaId;
 pub use eq_assets;
 pub use eq_balances;
 use eq_balances::NegativeImbalance;
@@ -40,6 +39,7 @@ use eq_primitives::balance::{AccountData, DebtCollateralDiscounted, EqCurrency};
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::subaccount::SubAccType;
 use eq_primitives::xcm_origins::{dot::*, RELAY};
+use eq_xcm::ParaId;
 use frame_support::traits::tokens::imbalance::SplitTwoWays;
 use frame_support::weights::WeightToFee;
 use frame_support::StorageMap;

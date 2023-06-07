@@ -18,8 +18,8 @@
 
 pub use codec::Encode;
 pub use core::marker::PhantomData;
-pub use cumulus_primitives_core::ParaId;
 pub use eq_rate::ed25519::AuthorityId as EqRateId;
+pub use eq_xcm::ParaId;
 pub use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 pub use sc_service::{ChainType, Properties};
 pub use serde::{Deserialize, Serialize};

@@ -32,7 +32,7 @@ use eq_xcm::*;
 use frame_support::{
     assert_err, assert_noop, assert_ok,
     traits::{GenesisBuild, ProcessMessageError},
-    PalletId, WeakBoundedVec,
+    PalletId,
 };
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{AccountIdConversion, TrailingZeroInput};
@@ -40,8 +40,7 @@ use sp_std::cell::RefCell;
 use xcm::latest::{
     AssetId, Error as XcmError, ExecuteXcm, Fungibility,
     Instruction::*,
-    Junction::{self, *},
-    Junctions::*,
+    Junction::{self},
     MultiAsset, MultiAssetFilter, MultiLocation, NetworkId, SendError, SendResult,
     Weight as XcmWeight,
     WeightLimit::*,
@@ -50,8 +49,9 @@ use xcm::latest::{
 use xcm_executor::traits::{Convert as _, ShouldExecute as _, WeightTrader as _};
 
 use codec::Decode;
-use cumulus_primitives_core::{Instruction, MultiAssets, Outcome, ParaId, Parent, XcmHash};
+use eq_xcm::ParaId;
 use polkadot_parachain::primitives::Sibling;
+use xcm::v3::{Instruction, MultiAssets, Outcome, Parent, XcmHash};
 
 type AccountPublic = <Signature as Verify>::Signer;
 const EQ_PARACHAIN_ID: u32 = 2011;
@@ -330,7 +330,7 @@ fn parachain_test_ext() -> Result<sp_io::TestExternalities, String> {
     )?;
 
     let parachain_info_config = parachain_info::GenesisConfig {
-        parachain_id: cumulus_primitives_core::ParaId::from(EQ_PARACHAIN_ID),
+        parachain_id: ParaId::from(EQ_PARACHAIN_ID),
     };
     <parachain_info::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
         &parachain_info_config,
