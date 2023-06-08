@@ -3899,7 +3899,7 @@ dependencies = [
 [[package]]
 name = "financial-pallet"
 version = "0.1.2"
-source = "git+https://github.com/equilibrium-eosdt/equilibrium-financial-pallet?branch=polkadot-v0.9.42#4bc308e718a36cc599c72b4cfe5624bb6685a800"
+source = "git+https://github.com/equilibrium-eosdt/equilibrium-financial-pallet?branch=polkadot-v0.9.42#38ee8f154e55aeb30c2d7e9de706b1e6f4aadb11"
 dependencies = [
  "financial-primitives",
  "frame-support",
@@ -3916,7 +3916,7 @@ dependencies = [
 [[package]]
 name = "financial-primitives"
 version = "0.1.0"
-source = "git+https://github.com/equilibrium-eosdt/equilibrium-financial-pallet?branch=polkadot-v0.9.42#4bc308e718a36cc599c72b4cfe5624bb6685a800"
+source = "git+https://github.com/equilibrium-eosdt/equilibrium-financial-pallet?branch=polkadot-v0.9.42#38ee8f154e55aeb30c2d7e9de706b1e6f4aadb11"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
