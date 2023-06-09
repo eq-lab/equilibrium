@@ -33,94 +33,14 @@ use sp_std::marker::PhantomData;
 /// Weight functions for `pallet_scheduler`.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_scheduler::WeightInfo for WeightInfo<T> {
-	/// Storage: Scheduler IncompleteSince (r:1 w:1)
-	/// Proof: Scheduler IncompleteSince (max_values: Some(1), max_size: Some(4), added: 499, mode: MaxEncodedLen)
-	fn service_agendas_base() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `69`
-		//  Estimated: `1489`
-		// Minimum execution time: 4_695_000 picoseconds.
-		Weight::from_parts(4_920_000, 0)
-			.saturating_add(Weight::from_parts(0, 1489))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	/// Storage: Scheduler Agenda (r:1 w:1)
-	/// Proof: Scheduler Agenda (max_values: None, max_size: Some(38963), added: 41438, mode: MaxEncodedLen)
-	/// The range of component `s` is `[0, 50]`.
-	fn service_agenda_base(s: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `116 + s * (177 ±0)`
-		//  Estimated: `42428`
-		// Minimum execution time: 4_357_000 picoseconds.
-		Weight::from_parts(7_348_573, 0)
-			.saturating_add(Weight::from_parts(0, 42428))
-			// Standard Error: 1_877
-			.saturating_add(Weight::from_parts(773_084, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	fn service_task_base() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 5_710_000 picoseconds.
-		Weight::from_parts(5_868_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-	}
-	/// Storage: Preimage PreimageFor (r:1 w:1)
-	/// Proof: Preimage PreimageFor (max_values: None, max_size: Some(4194344), added: 4196819, mode: Measured)
-	/// Storage: Preimage StatusFor (r:1 w:1)
-	/// Proof: Preimage StatusFor (max_values: None, max_size: Some(91), added: 2566, mode: MaxEncodedLen)
-	/// The range of component `s` is `[128, 4194304]`.
-	fn service_task_fetched(s: u32, ) -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `179 + s * (1 ±0)`
-		//  Estimated: `3644 + s * (1 ±0)`
-		// Minimum execution time: 19_848_000 picoseconds.
-		Weight::from_parts(20_259_000, 0)
-			.saturating_add(Weight::from_parts(0, 3644))
-			// Standard Error: 7
-			.saturating_add(Weight::from_parts(1_226, 0).saturating_mul(s.into()))
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(2))
-			.saturating_add(Weight::from_parts(0, 1).saturating_mul(s.into()))
-	}
-	/// Storage: Scheduler Lookup (r:0 w:1)
-	/// Proof: Scheduler Lookup (max_values: None, max_size: Some(48), added: 2523, mode: MaxEncodedLen)
-	fn service_task_named() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 7_370_000 picoseconds.
-		Weight::from_parts(7_653_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-			.saturating_add(T::DbWeight::get().writes(1))
-	}
-	fn service_task_periodic() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 5_803_000 picoseconds.
-		Weight::from_parts(5_873_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-	}
-	fn execute_dispatch_signed() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 2_939_000 picoseconds.
-		Weight::from_parts(3_021_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-	}
-	fn execute_dispatch_unsigned() -> Weight {
-		// Proof Size summary in bytes:
-		//  Measured:  `0`
-		//  Estimated: `0`
-		// Minimum execution time: 2_995_000 picoseconds.
-		Weight::from_parts(3_113_000, 0)
-			.saturating_add(Weight::from_parts(0, 0))
-	}
+	fn service_agendas_base() -> Weight { todo!() }
+	fn service_agenda_base(_: u32) -> Weight { todo!() }
+	fn service_task_base() -> Weight { todo!() }
+	fn service_task_fetched(_: u32) -> Weight { todo!() }
+	fn service_task_named() -> Weight { todo!() }
+	fn service_task_periodic() -> Weight { todo!() }
+	fn execute_dispatch_signed() -> Weight { todo!() }
+	fn execute_dispatch_unsigned() -> Weight { todo!() }
 	// Storage: Scheduler Agenda (r:1 w:1)
 	/// The range of component `s` is `[0, 10]`.
 	fn schedule(s: u32, ) -> Weight {

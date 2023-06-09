@@ -108,18 +108,7 @@ impl<T: frame_system::Config> eq_balances::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 
-	// Storage: EqBalances MigrationToggle (r:1 w:0)
-	// Storage: EqBalances Account (r:3 w:1)
-	// Storage: System Account (r:1 w:1)
-	// Storage: Timestamp Now (r:1 w:0)
-	// Storage: EqRate LastFeeUpdate (r:0 w:1)
-	/// The range of component `a` is `[1, 100]`.
-	fn on_initialize(a: u32, ) -> Weight {
-		Weight::from_parts(0 as u64, 0)
-			// Standard Error: 48_000
-			.saturating_add(Weight::from_parts(47_510_000 as u64, 0).saturating_mul(a as u64))
-			.saturating_add(T::DbWeight::get().reads(3 as u64))
-			.saturating_add(T::DbWeight::get().reads((3 as u64).saturating_mul(a as u64)))
-			.saturating_add(T::DbWeight::get().writes((3 as u64).saturating_mul(a as u64)))
+	fn on_initialize(_: u32) -> Weight {
+		todo!()
 	}
 }
