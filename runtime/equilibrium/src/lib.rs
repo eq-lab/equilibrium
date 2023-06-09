@@ -2601,14 +2601,6 @@ pub struct CustomOnRuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
-        // eqBalances -> MigrationToggle
-        let migration_toggle_prefix =
-            hex_literal::hex!("276c90850b9de2c495875fe945d2a9c788461163b1bd03a8e4846c4f8ae5a3e8");
-        // eqBalances -> TempMigration
-        let temp_migration_prefix = hex_literal::hex!("276c90850b9de2c495875fe945d2a9c7b29bbb8274c33e88482bdf21e664a0932094525aa4a9b4e64503a0b0c04c66c04829b1e41449bd2cc7f04df856052f4d439f2f3e7f346c9702b94928ddf04707");
-        let _ =
-            frame_support::storage::unhashed::clear_prefix(&migration_toggle_prefix, None, None);
-        let _ = frame_support::storage::unhashed::clear_prefix(&temp_migration_prefix, None, None);
         Weight::from_parts(1, 0)
     }
 }
