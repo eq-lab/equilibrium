@@ -15,4 +15,7 @@ import-storage:
       -
         -
           - 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-        - providers: 1
+        - data:
+            v0:
+              balance: [[25969, {Positive: 1000000000000000}]]
+          providers: 1
