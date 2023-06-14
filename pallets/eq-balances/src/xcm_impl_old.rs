@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use xcm::v3::send_xcm;
+use xcm::v3::{send_xcm, MultiAssets};
 
 use super::*;
 
@@ -35,12 +35,12 @@ impl<T: Config> Pallet<T> {
         beneficiary: MultiLocation,
         reserved: bool,
     ) -> Xcm<()> {
-        let asset_and_fee = vec![asset, fees.clone()].into();
+        let asset_and_fee: MultiAssets = vec![asset, fees.clone()].into();
         Xcm(vec![
             if reserved {
-                ReserveAssetDeposited(asset_and_fee)
+                ReserveAssetDeposited(asset_and_fee.clone())
             } else {
-                WithdrawAsset(asset_and_fee)
+                WithdrawAsset(asset_and_fee.clone())
             },
             ClearOrigin,
             BuyExecution {
@@ -48,7 +48,7 @@ impl<T: Config> Pallet<T> {
                 weight_limit: WeightLimit::Unlimited,
             },
             DepositAsset {
-                assets: All.into(),
+                assets: AllCounted(asset_and_fee.len() as u32).into(),
                 beneficiary,
             },
         ])
@@ -125,7 +125,7 @@ impl<T: Config> Pallet<T> {
                         weight_limit: WeightLimit::Unlimited,
                     },
                     DepositAsset {
-                        assets: All.into(),
+                        assets: AllCounted(multi_assets.len() as u32).into(),
                         beneficiary: beneficiary.clone(),
                     },
                 ]);
@@ -143,16 +143,16 @@ impl<T: Config> Pallet<T> {
                     id: Concrete(xcm_fee_asset_multilocation),
                     fun: Fungible(xcm_fee_amount),
                 };
-                let multi_assets = vec![xcm_fee_asset_multiasset.clone(), multi_asset].into();
+                let multi_assets: MultiAssets = vec![xcm_fee_asset_multiasset.clone(), multi_asset].into();
                 let xcm = Xcm(vec![
-                    WithdrawAsset(multi_assets),
+                    WithdrawAsset(multi_assets.clone()),
                     ClearOrigin,
                     BuyExecution {
                         fees: xcm_fee_asset_multiasset,
                         weight_limit: WeightLimit::Unlimited,
                     },
                     DepositAsset {
-                        assets: All.into(),
+                        assets: AllCounted(multi_assets.len() as u32).into(),
                         beneficiary: beneficiary.clone(),
                     },
                 ]);

@@ -233,9 +233,10 @@ impl<T: Config> Pallet<T> {
                     }
 
                     xcm.0.push(DepositAsset {
-                        assets: (AllOf {
+                        assets: (AllOfCounted {
                             id: Concrete(fee_location),
                             fun: WildFungibility::Fungible,
+                            count: 2,
                         })
                         .into(),
                         beneficiary: equilibrium_souvereign_multilocation.unwrap(),
@@ -243,7 +244,7 @@ impl<T: Config> Pallet<T> {
                 }
 
                 xcm.0.push(DepositAsset {
-                    assets: All.into(),
+                    assets: AllCounted(2).into(),
                     beneficiary: beneficiary.clone(),
                 });
 
