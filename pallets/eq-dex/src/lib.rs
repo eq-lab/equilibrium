@@ -124,7 +124,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
@@ -220,11 +219,11 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config + SendTransactionTypes<Call<Self>> + eq_rate::Config
     {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type DeleteOrderOrigin: EnsureOrigin<Self::Origin>;
+        type DeleteOrderOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
-        type UpdateAssetCorridorOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateAssetCorridorOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Used for group orders in chunks. Should be positive value
         #[pallet::constant]
         type PriceStepCount: Get<u32>;
@@ -246,6 +245,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::create_limit_order().max(<T as pallet::Config>::WeightInfo::create_market_order()))]
         pub fn create_order(
             origin: OriginFor<T>,
@@ -261,6 +261,7 @@ pub mod pallet {
 
         /// Delete order.
         /// The dispatch origin for this call must be _None_ (unsigned transaction).
+        #[pallet::call_index(1)]
         #[pallet::weight((<T as pallet::Config>::WeightInfo::delete_order() + <T as pallet::Config>::WeightInfo::validate_unsigned(),
                           DispatchClass::Operational))]
         pub fn delete_order(
@@ -281,6 +282,7 @@ pub mod pallet {
         }
 
         /// Delete order. This must be called by order owner or root.
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::delete_order_external())]
         pub fn delete_order_external(
             origin: OriginFor<T>,
@@ -310,6 +312,7 @@ pub mod pallet {
         }
 
         /// Update stored asset corridor value
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::update_asset_corridor())]
         pub fn update_asset_corridor(
             origin: OriginFor<T>,

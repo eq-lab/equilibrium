@@ -60,7 +60,7 @@ fn transfer_should_be_from_root() {
     new_test_ext().execute_with(|| {
         CAN_TRANSFER.with(|v| *v.borrow_mut() = true);
         assert_err!(
-            ModuleDistribution::transfer(Origin::signed(1), asset::GENS, ACC_ID, 100,),
+            ModuleDistribution::transfer(RuntimeOrigin::signed(1), asset::GENS, ACC_ID, 100,),
             DispatchError::BadOrigin
         );
     });
@@ -173,7 +173,7 @@ fn vested_transfer_should_be_from_root() {
         CAN_TRANSFER.with(|v| *v.borrow_mut() = true);
         VESTING_EXISTS.with(|v| *v.borrow_mut() = false);
         assert_err!(
-            ModuleDistribution::vested_transfer(Origin::signed(1), ACC_ID, (100, 10, 3)),
+            ModuleDistribution::vested_transfer(RuntimeOrigin::signed(1), ACC_ID, (100, 10, 3)),
             DispatchError::BadOrigin
         );
     });

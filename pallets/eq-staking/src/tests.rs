@@ -60,7 +60,7 @@ fn stake_ok() {
         for i in 0..MaxStakesCount::get() as usize {
             for account in accounts {
                 assert_ok!(Pallet::<Test>::stake(
-                    Origin::signed(account),
+                    RuntimeOrigin::signed(account),
                     stake,
                     periods[i]
                 ));
@@ -104,7 +104,7 @@ fn stake_max_number_err() {
         for _ in 0..MaxStakesCount::get() as usize {
             for account in accounts {
                 assert_ok!(Pallet::<Test>::stake(
-                    Origin::signed(account),
+                    RuntimeOrigin::signed(account),
                     stake,
                     StakePeriod::Two
                 ));
@@ -113,7 +113,7 @@ fn stake_max_number_err() {
 
         for account in accounts {
             assert_noop!(
-                Pallet::<Test>::stake(Origin::signed(account), stake, StakePeriod::Two),
+                Pallet::<Test>::stake(RuntimeOrigin::signed(account), stake, StakePeriod::Two),
                 Error::<Test>::MaxStakesNumberReached
             );
         }
@@ -131,7 +131,7 @@ fn stake_insufficient_funds_err() {
 
         assert_noop!(
             Pallet::<Test>::stake(
-                Origin::signed(account_with_no_balance),
+                RuntimeOrigin::signed(account_with_no_balance),
                 500 * ONE_TOKEN,
                 StakePeriod::One
             ),
@@ -139,13 +139,13 @@ fn stake_insufficient_funds_err() {
         );
 
         assert_ok!(Pallet::<Test>::stake(
-            Origin::signed(ACCOUNT_1),
+            RuntimeOrigin::signed(ACCOUNT_1),
             BALANCE,
             StakePeriod::Three
         ));
 
         assert_noop!(
-            Pallet::<Test>::stake(Origin::signed(ACCOUNT_1), 1, StakePeriod::Two),
+            Pallet::<Test>::stake(RuntimeOrigin::signed(ACCOUNT_1), 1, StakePeriod::Two),
             Error::<Test>::InsufficientFunds
         );
     });
@@ -158,7 +158,7 @@ fn stake_has_no_effect_on_free_balance() {
         assert_eq!(free_balance_before, BALANCE);
 
         assert_ok!(Pallet::<Test>::stake(
-            Origin::signed(ACCOUNT_1),
+            RuntimeOrigin::signed(ACCOUNT_1),
             BALANCE,
             StakePeriod::Six
         ));
@@ -179,7 +179,7 @@ fn reward_ok() {
         let account_no_stake = ACCOUNT_2;
         for period in periods {
             assert_ok!(Pallet::<Test>::stake(
-                Origin::signed(account_with_stake),
+                RuntimeOrigin::signed(account_with_stake),
                 stake,
                 period
             ));
@@ -306,7 +306,7 @@ fn unlock_stakes_ok() {
 
         for period in periods {
             assert_ok!(Pallet::<Test>::stake(
-                Origin::signed(ACCOUNT_1),
+                RuntimeOrigin::signed(ACCOUNT_1),
                 stake,
                 period
             ));
@@ -319,7 +319,7 @@ fn unlock_stakes_ok() {
             let stake_lock_before = eq_balances::Pallet::<Test>::get_lock(ACCOUNT_1, STAKING_ID);
             timestamp::Pallet::<Test>::set_timestamp(periods[i].as_secs() * 1000);
             assert_ok!(Pallet::<Test>::unlock(
-                Origin::signed(ACCOUNT_1),
+                RuntimeOrigin::signed(ACCOUNT_1),
                 Some(0 as u32)
             ));
             assert_eq!(
@@ -357,7 +357,7 @@ fn unlock_rewards_ok() {
 
         for period in periods {
             assert_ok!(Pallet::<Test>::stake(
-                Origin::signed(account_with_stake),
+                RuntimeOrigin::signed(account_with_stake),
                 stake,
                 period
             ));
@@ -379,7 +379,7 @@ fn unlock_rewards_ok() {
             timestamp::Pallet::<Test>::set_timestamp(
                 now + RewardsLockPeriod::get().as_secs() * 1000,
             );
-            assert_ok!(Pallet::<Test>::unlock(Origin::signed(acc), None));
+            assert_ok!(Pallet::<Test>::unlock(RuntimeOrigin::signed(acc), None));
             assert_eq!(
                 eq_balances::Pallet::<Test>::get_lock(acc, STAKING_ID),
                 reward_stake_lock_before - reward
@@ -405,22 +405,25 @@ fn unlock_stakes_err() {
             let acc = accounts[i];
             for p in i..periods.len() {
                 assert_noop!(
-                    Pallet::<Test>::unlock(Origin::signed(acc), Some((p - i) as u32)),
+                    Pallet::<Test>::unlock(RuntimeOrigin::signed(acc), Some((p - i) as u32)),
                     Error::<Test>::StakeNotFound
                 );
                 assert_ok!(Pallet::<Test>::stake(
-                    Origin::signed(acc),
+                    RuntimeOrigin::signed(acc),
                     stake,
                     periods[p]
                 ));
             }
             assert_noop!(
-                Pallet::<Test>::unlock(Origin::signed(acc), Some((periods.len() - i) as u32)),
+                Pallet::<Test>::unlock(
+                    RuntimeOrigin::signed(acc),
+                    Some((periods.len() - i) as u32)
+                ),
                 Error::<Test>::StakeNotFound
             );
             for p in i..periods.len() {
                 assert_noop!(
-                    Pallet::<Test>::unlock(Origin::signed(acc), Some((p - i) as u32)),
+                    Pallet::<Test>::unlock(RuntimeOrigin::signed(acc), Some((p - i) as u32)),
                     Error::<Test>::LockPeriodNotEnded
                 );
             }
@@ -437,7 +440,7 @@ fn unlock_rewards_err() {
             "Test configuration"
         );
         assert_noop!(
-            Pallet::<Test>::unlock(Origin::signed(ACCOUNT_1), None),
+            Pallet::<Test>::unlock(RuntimeOrigin::signed(ACCOUNT_1), None),
             Error::<Test>::StakeNotFound
         );
         let reward = ONE_TOKEN;
@@ -448,12 +451,12 @@ fn unlock_rewards_err() {
             EXTERNAL_ID,
         ));
         assert_noop!(
-            Pallet::<Test>::unlock(Origin::signed(ACCOUNT_1), None),
+            Pallet::<Test>::unlock(RuntimeOrigin::signed(ACCOUNT_1), None),
             Error::<Test>::LockPeriodNotEnded
         );
         timestamp::Pallet::<Test>::set_timestamp((RewardsLockPeriod::get().as_secs() - 1) * 1000);
         assert_noop!(
-            Pallet::<Test>::unlock(Origin::signed(ACCOUNT_1), None),
+            Pallet::<Test>::unlock(RuntimeOrigin::signed(ACCOUNT_1), None),
             Error::<Test>::LockPeriodNotEnded
         );
     });

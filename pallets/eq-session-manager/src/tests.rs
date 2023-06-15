@@ -21,7 +21,7 @@
 use crate::mock::{self, Test};
 use crate::mock::{
     force_new_session, initialize_block, new_test_ext, session_changed, validators,
-    ErrorSessionManager, MockSessionKeys, ModuleSessionManager, Origin, Session,
+    ErrorSessionManager, MockSessionKeys, ModuleSessionManager, RuntimeOrigin, Session,
 };
 use frame_support::assert_err;
 use sp_runtime::testing::UintAuthorityId;
@@ -35,7 +35,7 @@ fn sorted<T: Clone + Ord>(v: Vec<T>) -> Vec<T> {
 fn register_validator(id: u64) {
     frame_system::Pallet::<Test>::inc_providers(&id);
     Session::set_keys(
-        Origin::signed(id),
+        RuntimeOrigin::signed(id),
         MockSessionKeys::from(UintAuthorityId::from(id)),
         vec![],
     )

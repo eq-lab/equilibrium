@@ -18,8 +18,8 @@
 
 pub use codec::Encode;
 pub use core::marker::PhantomData;
-pub use cumulus_primitives_core::ParaId;
 pub use eq_rate::ed25519::AuthorityId as EqRateId;
+pub use eq_xcm::ParaId;
 pub use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 pub use sc_service::{ChainType, Properties};
 pub use serde::{Deserialize, Serialize};
@@ -31,7 +31,7 @@ pub use sp_runtime::{
 };
 pub use std::time::SystemTime;
 pub use substrate_fixed::types::I64F64;
-pub use xcm::latest::{Junction::*, Junctions::*};
+pub use xcm::v3::{Junction::*, Junctions::*, MultiLocation};
 
 #[cfg(feature = "with-eq-runtime")]
 pub mod equilibrium;

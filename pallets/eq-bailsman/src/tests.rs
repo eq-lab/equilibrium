@@ -558,7 +558,7 @@ fn reinit_negative_surplus() {
         ModuleBailsman::on_initialize(1);
 
         assert_ok!(ModuleBailsman::redistribute(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             account_id_1
         ));
 
@@ -866,11 +866,11 @@ fn reinit_checks() {
         ModuleBailsman::on_initialize(1);
 
         assert_ok!(ModuleBailsman::redistribute(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             account_id_2
         ));
         assert_ok!(ModuleBailsman::redistribute(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             account_id_1
         ));
 
@@ -924,11 +924,11 @@ fn reinit_checks() {
         ModuleBailsman::on_initialize(1);
 
         assert_ok!(ModuleBailsman::redistribute(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             account_id_2
         ));
         assert_ok!(ModuleBailsman::redistribute(
-            Origin::signed(account_id_1),
+            RuntimeOrigin::signed(account_id_1),
             account_id_1
         ));
 

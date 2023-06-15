@@ -46,7 +46,7 @@ impl<T: frame_system::Config> eq_dex::WeightInfo for WeightInfo<T> {
 	// Storage: EqDex OrdersByAssetAndChunkKey (r:1 w:1)
 	// Storage: EqDex ActualChunksByAsset (r:1 w:1)
 	fn create_limit_order() -> Weight {
-		Weight::from_ref_time(108_000_000 as u64)
+		Weight::from_parts(108_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -63,7 +63,7 @@ impl<T: frame_system::Config> eq_dex::WeightInfo for WeightInfo<T> {
 	// Storage: EqDex OrdersByAssetAndChunkKey (r:1 w:1)
 	// Storage: EqDex ActualChunksByAsset (r:1 w:1)
 	fn create_market_order() -> Weight {
-		Weight::from_ref_time(105_000_000 as u64)
+		Weight::from_parts(105_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(13 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -80,7 +80,7 @@ impl<T: frame_system::Config> eq_dex::WeightInfo for WeightInfo<T> {
 	// Storage: EqDex ActualChunksByAsset (r:1 w:1)
 	// Storage: EqDex AssetWeightByAccountId (r:1 w:1)
 	fn delete_order() -> Weight {
-		Weight::from_ref_time(158_000_000 as u64)
+		Weight::from_parts(158_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(19 as u64))
 			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}
@@ -91,13 +91,13 @@ impl<T: frame_system::Config> eq_dex::WeightInfo for WeightInfo<T> {
 	// Storage: EqDex ActualChunksByAsset (r:1 w:1)
 	// Storage: EqDex AssetWeightByAccountId (r:1 w:1)
 	fn delete_order_external() -> Weight {
-		Weight::from_ref_time(53_000_000 as u64)
+		Weight::from_parts(53_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(6 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	// Storage: EqDex ChunkCorridorByAsset (r:1 w:1)
 	fn update_asset_corridor() -> Weight {
-		Weight::from_ref_time(9_000_000 as u64)
+		Weight::from_parts(9_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -115,7 +115,7 @@ impl<T: frame_system::Config> eq_dex::WeightInfo for WeightInfo<T> {
 	// Storage: EqDex ActualChunksByAsset (r:1 w:1)
 	// Storage: EqDex AssetWeightByAccountId (r:1 w:1)
 	fn validate_unsigned() -> Weight {
-		Weight::from_ref_time(207_000_000 as u64)
+		Weight::from_parts(207_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(20 as u64))
 			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}

@@ -25,9 +25,9 @@ use crate::mock::{
 };
 
 use super::mock::{
-    assert_events, event_exists, expect_event, new_test_ext, Call, ChainBridge, EqBridge, Event,
-    NativeTokenId, Origin, ProposalLifetime, Test, DEFAULT_FEE, ENDOWED_BALANCE, RELAYER_A,
-    RELAYER_B, RELAYER_C, USER,
+    assert_events, event_exists, expect_event, new_test_ext, ChainBridge, EqBridge, NativeTokenId,
+    ProposalLifetime, RuntimeCall, RuntimeEvent, RuntimeOrigin, Test, DEFAULT_FEE, ENDOWED_BALANCE,
+    RELAYER_A, RELAYER_B, RELAYER_C, USER,
 };
 use super::*;
 use codec::Encode;
@@ -39,16 +39,16 @@ use sp_core::{blake2_256, H256};
 
 const TEST_THRESHOLD: u32 = 2;
 
-fn make_remark_proposal(hash: H256) -> Call {
-    Call::EqBridge(crate::Call::remark { hash })
+fn make_remark_proposal(hash: H256) -> RuntimeCall {
+    RuntimeCall::EqBridge(crate::Call::remark { hash })
 }
 
 fn make_transfer_proposal(
     to: AccountId,
     amount: Balance,
     resource_id: chainbridge::ResourceId,
-) -> Call {
-    Call::EqBridge(crate::Call::transfer {
+) -> RuntimeCall {
+    RuntimeCall::EqBridge(crate::Call::transfer {
         to,
         amount,
         resource_id,
@@ -78,7 +78,7 @@ fn transfer_native() {
         ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -88,7 +88,7 @@ fn transfer_native() {
             dest_chain
         ));
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone(),
             recipient.clone(),
             dest_chain,
@@ -133,7 +133,7 @@ fn transfer_native_with_disabled_transfers() {
         ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -142,13 +142,17 @@ fn transfer_native_with_disabled_transfers() {
             resource_id,
             dest_chain
         ));
-        assert_ok!(ChainBridge::toggle_chain(Origin::root(), dest_chain, false));
+        assert_ok!(ChainBridge::toggle_chain(
+            RuntimeOrigin::root(),
+            dest_chain,
+            false
+        ));
 
         assert_eq!(ChainBridge::chain_enabled(dest_chain), false);
 
         assert_err!(
             EqBridge::transfer_native(
-                Origin::signed(USER),
+                RuntimeOrigin::signed(USER),
                 amount.clone(),
                 recipient.clone(),
                 dest_chain,
@@ -169,26 +173,33 @@ fn execute_remark() {
         let r_id = chainbridge::derive_resource_id(src_id, b"hash");
         let resource = b"EqBridge.remark".to_vec();
 
-        assert_ok!(ChainBridge::set_threshold(Origin::root(), TEST_THRESHOLD,));
-        assert_ok!(ChainBridge::add_relayer(Origin::root(), RELAYER_A));
-        assert_ok!(ChainBridge::add_relayer(Origin::root(), RELAYER_B));
+        assert_ok!(ChainBridge::set_threshold(
+            RuntimeOrigin::root(),
+            TEST_THRESHOLD,
+        ));
+        assert_ok!(ChainBridge::add_relayer(RuntimeOrigin::root(), RELAYER_A));
+        assert_ok!(ChainBridge::add_relayer(RuntimeOrigin::root(), RELAYER_B));
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             src_id,
             DEFAULT_FEE
         ));
-        assert_ok!(ChainBridge::set_resource(Origin::root(), r_id, resource));
-        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 0));
+        assert_ok!(ChainBridge::set_resource(
+            RuntimeOrigin::root(),
+            r_id,
+            resource
+        ));
+        assert_ok!(ChainBridge::set_min_nonce(RuntimeOrigin::root(), src_id, 0));
 
         assert_ok!(ChainBridge::acknowledge_proposal(
-            Origin::signed(RELAYER_A),
+            RuntimeOrigin::signed(RELAYER_A),
             prop_id,
             src_id,
             r_id,
             Box::new(proposal.clone())
         ));
         assert_ok!(ChainBridge::acknowledge_proposal(
-            Origin::signed(RELAYER_B),
+            RuntimeOrigin::signed(RELAYER_B),
             prop_id,
             src_id,
             r_id,
@@ -205,17 +216,17 @@ fn execute_remark_bad_origin() {
         let hash: H256 = "ABC".using_encoded(blake2_256).into();
 
         assert_ok!(EqBridge::remark(
-            Origin::signed(ChainBridge::account_id()),
+            RuntimeOrigin::signed(ChainBridge::account_id()),
             hash
         ));
         // Don't allow any signed origin except from bridge addr
         assert_noop!(
-            EqBridge::remark(Origin::signed(RELAYER_A), hash),
+            EqBridge::remark(RuntimeOrigin::signed(RELAYER_A), hash),
             DispatchError::BadOrigin
         );
         // Don't allow root calls
         assert_noop!(
-            EqBridge::remark(Origin::root(), hash),
+            EqBridge::remark(RuntimeOrigin::root(), hash),
             DispatchError::BadOrigin
         );
     })
@@ -238,7 +249,7 @@ fn transfer() {
 
         // Transfer and check result
         assert_ok!(EqBridge::transfer(
-            Origin::signed(ChainBridge::account_id()),
+            RuntimeOrigin::signed(ChainBridge::account_id()),
             RELAYER_A,
             10,
             r_id
@@ -264,7 +275,7 @@ fn transfer_basic() {
 
         // Transfer and check result
         assert_ok!(EqBridge::transfer(
-            Origin::signed(ChainBridge::account_id()),
+            RuntimeOrigin::signed(ChainBridge::account_id()),
             RELAYER_A,
             10,
             r_id
@@ -285,21 +296,28 @@ fn create_successful_transfer_proposal() {
         let asset = eq_primitives::asset::EQ;
 
         assert_ok!(EqBridge::set_resource(RawOrigin::Root.into(), r_id, asset));
-        assert_ok!(ChainBridge::set_threshold(Origin::root(), TEST_THRESHOLD,));
-        assert_ok!(ChainBridge::add_relayer(Origin::root(), RELAYER_A));
-        assert_ok!(ChainBridge::add_relayer(Origin::root(), RELAYER_B));
-        assert_ok!(ChainBridge::add_relayer(Origin::root(), RELAYER_C));
+        assert_ok!(ChainBridge::set_threshold(
+            RuntimeOrigin::root(),
+            TEST_THRESHOLD,
+        ));
+        assert_ok!(ChainBridge::add_relayer(RuntimeOrigin::root(), RELAYER_A));
+        assert_ok!(ChainBridge::add_relayer(RuntimeOrigin::root(), RELAYER_B));
+        assert_ok!(ChainBridge::add_relayer(RuntimeOrigin::root(), RELAYER_C));
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             src_id,
             DEFAULT_FEE
         ));
-        assert_ok!(ChainBridge::set_resource(Origin::root(), r_id, resource));
-        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 0));
+        assert_ok!(ChainBridge::set_resource(
+            RuntimeOrigin::root(),
+            r_id,
+            resource
+        ));
+        assert_ok!(ChainBridge::set_min_nonce(RuntimeOrigin::root(), src_id, 0));
 
         // Create proposal (& vote)
         assert_ok!(ChainBridge::acknowledge_proposal(
-            Origin::signed(RELAYER_A),
+            RuntimeOrigin::signed(RELAYER_A),
             prop_id,
             src_id,
             r_id,
@@ -316,7 +334,7 @@ fn create_successful_transfer_proposal() {
 
         // Second relayer votes against
         assert_ok!(ChainBridge::reject_proposal(
-            Origin::signed(RELAYER_B),
+            RuntimeOrigin::signed(RELAYER_B),
             prop_id,
             src_id,
             r_id,
@@ -333,7 +351,7 @@ fn create_successful_transfer_proposal() {
 
         // Third relayer votes in favour
         assert_ok!(ChainBridge::acknowledge_proposal(
-            Origin::signed(RELAYER_C),
+            RuntimeOrigin::signed(RELAYER_C),
             prop_id,
             src_id,
             r_id,
@@ -355,18 +373,18 @@ fn create_successful_transfer_proposal() {
         );
 
         assert_events(vec![
-            Event::ChainBridge(chainbridge::Event::VoteFor(src_id, prop_id, RELAYER_A)),
-            Event::ChainBridge(chainbridge::Event::VoteAgainst(src_id, prop_id, RELAYER_B)),
-            Event::ChainBridge(chainbridge::Event::VoteFor(src_id, prop_id, RELAYER_C)),
-            Event::ChainBridge(chainbridge::Event::ProposalApproved(src_id, prop_id)),
-            Event::Balances(eq_balances::Event::Transfer(
+            RuntimeEvent::ChainBridge(chainbridge::Event::VoteFor(src_id, prop_id, RELAYER_A)),
+            RuntimeEvent::ChainBridge(chainbridge::Event::VoteAgainst(src_id, prop_id, RELAYER_B)),
+            RuntimeEvent::ChainBridge(chainbridge::Event::VoteFor(src_id, prop_id, RELAYER_C)),
+            RuntimeEvent::ChainBridge(chainbridge::Event::ProposalApproved(src_id, prop_id)),
+            RuntimeEvent::Balances(eq_balances::Event::Transfer(
                 ChainBridge::account_id(),
                 RELAYER_A,
                 eq_primitives::asset::EQ,
                 10,
                 eq_primitives::TransferReason::Common,
             )),
-            Event::ChainBridge(chainbridge::Event::ProposalSucceeded(src_id, prop_id)),
+            RuntimeEvent::ChainBridge(chainbridge::Event::ProposalSucceeded(src_id, prop_id)),
         ]);
     })
 }
@@ -379,10 +397,14 @@ fn set_minimum_transfer_amount_successful() {
         let minimum_amount = 100;
         let asset = eq_primitives::asset::EQ;
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -392,20 +414,20 @@ fn set_minimum_transfer_amount_successful() {
             dest_chain
         ));
         assert_ok!(EqBridge::set_minimum_transfer_amount(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain,
             resource_id,
             minimum_amount
         ));
 
         assert_events(vec![
-            Event::ChainBridge(chainbridge::Event::ChainWhitelisted(dest_chain)),
-            Event::EqBridge(crate::Event::WithdrawalsToggled(
+            RuntimeEvent::ChainBridge(chainbridge::Event::ChainWhitelisted(dest_chain)),
+            RuntimeEvent::EqBridge(crate::Event::WithdrawalsToggled(
                 resource_id,
                 dest_chain,
                 true,
             )),
-            Event::EqBridge(crate::Event::MinimumTransferAmountChanged(
+            RuntimeEvent::EqBridge(crate::Event::MinimumTransferAmountChanged(
                 dest_chain,
                 resource_id,
                 minimum_amount,
@@ -422,10 +444,14 @@ fn set_minimum_transfer_amount_bad_origin() {
         let minimum_amount = 100;
         let asset = eq_primitives::asset::EQ;
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -436,7 +462,7 @@ fn set_minimum_transfer_amount_bad_origin() {
         ));
         assert_err!(
             EqBridge::set_minimum_transfer_amount(
-                Origin::signed(USER),
+                RuntimeOrigin::signed(USER),
                 dest_chain,
                 resource_id,
                 minimum_amount
@@ -444,11 +470,11 @@ fn set_minimum_transfer_amount_bad_origin() {
             DispatchError::BadOrigin
         );
 
-        assert_ok!(ChainBridge::add_relayer(Origin::root(), RELAYER_A));
+        assert_ok!(ChainBridge::add_relayer(RuntimeOrigin::root(), RELAYER_A));
 
         assert_err!(
             EqBridge::set_minimum_transfer_amount(
-                Origin::signed(RELAYER_A),
+                RuntimeOrigin::signed(RELAYER_A),
                 dest_chain,
                 resource_id,
                 minimum_amount
@@ -457,13 +483,13 @@ fn set_minimum_transfer_amount_bad_origin() {
         );
 
         assert_events(vec![
-            Event::ChainBridge(chainbridge::Event::ChainWhitelisted(dest_chain)),
-            Event::EqBridge(crate::Event::WithdrawalsToggled(
+            RuntimeEvent::ChainBridge(chainbridge::Event::ChainWhitelisted(dest_chain)),
+            RuntimeEvent::EqBridge(crate::Event::WithdrawalsToggled(
                 resource_id,
                 dest_chain,
                 true,
             )),
-            Event::ChainBridge(chainbridge::Event::RelayerAdded(RELAYER_A)),
+            RuntimeEvent::ChainBridge(chainbridge::Event::RelayerAdded(RELAYER_A)),
         ]);
     })
 }
@@ -478,7 +504,7 @@ fn set_minimum_transfer_amount_unsuccessful() {
 
         assert_err!(
             EqBridge::set_minimum_transfer_amount(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 dest_chain,
                 resource_id,
                 minimum_amount
@@ -487,7 +513,7 @@ fn set_minimum_transfer_amount_unsuccessful() {
         );
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -498,7 +524,7 @@ fn set_minimum_transfer_amount_unsuccessful() {
         ));
         assert_err!(
             EqBridge::set_minimum_transfer_amount(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 dest_chain,
                 resource_id,
                 minimum_amount
@@ -506,10 +532,14 @@ fn set_minimum_transfer_amount_unsuccessful() {
             Error::<Test>::InvalidResourceId
         );
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(EqBridge::set_minimum_transfer_amount(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain,
             resource_id,
             minimum_amount
@@ -526,10 +556,14 @@ fn transfer_native_without_minimum() {
         let recipient = vec![99];
         let asset = eq_primitives::asset::EQ;
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -539,20 +573,22 @@ fn transfer_native_without_minimum() {
             dest_chain
         ));
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone(),
             recipient.clone(),
             dest_chain,
             resource_id,
         ));
 
-        expect_event(Event::ChainBridge(chainbridge::Event::FungibleTransfer(
-            dest_chain,
-            1,
-            resource_id,
-            amount.into(),
-            recipient,
-        )));
+        expect_event(RuntimeEvent::ChainBridge(
+            chainbridge::Event::FungibleTransfer(
+                dest_chain,
+                1,
+                resource_id,
+                amount.into(),
+                recipient,
+            ),
+        ));
     })
 }
 
@@ -568,10 +604,14 @@ fn transfer_native_lower_than_minimum() {
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -588,7 +628,7 @@ fn transfer_native_lower_than_minimum() {
 
         assert_err!(
             EqBridge::transfer_native(
-                Origin::signed(USER),
+                RuntimeOrigin::signed(USER),
                 amount.clone(),
                 recipient.clone(),
                 dest_chain,
@@ -597,11 +637,9 @@ fn transfer_native_lower_than_minimum() {
             Error::<Test>::TransferAmountLowerMinimum
         );
 
-        expect_event(Event::EqBridge(crate::Event::MinimumTransferAmountChanged(
-            dest_chain,
-            resource_id,
-            minimum_amount,
-        )));
+        expect_event(RuntimeEvent::EqBridge(
+            crate::Event::MinimumTransferAmountChanged(dest_chain, resource_id, minimum_amount),
+        ));
     })
 }
 
@@ -617,10 +655,14 @@ fn transfer_native_amount_equal_to_minimum() {
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -636,20 +678,22 @@ fn transfer_native_amount_equal_to_minimum() {
         ));
 
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone(),
             recipient.clone(),
             dest_chain,
             resource_id,
         ));
 
-        expect_event(Event::ChainBridge(chainbridge::Event::FungibleTransfer(
-            dest_chain,
-            1,
-            resource_id,
-            amount.into(),
-            recipient,
-        )));
+        expect_event(RuntimeEvent::ChainBridge(
+            chainbridge::Event::FungibleTransfer(
+                dest_chain,
+                1,
+                resource_id,
+                amount.into(),
+                recipient,
+            ),
+        ));
     })
 }
 
@@ -665,10 +709,14 @@ fn transfer_native_amount_more_than_minimum() {
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -684,20 +732,22 @@ fn transfer_native_amount_more_than_minimum() {
         ));
 
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone(),
             recipient.clone(),
             dest_chain,
             resource_id,
         ));
 
-        expect_event(Event::ChainBridge(chainbridge::Event::FungibleTransfer(
-            dest_chain,
-            1,
-            resource_id,
-            amount.into(),
-            recipient,
-        )));
+        expect_event(RuntimeEvent::ChainBridge(
+            chainbridge::Event::FungibleTransfer(
+                dest_chain,
+                1,
+                resource_id,
+                amount.into(),
+                recipient,
+            ),
+        ));
     })
 }
 
@@ -712,17 +762,21 @@ fn transfer_native_with_disabled_withdrawals() {
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
 
         assert_err!(
             EqBridge::transfer_native(
-                Origin::signed(USER),
+                RuntimeOrigin::signed(USER),
                 amount.clone() as u128,
                 recipient.clone(),
                 dest_chain,
@@ -744,17 +798,21 @@ fn transfer_native_with_enabled_withdrawals() {
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
 
         assert_err!(
             EqBridge::transfer_native(
-                Origin::signed(USER),
+                RuntimeOrigin::signed(USER),
                 amount.clone() as u128,
                 recipient.clone(),
                 dest_chain,
@@ -769,20 +827,22 @@ fn transfer_native_with_enabled_withdrawals() {
             dest_chain
         ));
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone() as u128,
             recipient.clone(),
             dest_chain,
             resource_id,
         ));
 
-        expect_event(Event::ChainBridge(chainbridge::Event::FungibleTransfer(
-            dest_chain,
-            1,
-            resource_id,
-            amount.into(),
-            recipient,
-        )));
+        expect_event(RuntimeEvent::ChainBridge(
+            chainbridge::Event::FungibleTransfer(
+                dest_chain,
+                1,
+                resource_id,
+                amount.into(),
+                recipient,
+            ),
+        ));
     })
 }
 
@@ -797,11 +857,9 @@ fn enable_withdrawals_successful() {
             resource_id,
             dest_chain
         ));
-        assert_events(vec![Event::EqBridge(crate::Event::WithdrawalsToggled(
-            resource_id,
-            dest_chain,
-            true,
-        ))]);
+        assert_events(vec![RuntimeEvent::EqBridge(
+            crate::Event::WithdrawalsToggled(resource_id, dest_chain, true),
+        )]);
     })
 }
 
@@ -867,11 +925,9 @@ fn enable_withdrawals_unsuccessful() {
             dest_chain
         ));
 
-        assert_events(vec![Event::EqBridge(crate::Event::WithdrawalsToggled(
-            resource_id,
-            dest_chain,
-            true,
-        ))]);
+        assert_events(vec![RuntimeEvent::EqBridge(
+            crate::Event::WithdrawalsToggled(resource_id, dest_chain, true),
+        )]);
 
         assert_err!(
             EqBridge::enable_withdrawals(RawOrigin::Root.into(), resource_id, dest_chain),
@@ -891,22 +947,18 @@ fn disable_withdrawals_successful() {
             resource_id,
             dest_chain
         ));
-        assert_events(vec![Event::EqBridge(crate::Event::WithdrawalsToggled(
-            resource_id,
-            dest_chain,
-            true,
-        ))]);
+        assert_events(vec![RuntimeEvent::EqBridge(
+            crate::Event::WithdrawalsToggled(resource_id, dest_chain, true),
+        )]);
 
         assert_ok!(EqBridge::disable_withdrawals(
             RawOrigin::Root.into(),
             resource_id,
             dest_chain
         ));
-        assert_events(vec![Event::EqBridge(crate::Event::WithdrawalsToggled(
-            resource_id,
-            dest_chain,
-            false,
-        ))]);
+        assert_events(vec![RuntimeEvent::EqBridge(
+            crate::Event::WithdrawalsToggled(resource_id, dest_chain, false),
+        )]);
     })
 }
 
@@ -930,12 +982,12 @@ fn toggle_withdrawals_bad_origin() {
         let resource_id = NativeTokenId::get();
 
         assert_err!(
-            EqBridge::enable_withdrawals(Origin::signed(USER), resource_id, dest_chain),
+            EqBridge::enable_withdrawals(RuntimeOrigin::signed(USER), resource_id, dest_chain),
             DispatchError::BadOrigin
         );
 
         assert_err!(
-            EqBridge::disable_withdrawals(Origin::signed(USER), resource_id, dest_chain),
+            EqBridge::disable_withdrawals(RuntimeOrigin::signed(USER), resource_id, dest_chain),
             DispatchError::BadOrigin
         );
     })
@@ -1039,16 +1091,25 @@ fn transfer_native_physical_asset() {
         let bridge_id: u64 = ChainBridge::account_id();
         let asset = eq_primitives::asset::ETH;
 
-        assert_ok!(ModuleBalances::deposit(Origin::root(), asset, USER, amount));
+        assert_ok!(ModuleBalances::deposit(
+            RuntimeOrigin::root(),
+            asset,
+            USER,
+            amount
+        ));
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
         assert_eq!(get_eth_balance(USER), Positive(amount));
         assert_eq!(get_eth_balance(bridge_id), Positive(0));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -1059,7 +1120,7 @@ fn transfer_native_physical_asset() {
         ));
 
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone(),
             recipient.clone(),
             dest_chain,
@@ -1089,16 +1150,25 @@ fn transfer_native_synthetic_asset() {
         let bridge_id: u64 = ChainBridge::account_id();
         let asset = SYNT;
 
-        assert_ok!(ModuleBalances::deposit(Origin::root(), asset, USER, amount));
+        assert_ok!(ModuleBalances::deposit(
+            RuntimeOrigin::root(),
+            asset,
+            USER,
+            amount
+        ));
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
         assert_eq!(get_synth_balance(USER), Positive(amount));
         assert_eq!(get_synth_balance(bridge_id), Positive(0));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -1109,7 +1179,7 @@ fn transfer_native_synthetic_asset() {
         ));
 
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone(),
             recipient.clone(),
             dest_chain,
@@ -1139,16 +1209,25 @@ fn transfer_native_eqd_asset() {
         let bridge_id: u64 = ChainBridge::account_id();
         let asset = eq_primitives::asset::EQD;
 
-        assert_ok!(ModuleBalances::deposit(Origin::root(), asset, USER, amount));
+        assert_ok!(ModuleBalances::deposit(
+            RuntimeOrigin::root(),
+            asset,
+            USER,
+            amount
+        ));
 
         assert_eq!(get_basic_balance(USER), Positive(ENDOWED_BALANCE));
         assert_eq!(get_eqd_balance(USER), Positive(amount));
         assert_eq!(get_eqd_balance(bridge_id), Positive(0));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -1159,7 +1238,7 @@ fn transfer_native_eqd_asset() {
         ));
 
         assert_ok!(EqBridge::transfer_native(
-            Origin::signed(USER),
+            RuntimeOrigin::signed(USER),
             amount.clone(),
             recipient.clone(),
             dest_chain,
@@ -1190,16 +1269,25 @@ fn transfer_native_invalid_asset_type() {
         let bridge_id: u64 = ChainBridge::account_id();
         let asset = LPT0;
 
-        assert_ok!(ModuleBalances::deposit(Origin::root(), asset, USER, amount));
+        assert_ok!(ModuleBalances::deposit(
+            RuntimeOrigin::root(),
+            asset,
+            USER,
+            amount
+        ));
 
         assert_eq!(get_lpt0_balance(bridge_id), Positive(0));
         assert_eq!(get_lpt0_balance(USER), Positive(amount));
         assert_eq!(get_basic_balance(bridge_id), Positive(ENDOWED_BALANCE));
 
-        assert_ok!(EqBridge::set_resource(Origin::root(), resource_id, asset));
+        assert_ok!(EqBridge::set_resource(
+            RuntimeOrigin::root(),
+            resource_id,
+            asset
+        ));
 
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             dest_chain.clone(),
             DEFAULT_FEE
         ));
@@ -1211,7 +1299,7 @@ fn transfer_native_invalid_asset_type() {
 
         assert_err!(
             EqBridge::transfer_native(
-                Origin::signed(USER),
+                RuntimeOrigin::signed(USER),
                 amount.clone(),
                 recipient.clone(),
                 dest_chain,
@@ -1243,15 +1331,15 @@ fn transfer_physical_asset() {
 
         // Transfer and check result
         assert_ok!(EqBridge::transfer(
-            Origin::signed(ChainBridge::account_id()),
+            RuntimeOrigin::signed(ChainBridge::account_id()),
             USER,
             amount,
             r_id
         ));
 
-        assert_events(vec![Event::EqBridge(crate::Event::FromBridgeTransfer(
-            USER, asset, amount,
-        ))]);
+        assert_events(vec![RuntimeEvent::EqBridge(
+            crate::Event::FromBridgeTransfer(USER, asset, amount),
+        )]);
 
         assert_eq!(get_basic_balance(bridge_id), Positive(ENDOWED_BALANCE));
         assert_eq!(get_eth_balance(bridge_id), Positive(0));
@@ -1270,7 +1358,7 @@ fn transfer_synthetic_asset() {
         let bridge_id: u64 = ChainBridge::account_id();
 
         assert_ok!(ModuleBalances::deposit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             asset,
             bridge_id,
             amount
@@ -1284,13 +1372,13 @@ fn transfer_synthetic_asset() {
 
         // Transfer and check result
         assert_ok!(EqBridge::transfer(
-            Origin::signed(ChainBridge::account_id()),
+            RuntimeOrigin::signed(ChainBridge::account_id()),
             USER,
             amount,
             r_id
         ));
 
-        assert_events(vec![Event::Balances(eq_balances::Event::Transfer(
+        assert_events(vec![RuntimeEvent::Balances(eq_balances::Event::Transfer(
             bridge_id,
             USER,
             asset,
@@ -1322,15 +1410,15 @@ fn transfer_eqd_asset() {
 
         // Transfer and check result
         assert_ok!(EqBridge::transfer(
-            Origin::signed(ChainBridge::account_id()),
+            RuntimeOrigin::signed(ChainBridge::account_id()),
             USER,
             amount,
             r_id
         ));
 
-        assert_events(vec![Event::EqBridge(crate::Event::FromBridgeTransfer(
-            USER, asset, amount,
-        ))]);
+        assert_events(vec![RuntimeEvent::EqBridge(
+            crate::Event::FromBridgeTransfer(USER, asset, amount),
+        )]);
 
         assert_eq!(get_basic_balance(bridge_id), Positive(ENDOWED_BALANCE));
         assert_eq!(get_eqd_balance(bridge_id), Positive(0));
@@ -1349,7 +1437,7 @@ fn transfer_invalid_asset_type() {
         let bridge_id: u64 = ChainBridge::account_id();
 
         assert_ok!(ModuleBalances::deposit(
-            Origin::root(),
+            RuntimeOrigin::root(),
             asset,
             bridge_id,
             amount
@@ -1363,7 +1451,7 @@ fn transfer_invalid_asset_type() {
         // Transfer and check error
         assert_err!(
             EqBridge::transfer(
-                Origin::signed(ChainBridge::account_id()),
+                RuntimeOrigin::signed(ChainBridge::account_id()),
                 USER,
                 amount,
                 r_id

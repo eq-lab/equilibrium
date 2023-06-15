@@ -33,7 +33,7 @@ fn add_to_whitelist_works() {
         let account_id = 1u64;
         assert_eq!(WhiteList::<Test>::get(account_id), None);
         assert_ok!(ModuleMarketMaker::add_to_whitelist(
-            Origin::root(),
+            RuntimeOrigin::root(),
             account_id
         ));
         assert_eq!(WhiteList::<Test>::get(account_id), Some(()));
@@ -47,7 +47,7 @@ fn remove_from_whitelist() {
         WhiteList::<Test>::insert(account_id, ());
 
         assert_ok!(ModuleMarketMaker::remove_from_whitelist(
-            Origin::root(),
+            RuntimeOrigin::root(),
             account_id
         ));
         assert_eq!(WhiteList::<Test>::get(account_id), None);
@@ -60,12 +60,12 @@ fn create_order_works() {
         let account_id = 1u64;
 
         assert_ok!(ModuleMarketMaker::add_to_whitelist(
-            Origin::root(),
+            RuntimeOrigin::root(),
             account_id
         ));
 
         assert_ok!(ModuleMarketMaker::create_order(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             asset::DOT,
             OrderType::Market,
             OrderSide::Buy,
@@ -81,7 +81,7 @@ fn create_order_should_fail_when_not_whitelisted_account() {
 
         assert_err!(
             ModuleMarketMaker::create_order(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 asset::DOT,
                 OrderType::Market,
                 OrderSide::Buy,
@@ -98,12 +98,12 @@ fn delete_order_works() {
         let account_id = 1u64;
 
         assert_ok!(ModuleMarketMaker::add_to_whitelist(
-            Origin::root(),
+            RuntimeOrigin::root(),
             account_id
         ));
 
         assert_ok!(ModuleMarketMaker::delete_order(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             asset::DOT,
             1,
             FixedI64::from(1)
@@ -118,7 +118,7 @@ fn delete_order_should_fail_when_not_whitelisted_account() {
 
         assert_err!(
             ModuleMarketMaker::delete_order(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 asset::DOT,
                 1,
                 FixedI64::from(1)

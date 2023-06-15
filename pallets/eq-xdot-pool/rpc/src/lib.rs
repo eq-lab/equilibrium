@@ -25,7 +25,6 @@ use jsonrpsee::{
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_rpc::number::NumberOrHex;
-use sp_runtime::generic::BlockId;
 use sp_runtime::traits::{Block as BlockT, MaybeDisplay};
 use std::convert::TryInto;
 use std::sync::Arc;
@@ -87,10 +86,10 @@ where
     Balance: Codec + TryInto<NumberOrHex> + MaybeDisplay,
 {
     fn invariant(&self, pool_id: u32) -> Result<String> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
 
-        api.invariant(&at, pool_id)
+        api.invariant(at, pool_id)
             .ok()
             .flatten()
             .map(|r| r.to_string())
@@ -98,45 +97,45 @@ where
     }
 
     fn fy_token_out_for_base_in(&self, pool_id: u32, base_amount: Balance) -> Result<Balance> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.fy_token_out_for_base_in(&at, pool_id, base_amount)
+        api.fy_token_out_for_base_in(at, pool_id, base_amount)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
     }
 
     fn base_out_for_fy_token_in(&self, pool_id: u32, fy_token_amount: Balance) -> Result<Balance> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.base_out_for_fy_token_in(&at, pool_id, fy_token_amount)
+        api.base_out_for_fy_token_in(at, pool_id, fy_token_amount)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
     }
 
     fn fy_token_in_for_base_out(&self, pool_id: u32, base_amount: Balance) -> Result<Balance> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.fy_token_in_for_base_out(&at, pool_id, base_amount)
+        api.fy_token_in_for_base_out(at, pool_id, base_amount)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
     }
 
     fn base_in_for_fy_token_out(&self, pool_id: u32, fy_token_amount: Balance) -> Result<Balance> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.base_in_for_fy_token_out(&at, pool_id, fy_token_amount)
+        api.base_in_for_fy_token_out(at, pool_id, fy_token_amount)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
     }
 
     fn base_out_for_lp_in(&self, pool_id: u32, lp_in: Balance) -> Result<Balance> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.base_out_for_lp_in(&at, pool_id, lp_in)
+        api.base_out_for_lp_in(at, pool_id, lp_in)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
@@ -147,9 +146,9 @@ where
         pool_id: u32,
         lp_in: Balance,
     ) -> Result<(Balance, Balance)> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.base_and_fy_out_for_lp_in(&at, pool_id, lp_in)
+        api.base_and_fy_out_for_lp_in(at, pool_id, lp_in)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())
@@ -159,9 +158,9 @@ where
         &self,
         pool_id: u32,
     ) -> Result<(Balance, Balance, Balance, Balance)> {
-        let at = BlockId::hash(self.client.info().best_hash);
+        let at = self.client.info().best_hash;
         let api = self.client.runtime_api();
-        api.max_base_xbase_in_and_out(&at, pool_id)
+        api.max_base_xbase_in_and_out(at, pool_id)
             .ok()
             .flatten()
             .ok_or_else(|| CallError::Custom(ErrorCode::InvalidRequest.into()).into())

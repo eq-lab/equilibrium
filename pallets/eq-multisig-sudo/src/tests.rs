@@ -21,7 +21,7 @@
 #![allow(dead_code)]
 use super::*;
 
-use crate::mock::{new_test_ext, Call, LoggerCall, ModuleMultisigSudo, Origin, Test};
+use crate::mock::{new_test_ext, LoggerCall, ModuleMultisigSudo, RuntimeCall, RuntimeOrigin, Test};
 
 use codec::Encode;
 use frame_support::{assert_noop, assert_ok, weights::Weight};
@@ -111,21 +111,24 @@ fn modify_threshold() {
 fn propose() {
     new_test_ext(vec![1u64, 2u64, 3u64], THRESHOLD).execute_with(|| {
         // propose a call
-        let call = Box::new(Call::Logger(LoggerCall::privileged_i32_log {
+        let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);
-        assert_ok!(ModuleMultisigSudo::propose(Origin::signed(ALICE_ID), call));
+        assert_ok!(ModuleMultisigSudo::propose(
+            RuntimeOrigin::signed(ALICE_ID),
+            call
+        ));
         assert_eq!(<MultisigProposals<Test>>::contains_key(&call_hash), true);
         // call not accepted
-        let call = Box::new(Call::Logger(LoggerCall::privileged_i32_log {
+        let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         assert_noop!(
-            ModuleMultisigSudo::propose(Origin::signed(DAVE_ID), call),
+            ModuleMultisigSudo::propose(RuntimeOrigin::signed(DAVE_ID), call),
             Error::<Test>::NotInKeyList
         );
     })
@@ -134,34 +137,37 @@ fn propose() {
 #[test]
 fn cancel_proposal() {
     new_test_ext(vec![1u64, 2u64, 3u64], THRESHOLD).execute_with(|| {
-        let call = Box::new(Call::Logger(LoggerCall::privileged_i32_log {
+        let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);
-        assert_ok!(ModuleMultisigSudo::propose(Origin::signed(ALICE_ID), call));
+        assert_ok!(ModuleMultisigSudo::propose(
+            RuntimeOrigin::signed(ALICE_ID),
+            call
+        ));
         assert_ok!(ModuleMultisigSudo::modify_threshold(
             RawOrigin::Root.into(),
             2
         ));
         //Bob tries to remove a proposal and succeeds
         assert_ok!(ModuleMultisigSudo::cancel_proposal(
-            Origin::signed(BOB_ID),
+            RuntimeOrigin::signed(BOB_ID),
             call_hash
         ));
         assert_noop!(
-            ModuleMultisigSudo::cancel_proposal(Origin::signed(BOB_ID), call_hash),
+            ModuleMultisigSudo::cancel_proposal(RuntimeOrigin::signed(BOB_ID), call_hash),
             Error::<Test>::AlreadyCancelled
         );
         //Alice tries and succeeds
         assert_ok!(ModuleMultisigSudo::cancel_proposal(
-            Origin::signed(ALICE_ID),
+            RuntimeOrigin::signed(ALICE_ID),
             call_hash
         ));
         //But no more
         assert_noop!(
-            ModuleMultisigSudo::cancel_proposal(Origin::signed(ALICE_ID), call_hash),
+            ModuleMultisigSudo::cancel_proposal(RuntimeOrigin::signed(ALICE_ID), call_hash),
             Error::<Test>::ProposalNotFound
         );
     })
@@ -174,16 +180,19 @@ fn approve() {
             RawOrigin::Root.into(),
             3
         ));
-        let call = Box::new(Call::Logger(LoggerCall::privileged_i32_log {
+        let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);
-        assert_ok!(ModuleMultisigSudo::propose(Origin::signed(ALICE_ID), call));
+        assert_ok!(ModuleMultisigSudo::propose(
+            RuntimeOrigin::signed(ALICE_ID),
+            call
+        ));
         //Bob approves
         assert_ok!(ModuleMultisigSudo::approve(
-            Origin::signed(BOB_ID),
+            RuntimeOrigin::signed(BOB_ID),
             call_hash
         ));
         //His account is in .approvals
@@ -192,12 +201,12 @@ fn approve() {
         assert_eq!(ms.approvals.contains(&BOB_ID), true);
         //Bob cannot approve again
         assert_noop!(
-            ModuleMultisigSudo::approve(Origin::signed(BOB_ID), call_hash),
+            ModuleMultisigSudo::approve(RuntimeOrigin::signed(BOB_ID), call_hash),
             Error::<Test>::AlreadyApproved
         );
         //Dave cannot approve as he is not on the list
         assert_noop!(
-            ModuleMultisigSudo::approve(Origin::signed(DAVE_ID), call_hash),
+            ModuleMultisigSudo::approve(RuntimeOrigin::signed(DAVE_ID), call_hash),
             Error::<Test>::NotInKeyList
         );
     })
@@ -210,22 +219,25 @@ fn check_all_sudo() {
             RawOrigin::Root.into(),
             3
         ));
-        let call = Box::new(Call::Logger(LoggerCall::privileged_i32_log {
+        let call = Box::new(RuntimeCall::Logger(LoggerCall::privileged_i32_log {
             i: 42,
-            weight: Weight::from_ref_time(1_000),
+            weight: Weight::from_parts(1_000, 0),
         }));
         let call_data: OpaqueCall = Encode::encode(&call);
         let call_hash = get_call_hash(ALICE_ID, call_data);
         //propose
-        assert_ok!(ModuleMultisigSudo::propose(Origin::signed(ALICE_ID), call));
+        assert_ok!(ModuleMultisigSudo::propose(
+            RuntimeOrigin::signed(ALICE_ID),
+            call
+        ));
         //approve
         assert_ok!(ModuleMultisigSudo::approve(
-            Origin::signed(BOB_ID),
+            RuntimeOrigin::signed(BOB_ID),
             call_hash
         ));
         //approve
         assert_ok!(ModuleMultisigSudo::approve(
-            Origin::signed(CHARLIE_ID),
+            RuntimeOrigin::signed(CHARLIE_ID),
             call_hash
         ));
 

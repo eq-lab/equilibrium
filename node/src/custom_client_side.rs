@@ -18,11 +18,13 @@
 
 use codec::Decode;
 use cumulus_primitives_core::{
-    relay_chain::{v2::HrmpChannelId, well_known_keys as relay_well_known_keys, Hash as PHash},
-    ParaId, PersistedValidationData,
+    relay_chain::{well_known_keys as relay_well_known_keys, Hash as PHash},
+    PersistedValidationData,
 };
 use cumulus_primitives_parachain_inherent::ParachainInherentData;
 use cumulus_relay_chain_interface::RelayChainInterface;
+use eq_xcm::ParaId;
+use polkadot_primitives::HrmpChannelId;
 
 const LOG_TARGET: &str = "parachain-inherent";
 

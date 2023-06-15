@@ -90,7 +90,7 @@ fn offchain_worker_delete_orders_of_dex_disabled_assets() {
         let expiration_time = 100u64;
         let block = 1;
 
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         let new_asset_corridor: u32 = 5;
         assert_ok!(ModuleDex::update_asset_corridor(
             root_origin,
@@ -100,7 +100,7 @@ fn offchain_worker_delete_orders_of_dex_disabled_assets() {
 
         (0..3).for_each(|_| {
             assert_ok!(ModuleDex::create_order(
-                Origin::signed(acc_id),
+                RuntimeOrigin::signed(acc_id),
                 asset,
                 Limit {
                     price,
@@ -145,7 +145,7 @@ fn offchain_worker_delete_orders_of_dex_disabled_assets() {
             let transaction = state.write().transactions.pop().unwrap();
             let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
             let delete_order = match ex.call {
-                crate::mock::Call::EqDex(crate::Call::delete_order { request, .. }) => request,
+                RuntimeCall::EqDex(crate::Call::delete_order { request, .. }) => request,
                 e => panic!("Unexpected call: {:?}", e),
             };
 
@@ -176,7 +176,7 @@ fn offchain_worker_delete_off_corridor() {
         let expiration_time = 100u64;
         let block = 1;
 
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         let new_asset_corridor: u32 = 5;
         assert_ok!(ModuleDex::update_asset_corridor(
             root_origin,
@@ -186,7 +186,7 @@ fn offchain_worker_delete_off_corridor() {
 
         (0..8).for_each(|_| {
             assert_ok!(ModuleDex::create_order(
-                Origin::signed(acc_id),
+                RuntimeOrigin::signed(acc_id),
                 asset,
                 Limit {
                     price,
@@ -212,7 +212,7 @@ fn offchain_worker_delete_off_corridor() {
         let mut transaction = state.write().transactions.pop().unwrap();
         let mut ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let mut delete_order = match ex.call {
-            crate::mock::Call::EqDex(crate::Call::delete_order { request, .. }) => request,
+            RuntimeCall::EqDex(crate::Call::delete_order { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -226,7 +226,7 @@ fn offchain_worker_delete_off_corridor() {
         transaction = state.write().transactions.pop().unwrap();
         ex = Decode::decode(&mut &*transaction).unwrap();
         delete_order = match ex.call {
-            crate::mock::Call::EqDex(crate::Call::delete_order { request, .. }) => request,
+            RuntimeCall::EqDex(crate::Call::delete_order { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -260,7 +260,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_lower() {
         let expiration_time = 100u64;
         let block = 1;
 
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         let new_asset_corridor: u32 = 200;
         assert_ok!(ModuleDex::update_asset_corridor(
             root_origin,
@@ -271,7 +271,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_lower() {
         OracleMock::set_price(1u64, asset, ask_price).unwrap();
 
         assert_ok!(ModuleDex::create_order(
-            Origin::signed(acc_id),
+            RuntimeOrigin::signed(acc_id),
             asset,
             Limit {
                 price: ask_price,
@@ -282,7 +282,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_lower() {
         ));
 
         assert_ok!(ModuleDex::create_order(
-            Origin::signed(acc_id),
+            RuntimeOrigin::signed(acc_id),
             asset,
             Limit {
                 price: bid_price,
@@ -313,7 +313,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_lower() {
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let delete_order = match ex.call {
-            crate::mock::Call::EqDex(crate::Call::delete_order { request, .. }) => request,
+            RuntimeCall::EqDex(crate::Call::delete_order { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -347,7 +347,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_greater()
         let expiration_time = 100u64;
         let block = 1;
 
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         let new_asset_corridor: u32 = 200;
         assert_ok!(ModuleDex::update_asset_corridor(
             root_origin,
@@ -358,7 +358,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_greater()
         OracleMock::set_price(1u64, asset, ask_price).unwrap();
 
         assert_ok!(ModuleDex::create_order(
-            Origin::signed(acc_id),
+            RuntimeOrigin::signed(acc_id),
             asset,
             Limit {
                 price: ask_price,
@@ -369,7 +369,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_greater()
         ));
 
         assert_ok!(ModuleDex::create_order(
-            Origin::signed(acc_id),
+            RuntimeOrigin::signed(acc_id),
             asset,
             Limit {
                 price: bid_price,
@@ -400,7 +400,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_greater()
         let transaction = state.write().transactions.pop().unwrap();
         let ex: Extrinsic = Decode::decode(&mut &*transaction).unwrap();
         let delete_order = match ex.call {
-            crate::mock::Call::EqDex(crate::Call::delete_order { request, .. }) => request,
+            RuntimeCall::EqDex(crate::Call::delete_order { request, .. }) => request,
             e => panic!("Unexpected call: {:?}", e),
         };
 
@@ -417,7 +417,7 @@ fn offchain_delete_orders_out_of_corridor_when_oracle_price_changed_to_greater()
 fn cannot_set_corridor_not_from_root() {
     new_test_ext().execute_with(|| {
         let account_id = 1;
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let asset = ETH;
         let new_asset_corridor: u32 = 5;
 
@@ -432,13 +432,13 @@ fn cannot_set_corridor_not_from_root() {
 fn cannot_create_order_if_price_not_in_corridor() {
     new_test_ext().execute_with(|| {
         let account_id = 1;
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let asset = ETH;
         let mut price = FixedI64::from(275);
         let side = Buy;
         let amount = EqFixedU128::from(1);
         let expiration_time = 100u64;
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         let new_asset_corridor: u32 = 5;
 
         OracleMock::set_price(account_id, ETH, price).unwrap();
@@ -510,7 +510,7 @@ fn create_order_with_zero_corridor() {
 
         use frame_support::traits::OffchainWorker;
         let account_id = 1;
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let asset = ETH;
         let mut price = FixedI64::from(275);
         let side = Buy;
@@ -519,7 +519,7 @@ fn create_order_with_zero_corridor() {
 
         OracleMock::set_price(account_id, ETH, price).unwrap();
 
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         let new_asset_corridor: u32 = 0;
         assert_ok!(ModuleDex::update_asset_corridor(
             root_origin,
@@ -662,7 +662,7 @@ fn offchain_worker_when_account_with_bad_margin_should_delete_all_account_orders
                 let transaction = &mut &*t.clone();
                 let ex: Extrinsic = Decode::decode(transaction).unwrap();
                 match ex.call {
-                    crate::mock::Call::EqDex(crate::Call::delete_order { request, .. }) => {
+                    RuntimeCall::EqDex(crate::Call::delete_order { request, .. }) => {
                         request.order_id
                     }
                     e => panic!("Unexpected call: {:?}", e),
@@ -702,7 +702,7 @@ fn offchain_worker_when_bad_margin_order_and_out_of_corridor_order() {
         let _order_ids: Vec<OrderId> = (0..7)
             .map(|_| {
                 assert_ok!(ModuleDex::create_order(
-                    Origin::signed(acc_id),
+                    RuntimeOrigin::signed(acc_id),
                     asset,
                     Limit {
                         price,
@@ -721,7 +721,7 @@ fn offchain_worker_when_bad_margin_order_and_out_of_corridor_order() {
         let borrower_id_2 =
             SubaccountsManagerMock::create_subaccount_inner(&acc_2, &SubAccType::Trader).unwrap();
         assert_ok!(ModuleDex::create_order(
-            Origin::signed(acc_2),
+            RuntimeOrigin::signed(acc_2),
             asset,
             Limit {
                 price: FixedI64::from(250),
@@ -731,7 +731,7 @@ fn offchain_worker_when_bad_margin_order_and_out_of_corridor_order() {
             amount,
         ));
 
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         let new_asset_corridor: u32 = 5;
         assert_ok!(ModuleDex::update_asset_corridor(
             root_origin,
@@ -763,7 +763,7 @@ fn create_order() {
     new_test_ext().execute_with(|| {
         let account_id = 1;
 
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let borrower_id =
             SubaccountsManagerMock::create_subaccount_inner(&account_id, &SubAccType::Trader)
                 .unwrap();
@@ -808,11 +808,11 @@ fn create_order() {
 fn create_order_when_orders_has_same_price_chunks_should_be_sorted_by_create_time() {
     new_test_ext().execute_with(|| {
         let account_1 = 1u64;
-        let origin_1 = Origin::signed(account_1);
+        let origin_1 = RuntimeOrigin::signed(account_1);
         SubaccountsManagerMock::create_subaccount_inner(&account_1, &SubAccType::Trader).unwrap();
 
         let account_2 = 2u64;
-        let origin_2 = Origin::signed(account_2);
+        let origin_2 = RuntimeOrigin::signed(account_2);
         SubaccountsManagerMock::create_subaccount_inner(&account_2, &SubAccType::Trader).unwrap();
 
         let asset = ETH;
@@ -876,7 +876,7 @@ fn create_order_when_orders_with_same_price_and_create_time_should_be_sorted_by_
 
         (0..steps).for_each(|_| {
             assert_ok!(ModuleDex::create_order(
-                Origin::signed(1),
+                RuntimeOrigin::signed(1),
                 asset,
                 Limit {
                     price,
@@ -975,7 +975,7 @@ fn create_order_should_update_best_price() {
 #[test]
 fn create_order_when_account_is_not_borrower_should_fail() {
     new_test_ext().execute_with(|| {
-        let not_borrower_origin = Origin::signed(0u64);
+        let not_borrower_origin = RuntimeOrigin::signed(0u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1001,7 +1001,7 @@ fn create_order_when_account_is_not_borrower_should_fail() {
 #[test]
 fn create_order_when_negative_or_zero_price_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let side = Buy;
         let amount = EqFixedU128::from(1);
@@ -1040,7 +1040,7 @@ fn create_order_when_negative_or_zero_price_should_fail() {
 #[test]
 fn create_order_when_asset_not_exists_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let not_exists_asset = DAI;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1066,7 +1066,7 @@ fn create_order_when_asset_not_exists_should_fail() {
 #[test]
 fn create_order_when_market_and_no_best_price_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let side = Buy;
         let amount = EqFixedU128::from(1);
@@ -1082,7 +1082,7 @@ fn create_order_when_market_and_no_best_price_should_fail() {
 fn create_order_when_bad_margin_should_fail() {
     new_test_ext().execute_with(|| {
         let account_id = 21u64;
-        let origin = Origin::signed(21u64);
+        let origin = RuntimeOrigin::signed(21u64);
         let borrower_id =
             SubaccountsManagerMock::create_subaccount_inner(&account_id, &SubAccType::Trader)
                 .unwrap();
@@ -1113,7 +1113,7 @@ fn create_order_when_bad_margin_should_fail() {
 #[test]
 fn create_order_when_check_margin_fail_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(22u64);
+        let origin = RuntimeOrigin::signed(22u64);
         let asset = ETH;
         let side = Buy;
         let amount = EqFixedU128::saturating_from_rational(5, 100);
@@ -1136,7 +1136,7 @@ fn create_order_when_check_margin_fail_should_fail() {
 #[test]
 fn create_order_when_amount_is_zero_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1195,7 +1195,7 @@ fn create_order_best_price_should_match_best_price_in_chunks() {
 #[test]
 fn create_order_when_amount_not_satisfies_lot_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1237,7 +1237,7 @@ fn create_order_when_amount_not_satisfies_lot_should_fail() {
 fn create_order_when_price_not_satisfies_price_step_should_fail() {
     new_test_ext().execute_with(|| {
         let account_id = 1u64;
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let asset = ETH;
         let mut price = FixedI64::saturating_from_rational(500005, 10);
         let side = Buy;
@@ -1278,7 +1278,7 @@ fn create_order_when_price_not_satisfies_price_step_should_fail() {
 #[test]
 fn create_order_when_dex_is_disabled_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1308,7 +1308,7 @@ fn create_order_when_dex_is_disabled_should_fail() {
 #[test]
 fn delete_order() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1354,7 +1354,7 @@ fn delete_order() {
 #[test]
 fn delete_order_when_account_is_not_owner_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1374,7 +1374,7 @@ fn delete_order_when_account_is_not_owner_should_fail() {
         let order_id = OrderIdCounter::<Test>::get();
 
         let not_owner_account_id = 12u64;
-        let not_owner_origin = Origin::signed(not_owner_account_id);
+        let not_owner_origin = RuntimeOrigin::signed(not_owner_account_id);
         SubaccountsManagerMock::create_subaccount_inner(&not_owner_account_id, &SubAccType::Trader)
             .unwrap();
 
@@ -1388,7 +1388,7 @@ fn delete_order_when_account_is_not_owner_should_fail() {
 #[test]
 fn delete_order_by_root_should_success() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;
@@ -1408,7 +1408,7 @@ fn delete_order_by_root_should_success() {
         .is_ok());
         let order_id = OrderIdCounter::<Test>::get();
 
-        let root_origin: Origin = RawOrigin::Root.into();
+        let root_origin: RuntimeOrigin = RawOrigin::Root.into();
         assert!(ModuleDex::delete_order_external(root_origin, asset, order_id, price).is_ok());
     });
 }
@@ -1429,7 +1429,7 @@ fn delete_order_should_update_best_prices() {
 
     /// iterate by ids and prices, delete order and check best price
     fn assert_after_delete_order(
-        origin: &Origin,
+        origin: &RuntimeOrigin,
         asset: Asset,
         side: OrderSide,
         ids: &[u64],
@@ -1476,7 +1476,7 @@ fn delete_order_should_update_best_prices() {
         let best_bid = bid_prices.iter().max().unwrap();
 
         let who = 1u64;
-        let origin = Origin::signed(who);
+        let origin = RuntimeOrigin::signed(who);
         let asset = ETH;
 
         let sell_orders = create_orders(&who, asset, Sell, &ask_prices);
@@ -1500,7 +1500,7 @@ fn delete_order_should_update_chunks() {
         ]);
 
         let who = 1u64;
-        let origin = Origin::signed(who);
+        let origin = RuntimeOrigin::signed(who);
         let asset = ETH;
 
         create_orders(&who, asset, Sell, &sell_prices);
@@ -1530,7 +1530,7 @@ fn delete_order_should_update_chunks() {
 #[test]
 fn delete_order_when_order_not_found_should_fail() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1u64);
+        let origin = RuntimeOrigin::signed(1u64);
         let asset = ETH;
         let price = FixedI64::from(250);
         let order_id = 1;
@@ -1545,7 +1545,7 @@ fn delete_order_when_order_not_found_should_fail() {
 #[test]
 fn get_order_should_return_order_if_exists() {
     new_test_ext().execute_with(|| {
-        let origin = Origin::signed(1);
+        let origin = RuntimeOrigin::signed(1);
         let asset = ETH;
         let price = FixedI64::from(250);
 
@@ -1645,7 +1645,7 @@ fn get_order_id_should_increment_order_counter() {
 fn create_order_should_increase_asset_weight() {
     new_test_ext().execute_with(|| {
         let account_id = 1u64;
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let borrower_id =
             SubaccountsManagerMock::create_subaccount_inner(&account_id, &SubAccType::Trader)
                 .unwrap();
@@ -1706,7 +1706,7 @@ fn create_order_should_increase_asset_weight() {
 fn delete_order_should_decrease_asset_weight() {
     new_test_ext().execute_with(|| {
         let account_id = 1u64;
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let borrower_id =
             SubaccountsManagerMock::create_subaccount_inner(&account_id, &SubAccType::Trader)
                 .unwrap();
@@ -1897,7 +1897,7 @@ fn update_asset_weight_when_decrease_not_exists_asset_should_fail() {
 fn get_asset_weights() {
     new_test_ext().execute_with(|| {
         let account_id = 1u64;
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let borrower_id =
             SubaccountsManagerMock::create_subaccount_inner(&account_id, &SubAccType::Trader)
                 .unwrap();
@@ -1957,7 +1957,7 @@ fn find_order() {
     new_test_ext().execute_with(|| {
         let account_id = 1;
 
-        let origin = Origin::signed(account_id);
+        let origin = RuntimeOrigin::signed(account_id);
         let asset = ETH;
         let price = FixedI64::from(250);
         let side = Buy;

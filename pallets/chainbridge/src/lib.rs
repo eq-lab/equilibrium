@@ -48,9 +48,9 @@ use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
 use eq_primitives::signed_balance::SignedBalance;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_support::{
+    dispatch::GetDispatchInfo,
     ensure,
     traits::{Currency, EnsureOrigin, ExistenceRequirement, Get},
-    weights::GetDispatchInfo,
     Parameter,
 };
 use frame_system::{self as system, ensure_signed};
@@ -149,17 +149,16 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
     pub trait Config: frame_system::Config + eq_assets::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Origin used to administer the pallet.
-        type AdminOrigin: EnsureOrigin<Self::Origin>;
+        type AdminOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Numerical representation of stored balances.
         type Balance: Parameter
@@ -189,7 +188,7 @@ pub mod pallet {
 
         /// Proposed dispatchable call.
         type Proposal: Parameter
-            + Dispatchable<Origin = Self::Origin>
+            + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin>
             + EncodeLike
             + From<frame_system::Call<Self>>
             + GetDispatchInfo;
@@ -208,6 +207,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) lookup and insert
         /// # </weight>
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::set_threshold())]
         pub fn set_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResultWithPostInfo {
             T::AdminOrigin::ensure_origin(origin)?;
@@ -220,7 +220,8 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
-        #[pallet::weight(100_000)]
+        #[pallet::call_index(1)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn set_fee(
             origin: OriginFor<T>,
             chain_id: ChainId,
@@ -236,7 +237,8 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn set_proposal_lifetime(
             origin: OriginFor<T>,
             lifetime: T::BlockNumber,
@@ -251,7 +253,8 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn toggle_chain(
             origin: OriginFor<T>,
             chain_id: ChainId,
@@ -266,6 +269,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::set_resource())]
         pub fn set_resource(
             origin: OriginFor<T>,
@@ -284,6 +288,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) removal
         /// # </weight>
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::remove_resource())]
         pub fn remove_resource(origin: OriginFor<T>, id: ResourceId) -> DispatchResultWithPostInfo {
             T::AdminOrigin::ensure_origin(origin)?;
@@ -295,6 +300,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) lookup and insert
         /// # </weight>
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::whitelist_chain())]
         pub fn whitelist_chain(
             origin: OriginFor<T>,
@@ -310,6 +316,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) lookup and insert
         /// # </weight>
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::add_relayer())]
         pub fn add_relayer(origin: OriginFor<T>, v: T::AccountId) -> DispatchResultWithPostInfo {
             T::AdminOrigin::ensure_origin(origin)?;
@@ -321,6 +328,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) lookup and removal
         /// # </weight>
+        #[pallet::call_index(8)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::remove_relayer())]
         pub fn remove_relayer(origin: OriginFor<T>, v: T::AccountId) -> DispatchResultWithPostInfo {
             T::AdminOrigin::ensure_origin(origin)?;
@@ -332,6 +340,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) lookup and insert
         /// # </weight>
+        #[pallet::call_index(9)]
         #[pallet::weight(T::DbWeight::get().writes(1).ref_time())]
         pub fn set_min_nonce(
             origin: OriginFor<T>,
@@ -351,6 +360,7 @@ pub mod pallet {
         /// # <weight>
         /// - weight of proposed call, regardless of whether execution is performed
         /// # </weight>
+        #[pallet::call_index(10)]
         #[pallet::weight({
             (call.get_dispatch_info().weight + <T as pallet::Config>::WeightInfo::acknowledge_proposal(), DispatchClass::Normal)
         })]
@@ -386,6 +396,7 @@ pub mod pallet {
         /// # <weight>
         /// - Fixed, since execution of proposal should not be included
         /// # </weight>
+        #[pallet::call_index(11)]
         #[pallet::weight({(<T as pallet::Config>::WeightInfo::reject_proposal(), DispatchClass::Normal)})]
         pub fn reject_proposal(
             origin: OriginFor<T>,
@@ -418,6 +429,7 @@ pub mod pallet {
         /// # <weight>
         /// - weight of proposed call, regardless of whether execution is performed
         /// # </weight>
+        #[pallet::call_index(12)]
         #[pallet::weight({
             (prop.get_dispatch_info().weight.saturating_add(<T as pallet::Config>::WeightInfo::eval_vote_state()), DispatchClass::Normal)
         })]
@@ -434,6 +446,7 @@ pub mod pallet {
 
         /// Redistributes accumulated fees between relayers.
         // TODO add relayers count as argument.
+        #[pallet::call_index(13)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::redistribute_fees(10))]
         pub fn redistribute_fees(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_signed(origin)?;
@@ -1028,13 +1041,13 @@ impl<T: Config> Pallet<T> {
 
 /// Simple ensure origin for the bridge account.
 pub struct EnsureBridge<T>(sp_std::marker::PhantomData<T>);
-impl<T: Config> EnsureOrigin<T::Origin> for EnsureBridge<T> {
+impl<T: Config> EnsureOrigin<T::RuntimeOrigin> for EnsureBridge<T> {
     type Success = T::AccountId;
-    fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
+    fn try_origin(o: T::RuntimeOrigin) -> Result<Self::Success, T::RuntimeOrigin> {
         let bridge_id = MODULE_ID.into_account_truncating();
         o.into().and_then(|o| match o {
             system::RawOrigin::Signed(who) if who == bridge_id => Ok(bridge_id),
-            r => Err(T::Origin::from(r)),
+            r => Err(T::RuntimeOrigin::from(r)),
         })
     }
 

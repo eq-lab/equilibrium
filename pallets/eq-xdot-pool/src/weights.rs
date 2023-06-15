@@ -32,15 +32,15 @@ pub trait WeightInfo {
 // for tests/temp
 impl crate::WeightInfo for () {
     fn transfer_basic() -> Weight {
-        Weight::from_ref_time(10_000)
+        Weight::from_parts(10_000, 0)
     }
     fn transfer_native() -> Weight {
-        Weight::from_ref_time(10_000)
+        Weight::from_parts(10_000, 0)
     }
     fn transfer() -> Weight {
-        Weight::from_ref_time(10_000)
+        Weight::from_parts(10_000, 0)
     }
     fn remark() -> Weight {
-        Weight::from_ref_time(10_000)
+        Weight::from_parts(10_000, 0)
     }
 }

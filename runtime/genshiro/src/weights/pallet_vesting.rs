@@ -36,7 +36,7 @@ impl<T: frame_system::Config> eq_vesting::WeightInfo for WeightInfo<T> {
 	// Storage: Vesting Vesting (r:1 w:0)
 	// Storage: Vesting Vested (r:1 w:0)
 	fn vest_locked() -> Weight {
-		Weight::from_ref_time(16_988_000 as u64)
+		Weight::from_parts(16_988_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 	}
 	// Storage: Vesting Vesting (r:1 w:1)
@@ -48,14 +48,14 @@ impl<T: frame_system::Config> eq_vesting::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates AccountUserGroups (r:6 w:1)
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	fn vest_unlocked() -> Weight {
-		Weight::from_ref_time(141_913_000 as u64)
+		Weight::from_parts(141_913_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(15 as u64))
 			.saturating_add(T::DbWeight::get().writes(6 as u64))
 	}
 	// Storage: Vesting Vesting (r:1 w:0)
 	// Storage: Vesting Vested (r:1 w:0)
 	fn vest_other_locked() -> Weight {
-		Weight::from_ref_time(18_840_000 as u64)
+		Weight::from_parts(18_840_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 	}
 	// Storage: Vesting Vesting (r:1 w:1)
@@ -67,7 +67,7 @@ impl<T: frame_system::Config> eq_vesting::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates AccountUserGroups (r:6 w:1)
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	fn vest_other_unlocked() -> Weight {
-		Weight::from_ref_time(140_474_000 as u64)
+		Weight::from_parts(140_474_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(15 as u64))
 			.saturating_add(T::DbWeight::get().writes(6 as u64))
 	}
@@ -84,7 +84,7 @@ impl<T: frame_system::Config> eq_vesting::WeightInfo for WeightInfo<T> {
 	// Storage: Vesting Vested (r:1 w:1)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn vested_transfer() -> Weight {
-		Weight::from_ref_time(248_265_000 as u64)
+		Weight::from_parts(248_265_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(24 as u64))
 			.saturating_add(T::DbWeight::get().writes(9 as u64))
 	}

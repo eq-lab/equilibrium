@@ -43,13 +43,13 @@ impl<T: frame_system::Config> eq_treasury::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates AccountUserGroups (r:6 w:0)
 	// Storage: EqAggregates TotalUserGroups (r:2 w:2)
 	fn buyout() -> Weight {
-		Weight::from_ref_time(118_000_000 as u64)
+		Weight::from_parts(118_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(18 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	// Storage: Treasury BuyoutLimit (r:0 w:1)
 	fn update_buyout_limit() -> Weight {
-		Weight::from_ref_time(4_000_000 as u64)
+		Weight::from_parts(4_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 }

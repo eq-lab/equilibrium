@@ -18,8 +18,7 @@
 
 use eq_primitives::AccountType;
 use sp_std::marker::PhantomData;
-use xcm::latest::{Junction::*, Junctions::*, NetworkId};
-use xcm::v1::MultiLocation;
+use xcm::v3::{Junction::*, Junctions::*, MultiLocation, NetworkId};
 
 /// Extracts the `AccountId32` from the passed `location` if the network matches.
 pub struct AccountIdConversion<AccountId>(PhantomData<AccountId>);
@@ -32,7 +31,7 @@ impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone> AccountIdConversion<Acc
                 interior:
                     X1(AccountId32 {
                         id,
-                        network: NetworkId::Any | NetworkId::Kusama, // Kusama here for frontend and init scripts backward compatibility
+                        network: None | Some(NetworkId::Kusama), // Kusama here for frontend and init scripts backward compatibility
                     }),
             } => Ok(id.into()),
             _ => Err(location),
@@ -40,7 +39,7 @@ impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone> AccountIdConversion<Acc
     }
 
     fn multi_location(who: AccountType) -> MultiLocation {
-        who.multi_location(NetworkId::Any).into()
+        who.multi_location().into()
     }
 }
 
@@ -65,7 +64,7 @@ impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone>
 }
 
 frame_support::parameter_types! {
-    pub const AnyNetwork: NetworkId = NetworkId::Any;
+    pub const AnyNetwork: Option<NetworkId> = None;
 }
 
 /// Converts signed origin to AccountId32 multilocation

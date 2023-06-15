@@ -107,9 +107,10 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self, I>>
+            + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Origin for binary creation
-        type ToggleBinaryCreateOrigin: EnsureOrigin<Self::Origin>;
+        type ToggleBinaryCreateOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         type Balance: Parameter
             + Member
             + AtLeast32BitUnsigned
@@ -141,7 +142,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
     #[pallet::storage]
@@ -170,7 +170,7 @@ pub mod pallet {
                 Binaries::<T, I>::translate(Self::update_binary);
                 <T as pallet::Config<I>>::WeightInfo::on_initialize()
             } else {
-                Weight::from_ref_time(1)
+                Weight::from_parts(1, 0)
             }
         }
 
@@ -179,7 +179,7 @@ pub mod pallet {
             EqPalletAccountInitializer::<T>::initialize(
                 &T::PalletId::get().into_account_truncating(),
             );
-            Weight::from_ref_time(1)
+            Weight::from_parts(1, 0)
         }
     }
 
@@ -245,6 +245,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::create())]
         pub fn create(
             origin: OriginFor<T>,
@@ -275,6 +276,7 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::purge())]
         pub fn purge(origin: OriginFor<T>, binary_id: BinaryId) -> DispatchResultWithPostInfo {
             ensure_signed(origin)?;
@@ -284,6 +286,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::deposit())]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -302,6 +305,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn withdraw(origin: OriginFor<T>, binary_id: BinaryId) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -315,6 +319,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::claim())]
         pub fn claim(origin: OriginFor<T>, binary_id: BinaryId) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -330,6 +335,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::claim_other())]
         pub fn claim_other(
             origin: OriginFor<T>,

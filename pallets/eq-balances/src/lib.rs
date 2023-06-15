@@ -81,11 +81,10 @@ use sp_std::{
     prelude::*,
 };
 pub use weights::WeightInfo;
-use xcm::latest::{
-    AssetId::Concrete, Fungibility::Fungible, Instruction::*, MultiAsset, NetworkId, SendResult,
-    SendXcm, WeightLimit, WildMultiAsset::*, Xcm,
+use xcm::v3::{
+    AssetId::Concrete, Fungibility::Fungible, Instruction::*, InteriorMultiLocation, MultiAsset,
+    MultiLocation, SendResult, SendXcm, WeightLimit, WildMultiAsset::*, Xcm,
 };
-use xcm::v1::MultiLocation;
 
 pub mod benchmarking;
 pub mod locked_balance_checker;
@@ -110,18 +109,17 @@ pub mod pallet {
     use sp_runtime::FixedPointOperand;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Origin for enable and disable transfers
-        type ToggleTransferOrigin: EnsureOrigin<Self::Origin>;
+        type ToggleTransferOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Origin to force xcm transfers
-        type ForceXcmTransferOrigin: EnsureOrigin<Self::Origin>;
+        type ForceXcmTransferOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Numerical representation of stored balances
         type Balance: Parameter
             + FixedPointOperand
@@ -178,7 +176,7 @@ pub mod pallet {
         /// Used to convert MultiLocation to AccountId for reserving assets
         type LocationToAccountId: xcm_executor::traits::Convert<MultiLocation, Self::AccountId>;
         /// Used to reanchoring asset with Ancestry
-        type LocationInverter: xcm_executor::traits::InvertLocation;
+        type UniversalLocation: Get<InteriorMultiLocation>;
         /// Weight information for extrinsics in this pallet
         type WeightInfo: WeightInfo;
         /// Account for storing reserved balance
@@ -197,6 +195,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Transfers `value` amount of `Asset` from trx sender to account id `to`
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::transfer())]
         pub fn transfer(
             origin: OriginFor<T>,
@@ -227,7 +226,8 @@ pub mod pallet {
 
         /// Adds currency to account balance (sudo only). Used to deposit currency
         /// into system. Disabled in production.
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(1)]
+        #[pallet::weight(T::WeightInfo::transfer())]
         pub fn deposit(
             origin: OriginFor<T>,
             asset: Asset,
@@ -245,7 +245,8 @@ pub mod pallet {
 
         /// Burns currency (sudo only). Used to withdraw currency from the system.
         /// Disabled in production.
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::WeightInfo::transfer())]
         pub fn burn(
             origin: OriginFor<T>,
             asset: Asset,
@@ -269,6 +270,7 @@ pub mod pallet {
         }
 
         /// Enable transfers between accounts
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::enable_transfers())]
         pub fn enable_transfers(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             T::ToggleTransferOrigin::ensure_origin(origin)?;
@@ -278,6 +280,7 @@ pub mod pallet {
         }
 
         /// Disable transfers between accounts
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::disable_transfers())]
         pub fn disable_transfers(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             T::ToggleTransferOrigin::ensure_origin(origin)?;
@@ -286,6 +289,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::disable_transfers())]
         pub fn xcm_toggle(
             origin: OriginFor<T>,
@@ -306,6 +310,7 @@ pub mod pallet {
         /// `amount` - amount to transfer;
         /// `to` - recipient account on target chain.
         /// Will be deprecated, use `transfer_xcm_native` instead.
+        #[pallet::call_index(6)]
         #[pallet::weight(T::WeightInfo::xcm_transfer_native())]
         pub fn xcm_transfer_native(
             origin: OriginFor<T>,
@@ -329,6 +334,7 @@ pub mod pallet {
         /// `amount` - amount to transfer;
         /// `to` - recipient location from current chain.
         /// Will be deprecated, use `transfer_xcm` instead.
+        #[pallet::call_index(7)]
         #[pallet::weight(T::WeightInfo::xcm_transfer())]
         pub fn xcm_transfer(
             origin: OriginFor<T>,
@@ -346,6 +352,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(8)]
         #[pallet::weight(T::WeightInfo::xcm_transfer_native())]
         pub fn force_xcm_transfer_native(
             origin: OriginFor<T>,
@@ -367,7 +374,8 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(9)]
+        #[pallet::weight(T::WeightInfo::xcm_transfer())]
         pub fn force_xcm_transfer(
             origin: OriginFor<T>,
             asset: Asset,
@@ -388,6 +396,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(10)]
         #[pallet::weight(T::WeightInfo::xcm_transfer())]
         pub fn transfer_xcm(
             origin: OriginFor<T>,
@@ -405,7 +414,8 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(T::WeightInfo::xcm_transfer())]
+        #[pallet::call_index(11)]
+        #[pallet::weight(T::WeightInfo::xcm_transfer_native())]
         pub fn transfer_xcm_native(
             origin: OriginFor<T>,
             transfer: (Asset, T::Balance),
@@ -423,6 +433,7 @@ pub mod pallet {
         }
 
         /// Allow for `accounts` to make limited xcm native transfers
+        #[pallet::call_index(12)]
         #[pallet::weight(T::WeightInfo::allow_xcm_transfers_native_for(accounts.len() as u32))]
         pub fn allow_xcm_transfers_native_for(
             origin: OriginFor<T>,
@@ -441,6 +452,7 @@ pub mod pallet {
         }
 
         /// Remove accounts from whitelist of xcm native transfers
+        #[pallet::call_index(13)]
         #[pallet::weight(T::WeightInfo::forbid_xcm_transfers_native_for(accounts.len() as u32))]
         pub fn forbid_xcm_transfers_native_for(
             origin: OriginFor<T>,
@@ -456,6 +468,7 @@ pub mod pallet {
         }
 
         /// Update XCM transfer limit or remove it in case of limit = `None`
+        #[pallet::call_index(14)]
         #[pallet::weight(T::WeightInfo::update_xcm_transfer_native_limit())]
         pub fn update_xcm_transfer_native_limit(
             origin: OriginFor<T>,
@@ -858,6 +871,10 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
             );
         } // AllowDeath, for new account will be removed by offchain worker
 
+        if providers == 0 {
+            frame_system::Pallet::<T>::inc_providers(dest);
+        }
+
         T::AccountStore::mutate(transactor, |from_account| -> DispatchResult {
             T::AccountStore::mutate(dest, |to_account| -> DispatchResult {
                 if ensure_can_change {
@@ -992,6 +1009,11 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
 
         Self::ensure_asset_exists(asset)?;
 
+        let providers = frame_system::Pallet::<T>::providers(who);
+        if providers == 0 {
+            frame_system::Pallet::<T>::inc_providers(who);
+        }
+
         T::AccountStore::mutate(who, |balances| -> DispatchResult {
             if !ensure_can_change
                 || T::BalanceChecker::can_change_balance(
@@ -1088,6 +1110,10 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
                     .expect("deposit_creating failed");
             }
             Negative(d) => {
+                let providers = frame_system::Pallet::<T>::providers(who);
+                if providers == 0 {
+                    frame_system::Pallet::<T>::inc_providers(who);
+                }
                 Self::withdraw(
                     who,
                     asset,
@@ -1190,7 +1216,7 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
 
         // dec_providers also remove account
         // we checked that it's last provider
-        T::AccountStore::remove(who).expect("Unexpected dec_providers error");
+        frame_system::Pallet::<T>::dec_providers(who).expect("Unexpected dec_providers error");
 
         Locked::<T>::remove(who);
 

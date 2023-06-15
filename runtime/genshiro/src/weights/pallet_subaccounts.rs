@@ -51,7 +51,7 @@ impl<T: frame_system::Config> eq_subaccounts::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	// Storage: Bailsman LastDistribution (r:0 w:1)
 	fn transfer_to_bailsman_register() -> Weight {
-		Weight::from_ref_time(219_442_000 as u64)
+		Weight::from_parts(219_442_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(22 as u64))
 			.saturating_add(T::DbWeight::get().writes(11 as u64))
 	}
@@ -69,7 +69,7 @@ impl<T: frame_system::Config> eq_subaccounts::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:2 w:2)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn transfer_to_borrower_register() -> Weight {
-		Weight::from_ref_time(187_264_000 as u64)
+		Weight::from_parts(187_264_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(19 as u64))
 			.saturating_add(T::DbWeight::get().writes(9 as u64))
 	}
@@ -96,9 +96,9 @@ impl<T: frame_system::Config> eq_subaccounts::WeightInfo for WeightInfo<T> {
 	// Storage: Bailsman LastDistribution (r:0 w:1)
 	/// The range of component `r` is `[0, 50]`.
 	fn transfer_to_bailsman_and_redistribute(r: u32, ) -> Weight {
-		Weight::from_ref_time(532_745_000 as u64)
+		Weight::from_parts(532_745_000 as u64, 0)
 			// Standard Error: 703_000
-			.saturating_add(Weight::from_ref_time(2_142_000 as u64).saturating_mul(r as u64))
+			.saturating_add(Weight::from_parts(2_142_000 as u64, 0).saturating_mul(r as u64))
 			.saturating_add(T::DbWeight::get().reads(38 as u64))
 			.saturating_add(T::DbWeight::get().writes(11 as u64))
 	}
@@ -124,7 +124,7 @@ impl<T: frame_system::Config> eq_subaccounts::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	// Storage: Bailsman LastDistribution (r:0 w:1)
 	fn transfer_to_subaccount() -> Weight {
-		Weight::from_ref_time(375_832_000 as u64)
+		Weight::from_parts(375_832_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(29 as u64))
 			.saturating_add(T::DbWeight::get().writes(11 as u64))
 	}
@@ -147,7 +147,7 @@ impl<T: frame_system::Config> eq_subaccounts::WeightInfo for WeightInfo<T> {
 	// Storage: EqMarginCall MaintenanceTimers (r:1 w:0)
 	// Storage: Bailsman BailsmenCount (r:1 w:1)
 	fn transfer_from_subaccount() -> Weight {
-		Weight::from_ref_time(321_648_000 as u64)
+		Weight::from_parts(321_648_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(27 as u64))
 			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
@@ -171,9 +171,9 @@ impl<T: frame_system::Config> eq_subaccounts::WeightInfo for WeightInfo<T> {
 	// Storage: Bailsman BailsmenCount (r:1 w:1)
 	/// The range of component `r` is `[0, 50]`.
 	fn transfer_from_subaccount_redistribute(r: u32, ) -> Weight {
-		Weight::from_ref_time(1_700_719_000 as u64)
+		Weight::from_parts(1_700_719_000 as u64, 0)
 			// Standard Error: 6_411_000
-			.saturating_add(Weight::from_ref_time(26_414_000 as u64).saturating_mul(r as u64))
+			.saturating_add(Weight::from_parts(26_414_000 as u64, 0).saturating_mul(r as u64))
 			.saturating_add(T::DbWeight::get().reads(60 as u64))
 			.saturating_add(T::DbWeight::get().writes(28 as u64))
 	}

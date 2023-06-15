@@ -27,7 +27,7 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> eq_curve_distribution::WeightInfo for WeightInfo<T> {
     fn distribute() -> Weight {
-        (Weight::from_ref_time(972_217_000))
+        (Weight::from_parts(972_217_000, 0))
             .saturating_add(T::DbWeight::get().reads(28))
             .saturating_add(T::DbWeight::get().writes(9))
     }

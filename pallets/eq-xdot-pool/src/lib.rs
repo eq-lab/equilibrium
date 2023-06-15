@@ -117,7 +117,6 @@ pub mod pallet {
     use yield_math::YieldMathTrait;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -137,9 +136,9 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config + eq_rate::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type PoolsManagementOrigin: EnsureOrigin<Self::Origin>;
+        type PoolsManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Primitive integer type that [`XdotNumber`](#associatedtype.XdotNumber) based on.
         type FixedNumberBits: Copy + ToFixed + AddAssign + BitOrAssign + ShlAssign;
@@ -188,6 +187,7 @@ pub mod pallet {
         /// - maturity: unix timestamp when maturity is coming
         /// - ts_period: period in secs for ts coeff
 
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn create_pool(
             origin: OriginFor<T>,
@@ -216,6 +216,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn initialize(
             origin: OriginFor<T>,
@@ -229,6 +230,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn change_initializer(
             origin: OriginFor<T>,
@@ -246,6 +248,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn remove_pool(origin: OriginFor<T>, pool_id: PoolId) -> DispatchResultWithPostInfo {
             T::PoolsManagementOrigin::ensure_origin(origin)?;
@@ -261,6 +264,7 @@ pub mod pallet {
         /// The amount of liquidity tokens is calculated from the amount of xbase tokens to buy from the pool,
         /// plus the `xbase_in`. A proportional amount of base tokens need to be sent.
         /// It fails if amount of base tokens for trade less than `base_in`
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn mint(
             origin: OriginFor<T>,
@@ -288,6 +292,7 @@ pub mod pallet {
         }
 
         /// Burn liquidity tokens in exchange for base and fyToken or base only with `trade_to_base=true`
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn burn(
             origin: OriginFor<T>,
@@ -314,6 +319,7 @@ pub mod pallet {
         /// Sell base for xbase token.
         /// min -  minimm accepted amount of xbase token
         /// Returns amount of xbase token that will be transfered on caller account
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn sell_base(
             origin: OriginFor<T>,
@@ -331,6 +337,7 @@ pub mod pallet {
         /// Buy base for xbase token
         /// buy_base_amount - amount of base being bought that will be deposited to caller
         /// max - maximum amount of xbase token that will be paid for the trade
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn buy_base(
             origin: OriginFor<T>,
@@ -349,6 +356,7 @@ pub mod pallet {
         /// Sell xbase token for base
         /// xbase_to_sell - amount of xbase token to sell for base
         /// min - minimum accepted amount of base
+        #[pallet::call_index(8)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn sell_xbase(
             origin: OriginFor<T>,
@@ -365,6 +373,7 @@ pub mod pallet {
         /// Buy xbase for base
         /// xbase_to_buy - amount of xbase being bought that will be transfered to caller
         /// max - maximum amount of base token that will be paid for the trade
+        #[pallet::call_index(9)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn buy_xbase(
             origin: OriginFor<T>,
@@ -380,6 +389,7 @@ pub mod pallet {
             Self::do_buy_xbase(&who, pool_id, xbase_to_buy, base_to_sell, max)
         }
 
+        #[pallet::call_index(10)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn optimal_mint(
             origin: OriginFor<T>,

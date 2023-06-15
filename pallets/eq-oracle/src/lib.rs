@@ -379,7 +379,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -392,10 +391,10 @@ pub mod pallet {
         + financial_pallet::Config
     {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
-        type Call: From<Call<Self>>;
-        type FinMetricsRecalcToggleOrigin: EnsureOrigin<Self::Origin>;
+        type RuntimeCall: From<Call<Self>>;
+        type FinMetricsRecalcToggleOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         type Balance: Parameter
             + Member
             + AtLeast32BitUnsigned
@@ -458,6 +457,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight((<T as Config>::WeightInfo::set_price(10), DispatchClass::Operational))]
         /// Adds and saves a new `DataPoint` containing an asset price information. It
         /// would be used for the `PricePoint` calculation. Only whitelisted
@@ -475,6 +475,7 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight((<T as Config>::WeightInfo::set_price(10), DispatchClass::Operational))]
         /// Adds new `DataPoint` from an unsigned transaction
         pub fn set_price_unsigned(
@@ -494,7 +495,8 @@ pub mod pallet {
             <Self as PriceSetter<T::AccountId>>::set_price(who, asset, price)
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::DbWeight::get().writes(1_u64))]
         /// Enables or disables auto recalculation of financial metrics
         pub fn set_fin_metrics_recalc_enabled(
             origin: OriginFor<T>,
@@ -649,7 +651,7 @@ pub mod pallet {
                 let _ = T::FinancialSystemTrait::recalc_inner();
             }
 
-            Weight::from_ref_time(10_000)
+            Weight::from_parts(10_000, 0)
         }
     }
 

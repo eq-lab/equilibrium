@@ -68,8 +68,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -77,7 +77,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -91,7 +91,7 @@ impl frame_system::Config for Test {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = MainAsset;
     type OnNewAsset = ();
@@ -242,7 +242,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDeposit;
     type BalanceChecker = ();
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Aggregates = eq_aggregates::Pallet<Test>;
     type TreasuryModuleId = TreasuryModuleId;
@@ -254,46 +254,20 @@ impl eq_balances::Config for Test {
     type XcmRouter = eq_primitives::mocks::XcmRouterErrMock;
     type XcmToFee = eq_primitives::mocks::XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type UnixTime = TimeZeroDurationMock;
 }
 
 parameter_types! {
-    pub const RelayLocation: MultiLocation = Here.into();
-    pub const AnyNetwork: NetworkId = NetworkId::Any;
-    pub Ancestry: MultiLocation = Here.into();
     pub UnitWeightCost: u64 = 1_000;
     pub const BaseXcmWeight: u64 = 1_000;
-    pub CurrencyPerSecond: (AssetId, u128) = (Concrete(RelayLocation::get()), 1);
     pub TrustedAssets: (MultiAssetFilter, MultiLocation) = (All.into(), Here.into());
     pub const MaxInstructions: u32 = 100;
 }
 
 thread_local! {
     pub static SENT_XCM: RefCell<Vec<(MultiLocation, Xcm<()>)>> = RefCell::new(Vec::new());
-}
-
-/// Sender that never returns error, always sends
-pub struct TestSendXcm;
-impl SendXcm for TestSendXcm {
-    fn send_xcm(dest: impl Into<MultiLocation>, msg: Xcm<()>) -> SendResult {
-        SENT_XCM.with(|q| q.borrow_mut().push((dest.into(), msg)));
-        Ok(())
-    }
-}
-
-pub struct TestSendXcmErrX8;
-impl SendXcm for TestSendXcmErrX8 {
-    fn send_xcm(dest: impl Into<MultiLocation>, msg: Xcm<()>) -> SendResult {
-        let dest = dest.into();
-        if dest.len() == 8 {
-            Err(SendError::Transport("Destination location full"))
-        } else {
-            SENT_XCM.with(|q| q.borrow_mut().push((dest, msg)));
-            Ok(())
-        }
-    }
 }
 
 parameter_types! {
@@ -396,7 +370,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                 Permill::zero(),
                 Permill::zero(),
                 AssetXcmData::OtherReserved(OtherReservedData {
-                    multi_location: (1, Here).into(),
+                    multi_location: MultiLocation::parent(),
                     decimals: 10,
                 })
                 .encode(),

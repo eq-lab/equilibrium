@@ -38,7 +38,7 @@ impl<T: frame_system::Config> eq_whitelists::WeightInfo for WeightInfo<T> {
 	// Storage: Timestamp Now (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn add_to_whitelist() -> Weight {
-		Weight::from_ref_time(27_000_000 as u64)
+		Weight::from_parts(27_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -48,7 +48,7 @@ impl<T: frame_system::Config> eq_whitelists::WeightInfo for WeightInfo<T> {
 	// Storage: Oracle PricePoints (r:18 w:18)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn remove_from_whitelist() -> Weight {
-		Weight::from_ref_time(78_000_000 as u64)
+		Weight::from_parts(78_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(21 as u64))
 			.saturating_add(T::DbWeight::get().writes(21 as u64))
 	}

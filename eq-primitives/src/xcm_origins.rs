@@ -16,8 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use xcm::latest::{Junction::*, Junctions::*};
-use xcm::v1::MultiLocation;
+use xcm::v3::{Junction::*, Junctions::*, MultiLocation};
 
 pub const RELAY: MultiLocation = MultiLocation {
     parents: 1,

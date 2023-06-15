@@ -65,7 +65,7 @@ frame_support::construct_runtime!(
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
+        frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
     pub const MinimumPeriod: u64 = 1;
     pub const UnsignedPriority: eq_primitives::UnsignedPriorityPair = (0, 1_000_000);
 }
@@ -74,8 +74,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -83,7 +83,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -104,13 +104,13 @@ impl timestamp::Config for Test {
 }
 
 impl eq_whitelists::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WhitelistManagementOrigin = EnsureRoot<AccountId>;
     type OnRemove = ();
     type WeightInfo = ();
 }
 
-type Extrinsic = TestXt<Call, ()>;
+type Extrinsic = TestXt<RuntimeCall, ()>;
 type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
 impl frame_system::offchain::SigningTypes for Test {
@@ -120,22 +120,22 @@ impl frame_system::offchain::SigningTypes for Test {
 
 impl<LocalCall> frame_system::offchain::SendTransactionTypes<LocalCall> for Test
 where
-    Call: From<LocalCall>,
+    RuntimeCall: From<LocalCall>,
 {
-    type OverarchingCall = Call;
+    type OverarchingCall = RuntimeCall;
     type Extrinsic = Extrinsic;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Test
 where
-    Call: From<LocalCall>,
+    RuntimeCall: From<LocalCall>,
 {
     fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
-        call: Call,
+        call: RuntimeCall,
         _public: <Signature as Verify>::Signer,
         _account: AccountId,
         nonce: u64,
-    ) -> Option<(Call, <Extrinsic as ExtrinsicT>::SignaturePayload)> {
+    ) -> Option<(RuntimeCall, <Extrinsic as ExtrinsicT>::SignaturePayload)> {
         Some((call, (nonce, ())))
     }
 }
@@ -249,7 +249,7 @@ impl CurveAmmTrait for CurveAmmStub {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = MainAsset;
     type OnNewAsset = ();
@@ -389,7 +389,7 @@ impl financial_primitives::BalanceAware for Balances {
 }
 
 impl financial_pallet::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type UnixTime = timestamp::Pallet<Test>;
     type PriceCount = ();
     type PricePeriod = ();
@@ -406,8 +406,8 @@ impl Config for Test {
     type FinancialRecalcPeriodBlocks = FinancialRecalcPeriodBlocks;
     type AssetGetter = eq_assets::Pallet<Test>;
     type AuthorityId = crypto::TestAuthId;
-    type Event = Event;
-    type Call = Call;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
     type Whitelist = eq_whitelists::Pallet<Self>;
     type UnixTime = timestamp::Pallet<Self>;
     type FinMetricsRecalcToggleOrigin = EnsureRoot<AccountId>;

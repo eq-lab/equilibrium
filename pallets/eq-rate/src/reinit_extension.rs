@@ -33,12 +33,12 @@ use sp_std::marker::PhantomData;
 #[derive(Encode, Decode, Clone, Eq, PartialEq, scale_info::TypeInfo)]
 pub struct ReinitAccount<
     T: Config + Send + Sync + scale_info::TypeInfo,
-    CallsWithReinit: 'static + Contains<T::Call> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
+    CallsWithReinit: 'static + Contains<T::RuntimeCall> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
 >(PhantomData<(T, CallsWithReinit)>);
 
 impl<
         T: Config + Send + Sync + scale_info::TypeInfo,
-        CallsWithReinit: 'static + Contains<T::Call> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
+        CallsWithReinit: 'static + Contains<T::RuntimeCall> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
     > Debug for ReinitAccount<T, CallsWithReinit>
 {
     #[cfg(feature = "std")]
@@ -54,7 +54,7 @@ impl<
 
 impl<
         T: Config + Send + Sync + scale_info::TypeInfo,
-        CallsWithReinit: 'static + Contains<T::Call> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
+        CallsWithReinit: 'static + Contains<T::RuntimeCall> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
     > ReinitAccount<T, CallsWithReinit>
 {
     pub fn new() -> Self {
@@ -64,13 +64,13 @@ impl<
 
 impl<
         T: Config + Send + Sync + scale_info::TypeInfo,
-        CallsWithReinit: 'static + Contains<T::Call> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
+        CallsWithReinit: 'static + Contains<T::RuntimeCall> + Sync + Send + Clone + Eq + scale_info::TypeInfo,
     > SignedExtension for ReinitAccount<T, CallsWithReinit>
 where
-    T::Call: Dispatchable<Info = DispatchInfo>,
+    T::RuntimeCall: Dispatchable<Info = DispatchInfo>,
 {
     type AccountId = T::AccountId;
-    type Call = T::Call;
+    type Call = T::RuntimeCall;
     type AdditionalSigned = ();
     type Pre = ();
     const IDENTIFIER: &'static str = "ReinitAccount";

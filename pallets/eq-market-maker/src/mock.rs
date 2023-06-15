@@ -27,10 +27,9 @@ type Block = frame_system::mocking::MockBlock<Test>;
 
 use core::convert::{TryFrom, TryInto};
 use eq_primitives::{Order, Price};
-use frame_support::traits::Everything;
+use frame_support::{parameter_types, traits::Everything};
 use sp_core::H256;
 use sp_runtime::{
-    parameter_types,
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
 };
@@ -55,8 +54,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -64,7 +63,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -78,7 +77,7 @@ impl frame_system::Config for Test {
 }
 
 impl Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DexWeightInfo = ();
     type OrderManagement = OrderManagementMock;
 }

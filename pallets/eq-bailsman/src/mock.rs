@@ -79,7 +79,7 @@ parameter_types! {
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
+        frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/resrv");
 }
 
@@ -88,8 +88,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -97,7 +97,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -247,7 +247,7 @@ impl SubaccountsManager<AccountId> for SubaccountsManagerMock {
 
 impl eq_balances::Config for Test {
     type ParachainId = eq_primitives::mocks::ParachainId;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ToggleTransferOrigin = EnsureRoot<AccountId>;
     type ForceXcmTransferOrigin = EnsureRoot<AccountId>;
     type AccountStore = System;
@@ -266,7 +266,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = eq_primitives::mocks::XcmRouterErrMock;
     type XcmToFee = eq_primitives::mocks::XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type ModuleId = BalancesModuleId;
     type WeightInfo = ();
     type OrderAggregates = ();
@@ -286,7 +286,7 @@ impl eq_aggregates::Config for Test {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = MainAsset;
     type OnNewAsset = ();
@@ -340,15 +340,15 @@ parameter_types! {
 
 impl<LocalCall> SendTransactionTypes<LocalCall> for Test
 where
-    Call: From<LocalCall>,
+    RuntimeCall: From<LocalCall>,
 {
-    type OverarchingCall = Call;
-    type Extrinsic = TestXt<Call, ()>;
+    type OverarchingCall = RuntimeCall;
+    type Extrinsic = TestXt<RuntimeCall, ()>;
 }
 
 impl Config for Test {
     type AssetGetter = eq_assets::Pallet<Test>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type BalanceGetter = ModuleBalances;
     type EqCurrency = ModuleBalances;

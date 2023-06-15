@@ -68,7 +68,7 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Network native asset
         /// Commissions are paid in this asset
@@ -77,13 +77,12 @@ pub mod pallet {
 
         type OnNewAsset: OnNewAsset;
 
-        type AssetManagementOrigin: EnsureOrigin<Self::Origin>;
+        type AssetManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub (super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -223,11 +222,17 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_runtime_upgrade() -> Weight {
+            let _ = Assets::<T>::translate(migration::migrate_assets_data);
+            Weight::from_parts(1, 0)
+        }
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Constructs and adds an asset
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::add_asset())]
         pub fn add_asset(
             origin: OriginFor<T>,
@@ -281,6 +286,7 @@ pub mod pallet {
 
         /// Call to remove asset from eq_assets::Assets, eq_oracle, eq_lenders and financial_pallet storages
         /// Doesn't affect mm, xdot and curve pools
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::remove_asset())]
         pub fn remove_asset(origin: OriginFor<T>, asset_id: Asset) -> DispatchResultWithPostInfo {
             T::AssetManagementOrigin::ensure_origin(origin)?;
@@ -319,6 +325,7 @@ pub mod pallet {
         }
 
         /// Updates an asset
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::update_asset())]
         pub fn update_asset(
             origin: OriginFor<T>,

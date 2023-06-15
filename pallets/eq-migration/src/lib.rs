@@ -39,14 +39,13 @@ pub mod pallet {
     use sp_std::{convert::TryInto, vec::Vec};
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: PalletWeightInfo;
         /// Set storage calls per block
@@ -57,6 +56,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Adds new migration, if there is no migration in storage
+        #[pallet::call_index(0)]
         #[pallet::weight((
             T::WeightInfo::set_migration(),
             DispatchClass::Operational))

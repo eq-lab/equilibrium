@@ -6,12 +6,12 @@ edition = "2018"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0" }
-jsonrpsee = { version = "0.15.1", features = ["server", "macros"] }
-sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.29" }
-sp-rpc = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.29" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.29" }
-sp-api = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.29" }
-sp-blockchain = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.29" }
+jsonrpsee = { version = "0.16.2", features = ["server", "macros"] }
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.42" }
+sp-rpc = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.42" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.42" }
+sp-api = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.42" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.42" }
 substrate-fixed = { branch = "scale-info-2.0.1", git = "https://github.com/equilibrium-eosdt/substrate-fixed", features = ["serde"], package = "substrate-fixed" }
 
 eq-xdot-pool-rpc-runtime-api = { version = "0.1.0", default-features = false, path = "runtime-api", package="eq-xdot-pool-rpc-runtime-api" }

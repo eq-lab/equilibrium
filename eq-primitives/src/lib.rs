@@ -21,7 +21,6 @@
 
 use balance::Balance;
 use balance_number::EqFixedU128;
-use frame_support::weights::TransactionPriority;
 use frame_support::{
     codec::{Decode, Encode, FullCodec},
     dispatch::{DispatchError, DispatchResult, DispatchResultWithPostInfo},
@@ -30,6 +29,7 @@ use frame_support::{
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member},
+    transaction_validity::TransactionPriority,
     FixedI64, RuntimeDebug,
 };
 use sp_std::convert::TryInto;
@@ -38,7 +38,7 @@ use sp_std::prelude::*;
 
 use asset::Asset;
 pub use polkadot_core_primitives::Balance as XcmBalance;
-use xcm::latest::{Junction::*, NetworkId};
+use xcm::v3::Junction::*;
 
 pub use crate::bailsman::*;
 pub use crate::dex::*;
@@ -479,10 +479,10 @@ impl Into<Vec<u8>> for AccountType {
 }
 
 impl AccountType {
-    pub fn multi_location(self, network: NetworkId) -> xcm::v1::Junction {
+    pub fn multi_location(self) -> xcm::v3::Junction {
         match self {
-            AccountType::Id32(id) => AccountId32 { network, id },
-            AccountType::Key20(key) => AccountKey20 { network, key },
+            AccountType::Id32(id) => AccountId32 { network: None, id },
+            AccountType::Key20(key) => AccountKey20 { network: None, key },
         }
     }
 }

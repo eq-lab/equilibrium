@@ -89,13 +89,12 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::config]
     pub trait Config: frame_system::Config + authorship::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Pallets AccountId for balances
         type PalletId: Get<PalletId>;
         /// Numerical representation of stored balances
@@ -140,6 +139,7 @@ pub mod pallet {
         /// `asset` - asset to exchange
         /// `amount` - amount of native asset user will get after buyout
         ///            or amount of exchange asset user will give for buyout
+        #[pallet::call_index(0)]
         #[pallet::weight((T::WeightInfo::buyout(), Pays::No))]
         pub fn buyout(
             origin: OriginFor<T>,
@@ -154,6 +154,7 @@ pub mod pallet {
         /// Set/unset buyout limit
         /// Parameters:
         /// `limit` - max value of native token user could get with help of buyout for a period(day), None - to disable buyout limits
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::update_buyout_limit())]
         pub fn update_buyout_limit(
             origin: OriginFor<T>,
@@ -568,11 +569,11 @@ impl From<ValidityError> for u8 {
 #[derive(Encode, Decode, Clone, Eq, PartialEq, scale_info::TypeInfo)]
 pub struct CheckBuyout<T: Config + Send + Sync + scale_info::TypeInfo>(PhantomData<T>)
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>;
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> Debug for CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     #[cfg(feature = "std")]
     fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -587,7 +588,7 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> Default for CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     fn default() -> Self {
         Self(PhantomData)
@@ -596,7 +597,7 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     pub fn new() -> Self {
         Self(PhantomData)
@@ -605,11 +606,11 @@ where
 
 impl<T: Config + Send + Sync + scale_info::TypeInfo> SignedExtension for CheckBuyout<T>
 where
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     const IDENTIFIER: &'static str = "CheckBuyout";
     type AccountId = T::AccountId;
-    type Call = T::Call;
+    type Call = T::RuntimeCall;
     type AdditionalSigned = ();
     type Pre = ();
 

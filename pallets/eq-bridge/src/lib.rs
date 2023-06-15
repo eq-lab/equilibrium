@@ -78,7 +78,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -122,12 +121,12 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config + chainbridge::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type BridgeManagementOrigin: EnsureOrigin<Self::Origin>;
+        type BridgeManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Specifies the origin check provided by the bridge for calls that can only be called by the bridge pallet
-        type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+        type BridgeOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
         /// Integrates balances operations of `eq-balances` pallet
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
@@ -147,6 +146,7 @@ pub mod pallet {
 
         /// Transfers some amount of the native token to some recipient on a (whitelisted) destination chain.
         /// Charges fee and accumulates it on the special account.
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer_native())]
         pub fn transfer_native(
             origin: OriginFor<T>,
@@ -166,6 +166,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::set_resource())]
         pub fn set_resource(
             origin: OriginFor<T>,
@@ -182,6 +183,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::enable_withdrawals())]
         pub fn enable_withdrawals(
             origin: OriginFor<T>,
@@ -198,6 +200,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::disable_withdrawals())]
         pub fn disable_withdrawals(
             origin: OriginFor<T>,
@@ -214,6 +217,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::set_minimum_transfer_amount())]
         pub fn set_minimum_transfer_amount(
             origin: OriginFor<T>,
@@ -231,6 +235,7 @@ pub mod pallet {
         /// # <weight>
         /// - O(1) write
         /// # </weight>
+        #[pallet::call_index(5)]
         #[pallet::weight(T::DbWeight::get().writes(1).ref_time())]
         pub fn set_chain_address_type(
             origin: OriginFor<T>,
@@ -247,6 +252,7 @@ pub mod pallet {
 
         /// Deposits specified amount of Eq/Gens tokens to the user's account
         // TODO: transfer/transfer_basic depending on the asset: basic/not basic (look in benchmarking)
+        #[pallet::call_index(6)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer())]
         pub fn transfer(
             origin: OriginFor<T>,
@@ -276,6 +282,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::transfer())]
         pub fn xcm_transfer(
             origin: OriginFor<T>,
@@ -299,11 +306,11 @@ pub mod pallet {
                     )?;
                 }
                 Err(_) => {
-                    use xcm::latest::{Junction::*, Junctions::*, NetworkId};
+                    use xcm::v3::{Junction::*, Junctions::*, MultiLocation};
 
                     let (para_id, account_type): (u32, AccountType) =
                         Decode::decode(&mut &to[..]).map_err(|_| Error::<T>::InvalidAccount)?;
-                    let account_type = account_type.multi_location(NetworkId::Any);
+                    let account_type = account_type.multi_location();
                     let location = if para_id == 0 {
                         X1(account_type)
                     } else {
@@ -315,7 +322,7 @@ pub mod pallet {
                         &from,
                         asset,
                         amount,
-                        XcmDestination::Common((1, location).into()),
+                        XcmDestination::Common(MultiLocation::new(1, location)),
                     )?;
                 }
             }
@@ -324,6 +331,7 @@ pub mod pallet {
         }
 
         /// This can be called by the bridge to demonstrate an arbitrary call from a proposal.
+        #[pallet::call_index(8)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::remark())]
         pub fn remark(origin: OriginFor<T>, hash: T::Hash) -> DispatchResultWithPostInfo {
             T::BridgeOrigin::ensure_origin(origin)?;

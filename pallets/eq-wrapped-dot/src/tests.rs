@@ -100,7 +100,7 @@ fn deposit_should_work() {
         let mint_amount = Pallet::<Test>::calc_mint_wrapped_amount(deposit_amount).unwrap();
 
         assert_ok!(ModuleWrappedDot::deposit(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             deposit_amount
         ));
 
@@ -125,7 +125,7 @@ fn deposit_should_fail_when_insufficient_deposit() {
         let deposit_amount = 2u128 * ONE_TOKEN;
 
         assert_err!(
-            ModuleWrappedDot::deposit(Origin::signed(account_id), deposit_amount),
+            ModuleWrappedDot::deposit(RuntimeOrigin::signed(account_id), deposit_amount),
             Error::<Test>::InsufficientDeposit
         );
     });
@@ -168,7 +168,7 @@ fn withdraw_should_fail_when_insufficient_amount() {
         let withdraw_dot = 4u128 * ONE_TOKEN;
         assert_err!(
             ModuleWrappedDot::withdraw(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 WithdrawAmount::Dot(withdraw_dot)
             ),
             Error::<Test>::InsufficientWithdraw
@@ -177,7 +177,7 @@ fn withdraw_should_fail_when_insufficient_amount() {
         let withdraw_wrapped_dot = 1u128 * ONE_TOKEN;
         assert_err!(
             ModuleWrappedDot::withdraw(
-                Origin::signed(account_id),
+                RuntimeOrigin::signed(account_id),
                 WithdrawAmount::EqDot(withdraw_wrapped_dot)
             ),
             Error::<Test>::InsufficientWithdraw
@@ -202,7 +202,7 @@ fn withdraw_dot_amount_when_transferable_enough() {
         let amount_to_burn = Pallet::<Test>::calc_burn_wrapped_amount(withdraw_amount).unwrap();
 
         assert_ok!(ModuleWrappedDot::withdraw(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             WithdrawAmount::Dot(withdraw_amount)
         ));
 
@@ -239,7 +239,7 @@ fn withdraw_eqdot_amount_when_transferable_enough() {
         let amount_to_deposit = Pallet::<Test>::calc_deposit_amount(withdraw_eqdot_amount).unwrap();
         let transferable_before = CurrentBalance::<Test>::get().transferable;
         assert_ok!(ModuleWrappedDot::withdraw(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             WithdrawAmount::EqDot(withdraw_eqdot_amount)
         ));
 
@@ -280,7 +280,7 @@ fn withdraw_dot_send_xcm_when_transferable_not_enough() {
         let amount_to_burn_without_fee = <Test as Config>::WithdrawFee::get() * amount_to_burn;
 
         assert_ok!(ModuleWrappedDot::withdraw(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             WithdrawAmount::Dot(withdraw_dot_amount)
         ));
 
@@ -327,7 +327,7 @@ fn withdraw_eqdot_send_xcm_when_transferable_not_enough() {
             <Test as Config>::WithdrawFee::get().saturating_reciprocal_mul(deposit_amount);
 
         assert_ok!(ModuleWrappedDot::withdraw(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             WithdrawAmount::EqDot(withdraw_eqdot_amount)
         ));
 
@@ -374,7 +374,7 @@ fn withdraw_clear_queue() {
         );
 
         assert_ok!(ModuleWrappedDot::withdraw(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             WithdrawAmount::EqDot(withdraw_eqdot_amount)
         ));
 
@@ -395,7 +395,7 @@ fn withdraw_clear_queue() {
 
         let new_account_id = 2u64;
         assert_ok!(ModuleWrappedDot::deposit(
-            Origin::signed(new_account_id),
+            RuntimeOrigin::signed(new_account_id),
             100 * ONE_TOKEN
         ));
 

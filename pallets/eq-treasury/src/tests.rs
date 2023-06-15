@@ -21,7 +21,7 @@
 use super::{Config, Error, ValidityError};
 use crate::mock::{
     new_test_ext, AccountId, Balance, DummyValidatorId, ModuleAggregates, ModuleBalances,
-    ModuleTreasury, OracleMock, Origin, Test, TimeMock,
+    ModuleTreasury, OracleMock, RuntimeCall, RuntimeOrigin, Test, TimeMock,
 };
 use crate::{Amount, BuyoutLimit, Buyouts, CheckBuyout};
 use eq_primitives::balance_number::EqFixedU128;
@@ -508,7 +508,7 @@ fn buyout_works() {
             ModuleTreasury::calc_amount_to_exchange(asset::ETH, buyout_amount).unwrap();
 
         assert_ok!(ModuleTreasury::buyout(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             asset::ETH,
             Amount::Buyout(buyout_amount)
         ));
@@ -551,7 +551,7 @@ fn buyout_with_limit() {
             ModuleTreasury::calc_amount_to_exchange(asset::ETH, buyout_amount).unwrap();
 
         assert_ok!(ModuleTreasury::buyout(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             asset::ETH,
             Amount::Buyout(buyout_amount)
         ));
@@ -590,7 +590,7 @@ fn buyout_with_exchange_amount_works() {
             ModuleTreasury::calc_buyout_amount(asset::ETH, exchange_amount).unwrap();
 
         assert_ok!(ModuleTreasury::buyout(
-            Origin::signed(account_id),
+            RuntimeOrigin::signed(account_id),
             asset::ETH,
             Amount::Exchange(exchange_amount)
         ));
@@ -620,7 +620,7 @@ mod signed_extension {
     fn validate_should_skip_other_calls() {
         new_test_ext().execute_with(|| {
             let buyout_call =
-                crate::mock::Call::EqTreasury(crate::Call::update_buyout_limit { limit: None });
+                RuntimeCall::EqTreasury(crate::Call::update_buyout_limit { limit: None });
 
             let check = CheckBuyout::<Test>::new();
             let info = info_from_weight(Weight::zero());
@@ -634,7 +634,7 @@ mod signed_extension {
             let account_id = 1u64;
 
             // call with wrong Asset
-            let buyout_call = crate::mock::Call::EqTreasury(crate::Call::buyout {
+            let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
                 asset: asset::EQ,
                 amount: Amount::Buyout(100 * ONE_TOKEN),
             });
@@ -655,7 +655,7 @@ mod signed_extension {
     fn validate_should_fail_when_no_price_found() {
         new_test_ext().execute_with(|| {
             let account_id = 1u64;
-            let buyout_call = crate::mock::Call::EqTreasury(crate::Call::buyout {
+            let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
                 asset: asset::DAI,
                 amount: Amount::Buyout(100 * ONE_TOKEN),
             });
@@ -676,7 +676,7 @@ mod signed_extension {
     fn validate_should_fail_when_not_enough_to_buyout() {
         new_test_ext().execute_with(|| {
             let account_id = 1u64;
-            let buyout_call = crate::mock::Call::EqTreasury(crate::Call::buyout {
+            let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
                 asset: asset::DOT,
                 amount: Amount::Buyout(100 * ONE_TOKEN),
             });
@@ -697,7 +697,7 @@ mod signed_extension {
     fn validate_should_fail_when_limit_exceeded() {
         new_test_ext().execute_with(|| {
             let account_id = 1u64;
-            let buyout_call = crate::mock::Call::EqTreasury(crate::Call::buyout {
+            let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
                 asset: asset::DOT,
                 amount: Amount::Buyout(100 * ONE_TOKEN),
             });
@@ -728,7 +728,7 @@ mod signed_extension {
     fn validate_should_fail_when_less_than_min_amount_to_buyout() {
         new_test_ext().execute_with(|| {
             let account_id = 1u64;
-            let buyout_call = crate::mock::Call::EqTreasury(crate::Call::buyout {
+            let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
                 asset: asset::DOT,
                 amount: Amount::Buyout(100 * ONE_TOKEN - 1),
             });
@@ -755,7 +755,7 @@ mod signed_extension {
     fn validate_works() {
         new_test_ext().execute_with(|| {
             let account_id = 1u64;
-            let buyout_call = crate::mock::Call::EqTreasury(crate::Call::buyout {
+            let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
                 asset: asset::DOT,
                 amount: Amount::Buyout(110 * ONE_TOKEN),
             });

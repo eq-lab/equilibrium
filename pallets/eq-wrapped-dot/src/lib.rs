@@ -21,7 +21,7 @@
 
 pub mod benchmarking;
 mod mock;
-mod test;
+mod tests;
 pub mod weights;
 pub use weights::WeightInfo;
 
@@ -48,7 +48,6 @@ use frame_support::{
     BoundedVec, PalletId,
 };
 pub use pallet::*;
-use pallet_staking::MaxUnlockingChunks;
 use sp_arithmetic::{
     traits::{AtLeast32BitUnsigned, BaseArithmetic, One, Zero},
     FixedI64, FixedPointNumber, FixedPointOperand, Permill,
@@ -85,6 +84,10 @@ pub struct UnlockChunk<Balance: HasCompact> {
     /// Era number at which point it'll be unlocked.
     #[codec(compact)]
     pub era: EraIndex,
+}
+
+frame_support::parameter_types! {
+    pub MaxUnlockingChunks: u32 = 32;
 }
 
 /// The ledger of a (bonded) stash.
@@ -179,7 +182,7 @@ pub mod pallet {
             + TryFrom<eq_primitives::balance::Balance>
             + FixedPointOperand;
 
-        type StakingInitializeOrigin: EnsureOrigin<Self::Origin>;
+        type StakingInitializeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
         /// Used to get total supply of EQDOT
         type Aggregates: Aggregates<Self::AccountId, Self::Balance>;
@@ -230,7 +233,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -319,6 +321,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Deposit amount of DOT
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::deposit())]
         pub fn deposit(origin: OriginFor<T>, amount: T::Balance) -> DispatchResultWithPostInfo {
             let account_id = ensure_signed(origin)?;
@@ -336,6 +339,7 @@ pub mod pallet {
         /// Withdraw
         /// params:
         /// - amount - amount of DOT/EQDOT to withdraw/burn
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn withdraw(
             origin: OriginFor<T>,
@@ -378,7 +382,8 @@ pub mod pallet {
             }
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn initialize(
             origin: OriginFor<T>,
             account_id: T::AccountId,
@@ -396,14 +401,15 @@ pub mod pallet {
                 ),
                 StakingWeights::<T>::bond(),
             );
-            let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+            let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
 
             ensure!(result.is_ok(), Error::<T>::XcmStakingBondExtraFailed);
 
-            T::EqCurrency::deposit_into_existing(
+            T::EqCurrency::deposit_creating(
                 &account_id,
                 asset::EQDOT,
                 bond,
+                true,
                 Some(DepositReason::Staking),
             )?;
 
@@ -416,7 +422,8 @@ pub mod pallet {
         }
 
         ///Set total unlocking. For maintenance purposes
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::DbWeight::get().writes(7))]
         pub fn set_total_unlocking(
             origin: OriginFor<T>,
             value: T::Balance,
@@ -517,10 +524,11 @@ impl<T: Config> Pallet<T> {
             if *transferable < *withdraw_amount {
                 break;
             }
-            T::EqCurrency::deposit_into_existing(
+            T::EqCurrency::deposit_creating(
                 beneficiary,
                 asset::DOT,
                 *withdraw_amount,
+                true,
                 Some(DepositReason::Staking),
             )?;
 
@@ -623,7 +631,7 @@ impl<T: Config> Pallet<T> {
             T::RelayChainCallBuilder::staking_bond_extra(bond_amount),
             StakingWeights::<T>::bond_extra(),
         );
-        let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+        let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingBondExtraFailed);
 
         Ok(())
@@ -640,7 +648,7 @@ impl<T: Config> Pallet<T> {
             T::RelayChainCallBuilder::staking_unbond(unbond_amount),
             StakingWeights::<T>::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS),
         );
-        let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+        let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingUnbondFailed);
 
         TotalUnlocking::<T>::mutate(|v| *v = v.saturating_add(value));
@@ -656,7 +664,7 @@ impl<T: Config> Pallet<T> {
             T::RelayChainCallBuilder::staking_withdraw_unbonded(NUM_SLASHING_SPANS),
             StakingWeights::<T>::withdraw_unbonded_kill(NUM_SLASHING_SPANS),
         );
-        let result = T::XcmRouter::send_xcm(Parent, xcm_message);
+        let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingWithdrawUnbondedFailed);
 
         TotalUnlocking::<T>::mutate(|v| *v = v.saturating_sub(unlocking));
@@ -739,10 +747,11 @@ impl<T: Config> Pallet<T> {
         )?;
 
         let mint_amount = Self::calc_mint_wrapped_amount(deposit_amount)?;
-        T::EqCurrency::deposit_into_existing(
+        T::EqCurrency::deposit_creating(
             &account_id,
             asset::EQDOT,
             mint_amount,
+            true,
             Some(DepositReason::Staking),
         )
     }
@@ -752,10 +761,11 @@ impl<T: Config> Pallet<T> {
         deposit_amount: T::Balance,
         burn_amount: T::Balance,
     ) -> DispatchResult {
-        T::EqCurrency::deposit_into_existing(
+        T::EqCurrency::deposit_creating(
             &account_id,
             asset::DOT,
             deposit_amount,
+            true,
             Some(DepositReason::Staking),
         )?;
 

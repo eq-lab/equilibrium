@@ -49,13 +49,12 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Weight information for extrinsics of eqDex.
         type DexWeightInfo: eq_dex::WeightInfo;
         /// Used to operate on Dex
@@ -65,6 +64,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Add account to whitelist
+        #[pallet::call_index(0)]
         #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn add_to_whitelist(
             origin: OriginFor<T>,
@@ -77,6 +77,7 @@ pub mod pallet {
         }
 
         /// Remove account from whitelist
+        #[pallet::call_index(1)]
         #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn remove_from_whitelist(
             origin: OriginFor<T>,
@@ -89,6 +90,7 @@ pub mod pallet {
         }
 
         /// Create order. This must be called by whitelisted account
+        #[pallet::call_index(2)]
         #[pallet::weight(
         <T as pallet::Config>::DexWeightInfo::create_limit_order()
         .max(<T as pallet::Config>::DexWeightInfo::create_market_order())
@@ -108,6 +110,7 @@ pub mod pallet {
         }
 
         /// Delete order. This must be called by whitelisted account
+        #[pallet::call_index(3)]
         #[pallet::weight(
         <T as Config>::DexWeightInfo::delete_order_external()
         .saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1))

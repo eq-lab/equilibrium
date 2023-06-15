@@ -3,10 +3,10 @@ use frame_support::traits::EnsureOrigin;
 
 pub struct EnsureManager<T, I: 'static = ()>(T, I);
 
-impl<T: Config<I>, I: 'static> EnsureOrigin<T::Origin> for EnsureManager<T, I> {
+impl<T: Config<I>, I: 'static> EnsureOrigin<T::RuntimeOrigin> for EnsureManager<T, I> {
     type Success = T::AccountId;
 
-    fn try_origin(o: T::Origin) -> Result<Self::Success, T::Origin> {
+    fn try_origin(o: T::RuntimeOrigin) -> Result<Self::Success, T::RuntimeOrigin> {
         use frame_system::RawOrigin;
         use RawOrigin::Signed;
         o.into().and_then(|raw| match raw {
@@ -15,17 +15,17 @@ impl<T: Config<I>, I: 'static> EnsureOrigin<T::Origin> for EnsureManager<T, I> {
                     if manager_id == *acc_id {
                         Ok(manager_id)
                     } else {
-                        Err(T::Origin::from(raw))
+                        Err(T::RuntimeOrigin::from(raw))
                     }
                 }
-                None => Err(T::Origin::from(raw)),
+                None => Err(T::RuntimeOrigin::from(raw)),
             },
-            r => Err(T::Origin::from(r)),
+            r => Err(T::RuntimeOrigin::from(r)),
         })
     }
 
     #[cfg(feature = "runtime-benchmarks")]
-    fn successful_origin() -> T::Origin {
+    fn successful_origin() -> T::RuntimeOrigin {
         todo!()
     }
 }

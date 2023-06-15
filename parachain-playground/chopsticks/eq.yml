@@ -1,0 +1,21 @@
+endpoint: wss://node.pol.equilibrium.io
+mock-signature-host: true
+db: ./db.sqlite
+
+import-storage:
+  eqMultisigSudo:
+    Keys:
+      -
+        -
+          - 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+        - true
+    Threshold: 0x01000000
+  System:
+    Account:
+      -
+        -
+          - 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+        - data:
+            v0:
+              balance: [[25969, {Positive: 1000000000000000}]]
+          providers: 1

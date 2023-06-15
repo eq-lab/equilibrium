@@ -78,7 +78,7 @@ pub mod pallet {
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Numerical representation of stored balances
         type Balance: Member
             + AtLeast32BitUnsigned
@@ -116,7 +116,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     /// Timestamp of switching from bailsman pool to lending pool
@@ -192,6 +191,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::deposit())]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -204,6 +204,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn withdraw(
             origin: OriginFor<T>,
@@ -216,6 +217,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::payout())]
         pub fn payout(
             origin: OriginFor<T>,
@@ -425,7 +427,7 @@ impl<T: Config> Pallet<T> {
     fn check_bails_pool_after_unreg(who: &T::AccountId) -> DispatchResult {
         T::BalanceGetter::iterate_account_balances(who)
             .into_iter()
-            // exclude EQD from check, EQD debt not covered by bailsman pool
+            // exclude EQD from check
             .filter(|(asset, _)| *asset != asset::EQD)
             .try_for_each(|(asset, balance)| {
                 let total_debt = Self::get_total_debt(asset);

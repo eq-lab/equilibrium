@@ -35,37 +35,37 @@ pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> chainbridge::WeightInfo for WeightInfo<T> {
 	// Storage: ChainBridge RelayerThreshold (r:0 w:1)
 	fn set_threshold() -> Weight {
-		Weight::from_ref_time(15_746_000 as u64)
+		Weight::from_parts(15_746_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: ChainBridge Resources (r:0 w:1)
 	fn set_resource() -> Weight {
-		Weight::from_ref_time(7_581_000 as u64)
+		Weight::from_parts(7_581_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: ChainBridge Resources (r:0 w:1)
 	fn remove_resource() -> Weight {
-		Weight::from_ref_time(6_969_000 as u64)
+		Weight::from_parts(6_969_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	// Storage: ChainBridge ChainNonces (r:1 w:1)
 	// Storage: ChainBridge Fees (r:0 w:1)
 	fn whitelist_chain() -> Weight {
-		Weight::from_ref_time(28_775_000 as u64)
+		Weight::from_parts(28_775_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: ChainBridge Relayers (r:1 w:1)
 	// Storage: ChainBridge RelayerCount (r:1 w:1)
 	fn add_relayer() -> Weight {
-		Weight::from_ref_time(25_474_000 as u64)
+		Weight::from_parts(25_474_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: ChainBridge Relayers (r:1 w:1)
 	// Storage: ChainBridge RelayerCount (r:1 w:1)
 	fn remove_relayer() -> Weight {
-		Weight::from_ref_time(27_142_000 as u64)
+		Weight::from_parts(27_142_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
@@ -78,7 +78,7 @@ impl<T: frame_system::Config> chainbridge::WeightInfo for WeightInfo<T> {
 	// Storage: ChainBridge RelayerThreshold (r:1 w:0)
 	// Storage: ChainBridge RelayerCount (r:1 w:0)
 	fn acknowledge_proposal() -> Weight {
-		Weight::from_ref_time(50_136_000 as u64)
+		Weight::from_parts(50_136_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(8 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -91,7 +91,7 @@ impl<T: frame_system::Config> chainbridge::WeightInfo for WeightInfo<T> {
 	// Storage: ChainBridge RelayerThreshold (r:1 w:0)
 	// Storage: ChainBridge RelayerCount (r:1 w:0)
 	fn reject_proposal() -> Weight {
-		Weight::from_ref_time(50_246_000 as u64)
+		Weight::from_parts(50_246_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(8 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -99,7 +99,7 @@ impl<T: frame_system::Config> chainbridge::WeightInfo for WeightInfo<T> {
 	// Storage: ChainBridge RelayerThreshold (r:1 w:0)
 	// Storage: ChainBridge RelayerCount (r:1 w:0)
 	fn eval_vote_state() -> Weight {
-		Weight::from_ref_time(25_116_000 as u64)
+		Weight::from_parts(25_116_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
@@ -116,9 +116,9 @@ impl<T: frame_system::Config> chainbridge::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	/// The range of component `z` is `[1, 50]`.
 	fn redistribute_fees(z: u32, ) -> Weight {
-		Weight::from_ref_time(84_453_000 as u64)
+		Weight::from_parts(84_453_000 as u64, 0)
 			// Standard Error: 180_000
-			.saturating_add(Weight::from_ref_time(89_585_000 as u64).saturating_mul(z as u64))
+			.saturating_add(Weight::from_parts(89_585_000 as u64, 0).saturating_mul(z as u64))
 			.saturating_add(T::DbWeight::get().reads(11 as u64))
 			.saturating_add(T::DbWeight::get().reads((7 as u64).saturating_mul(z as u64)))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))

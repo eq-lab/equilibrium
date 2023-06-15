@@ -58,7 +58,7 @@ parameter_types! {
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
+        frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
 }
 
 impl frame_system::Config for Test {
@@ -66,8 +66,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -75,7 +75,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -203,7 +203,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDepositBasic;
     type BalanceChecker = ();
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Aggregates = eq_aggregates::Pallet<Test>;
     type TreasuryModuleId = TreasuryModuleId;
     type SubaccountsManager = SubaccountsManagerMock;
@@ -215,7 +215,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = eq_primitives::mocks::XcmRouterErrMock;
     type XcmToFee = eq_primitives::mocks::XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type UnixTime = TimeZeroDurationMock;
 }
@@ -232,7 +232,7 @@ pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
 >;
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = BasicCurrencyGet;
     type OnNewAsset = ();
@@ -240,18 +240,18 @@ impl eq_assets::Config for Test {
 }
 
 impl chainbridge::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Currency = BasicCurrency;
     type BalanceGetter = eq_balances::Pallet<Test>;
     type AdminOrigin = system::EnsureRoot<Self::AccountId>;
-    type Proposal = Call;
+    type Proposal = RuntimeCall;
     type ChainIdentity = TestChainId;
     type WeightInfo = ();
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, u64, Call, ()>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, u64, RuntimeCall, ()>;
 
 use core::convert::{TryFrom, TryInto};
 
@@ -440,32 +440,42 @@ pub fn new_test_ext_initialized(
     let mut t = new_test_ext_params(vec![RELAYER_A, RELAYER_B, RELAYER_C]);
     t.execute_with(|| {
         // Set and check threshold
-        assert_ok!(ChainBridge::set_threshold(Origin::root(), TEST_THRESHOLD));
+        assert_ok!(ChainBridge::set_threshold(
+            RuntimeOrigin::root(),
+            TEST_THRESHOLD
+        ));
         assert_eq!(ChainBridge::relayer_threshold(), TEST_THRESHOLD);
         // Whitelist chain
         assert_ok!(ChainBridge::whitelist_chain(
-            Origin::root(),
+            RuntimeOrigin::root(),
             src_id,
             DEFAULT_FEE
         ));
         // Check allowability
         assert!(!<DisabledChains<Test>>::contains_key(src_id));
         // Set and check resource ID mapped to some junk data
-        assert_ok!(ChainBridge::set_resource(Origin::root(), r_id, resource));
+        assert_ok!(ChainBridge::set_resource(
+            RuntimeOrigin::root(),
+            r_id,
+            resource
+        ));
         assert_eq!(ChainBridge::resource_exists(r_id), true);
         // Set proposal lifetime
-        assert_ok!(ChainBridge::set_proposal_lifetime(Origin::root(), lifetime));
+        assert_ok!(ChainBridge::set_proposal_lifetime(
+            RuntimeOrigin::root(),
+            lifetime
+        ));
         assert_eq!(ChainBridge::proposal_lifetime(), lifetime);
         // Set minimal nonce
-        assert_ok!(ChainBridge::set_min_nonce(Origin::root(), src_id, 0));
+        assert_ok!(ChainBridge::set_min_nonce(RuntimeOrigin::root(), src_id, 0));
     });
     t
 }
 
 // Checks events against the latest. A contiguous set of events must be provided. They must
 // include the most recent event, but do not have to include every past event.
-pub fn assert_events(mut expected: Vec<Event>) {
-    let mut actual: Vec<Event> = system::Pallet::<Test>::events()
+pub fn assert_events(mut expected: Vec<RuntimeEvent>) {
+    let mut actual: Vec<RuntimeEvent> = system::Pallet::<Test>::events()
         .iter()
         .map(|e| e.event.clone())
         .collect();

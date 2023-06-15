@@ -10,38 +10,38 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
 serde = {version = "1.0.123", optional = true}
-sp-application-crypto = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.29" }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.42" }
 log = { version = "0.4.17", default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 # Polkadot dependencies
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.29" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.29" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
 
 [dependencies.frame-support]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.frame_system]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "frame-system"
 
 [dependencies.sp-runtime]
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 default-features = false
 
 [dependencies.sp-std]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.sp-io]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.eq-balances]
 default-features = false
@@ -107,33 +107,33 @@ version = "0.1.0"
 [dev-dependencies.authorship]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "pallet-authorship"
 
 [dependencies.timestamp]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "pallet-timestamp"
 optional = true
 
 [dev-dependencies.pallet-session]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "pallet-session"
 
 [dev-dependencies.financial-primitives]
 default-features = false
 git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "financial-primitives"
 version = "0.1.0"
 
 [dev-dependencies.financial-pallet]
 default-features = false
 git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "financial-pallet"
 version = "0.1.2"
 
@@ -151,23 +151,23 @@ version = "0.1.0"
 [dev-dependencies.sp-core]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dev-dependencies.sp-io]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dev-dependencies.sp-runtime]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 # benchmarking dependencies
 [dependencies.frame-benchmarking]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "frame-benchmarking"
 optional = true
 
@@ -181,7 +181,7 @@ optional = true
 [dependencies.node-primitives]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 version = "2.0.0"
 optional = true
 

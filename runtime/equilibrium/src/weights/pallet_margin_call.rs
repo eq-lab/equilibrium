@@ -44,7 +44,7 @@ impl<T: frame_system::Config> eq_margin_call::WeightInfo for WeightInfo<T> {
 	// Storage: Subaccounts OwnerAccount (r:1 w:0)
 	// Storage: EqMarginCall MaintenanceTimers (r:0 w:1)
 	fn try_margincall_external() -> Weight {
-		Weight::from_ref_time(182_000_000 as u64)
+		Weight::from_parts(182_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(19 as u64))
 			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}

@@ -144,15 +144,15 @@ type DummyValidatorId = u64;
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
+        frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
 }
 impl frame_system::Config for Test {
     type BaseCallFilter = Everything;
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -160,7 +160,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -180,13 +180,13 @@ impl pallet_session::Config for Test {
     type ValidatorId = u64;
     type ValidatorIdOf = ConvertInto;
     type Keys = MockSessionKeys;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type NextSessionRotation = ();
     type WeightInfo = ();
 }
 
 impl Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ValidatorsManagementOrigin = EnsureRoot<AccountId>;
     type ValidatorId = DummyValidatorId;
     type ValidatorIdOf = ();

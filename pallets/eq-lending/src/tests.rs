@@ -80,14 +80,14 @@ fn transfer_usd_ok() {
 
         // no debt
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::EQD,
             account_id_to,
             10
         ));
         // with debt
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::EQD,
             account_id_to,
             50
@@ -124,7 +124,7 @@ fn transfer_pos_prev_more_or_eq_than_change_ok() {
 
         // prev > change
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -134,7 +134,7 @@ fn transfer_pos_prev_more_or_eq_than_change_ok() {
         assert_eq!(prev, change);
         // prev == change
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -212,7 +212,7 @@ fn transfer_with_debt_ok() {
         let debt = change - prev; // 2
         assert!(change > prev && debt < max_btc_debt);
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -225,7 +225,7 @@ fn transfer_with_debt_ok() {
         assert!(debt + change < max_btc_debt);
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -241,7 +241,7 @@ fn transfer_with_debt_ok() {
         let transfer_from_bails: Balance = balance_from_eq_fixedu128(transfer_from_bails).unwrap();
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_bails),
+            RuntimeOrigin::signed(account_id_bails),
             asset::BTC,
             account_id_to,
             transfer_from_bails
@@ -270,7 +270,7 @@ fn transfer_with_debt_ok() {
         let change = max_correct_debt - new_debt;
         assert!(new_debt + change == new_max_btc_debt);
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -336,7 +336,7 @@ fn transfer_pos_prev_err() {
         let change = prev + max_btc_debt + 1;
         assert_err!(
             ModuleBalances::transfer(
-                Origin::signed(account_id_from),
+                RuntimeOrigin::signed(account_id_from),
                 asset::BTC,
                 account_id_to,
                 change
@@ -404,7 +404,7 @@ fn transfer_negative_prev_err() {
         let debt = change - prev;
         assert!(change > prev && debt < max_btc_debt);
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -414,7 +414,7 @@ fn transfer_negative_prev_err() {
         let change = max_btc_debt - debt + 1;
         assert_err!(
             ModuleBalances::transfer(
-                Origin::signed(account_id_from),
+                RuntimeOrigin::signed(account_id_from),
                 asset::BTC,
                 account_id_to,
                 change
@@ -483,7 +483,7 @@ fn transfer_from_bails_err() {
         let debt = change - prev;
         assert!(change > prev && debt < max_btc_debt);
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -493,7 +493,7 @@ fn transfer_from_bails_err() {
 
         assert_err!(
             ModuleBalances::transfer(
-                Origin::signed(account_id_bails),
+                RuntimeOrigin::signed(account_id_bails),
                 asset::BTC,
                 account_id_to,
                 change
@@ -512,7 +512,11 @@ fn lender_pool_deposit() {
             EqBalances::get_balance(&1, &asset::ETH),
             SignedBalance::Positive(1000)
         );
-        assert_ok!(EqLending::deposit(Origin::signed(1), asset::ETH, 400));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            400
+        ));
         assert_eq!(EqLending::lender(&1, &asset::ETH).unwrap().value, 400);
         assert_eq!(
             EqBalances::get_balance(&1, &asset::ETH),
@@ -523,7 +527,11 @@ fn lender_pool_deposit() {
             EqBalances::get_balance(&2, &asset::ETH),
             SignedBalance::Positive(1000)
         );
-        assert_ok!(EqLending::deposit(Origin::signed(2), asset::ETH, 600));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(2),
+            asset::ETH,
+            600
+        ));
         assert_eq!(EqLending::lender(&2, &asset::ETH).unwrap().value, 600);
         assert_eq!(
             EqBalances::get_balance(&2, &asset::ETH),
@@ -536,7 +544,7 @@ fn lender_pool_deposit() {
         );
 
         assert_err!(
-            EqLending::deposit(Origin::signed(3), asset::EQD, 100),
+            EqLending::deposit(RuntimeOrigin::signed(3), asset::EQD, 100),
             Error::<Test>::WrongAssetType
         );
     });
@@ -618,7 +626,7 @@ fn transfer_with_unreg_bails_ok() {
         let debt = change - prev; // 2_000_000_000
         assert!(change > prev && debt < max_btc_debt);
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -637,7 +645,7 @@ fn transfer_with_unreg_bails_ok() {
             balance_from_eq_fixedu128::<Balance>(transfer_to_unreg_in_usd / btc_price).unwrap() + 1;
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_bails_1),
+            RuntimeOrigin::signed(account_id_bails_1),
             asset::BTC,
             account_id_to,
             transfer_to_unreg
@@ -747,7 +755,7 @@ fn transfer_with_unreg_bails_err() {
         let debt = change - prev; // 2_000_000_000
         assert!(change > prev && debt < max_btc_debt);
         assert_ok!(EqBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_to,
             change
@@ -767,7 +775,7 @@ fn transfer_with_unreg_bails_err() {
 
         assert_noop!(
             EqBalances::transfer(
-                Origin::signed(account_id_bails_1),
+                RuntimeOrigin::signed(account_id_bails_1),
                 asset::BTC,
                 account_id_to,
                 transfer_to_unreg
@@ -801,7 +809,11 @@ fn lender_pool_withdraw_ok() {
             SignedBalance::Positive(1000)
         );
 
-        assert_ok!(EqLending::deposit(Origin::signed(1), asset::ETH, 400));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            400
+        ));
         assert_eq!(EqLending::lender(&1, &asset::ETH).unwrap().value, 400);
         assert_eq!(
             EqBalances::get_balance(&1, &asset::ETH),
@@ -809,10 +821,14 @@ fn lender_pool_withdraw_ok() {
         );
 
         assert_noop!(
-            EqLending::withdraw(Origin::signed(1), asset::ETH, 500),
+            EqLending::withdraw(RuntimeOrigin::signed(1), asset::ETH, 500),
             Error::<Test>::NotEnoughToWithdraw
         );
-        assert_ok!(EqLending::withdraw(Origin::signed(1), asset::ETH, 200));
+        assert_ok!(EqLending::withdraw(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            200
+        ));
 
         assert_eq!(EqLending::lender(&1, &asset::ETH).unwrap().value, 200);
         assert_eq!(
@@ -832,7 +848,11 @@ fn lender_pool_withdraw_not_enough() {
             SignedBalance::Positive(1000)
         );
 
-        assert_ok!(EqLending::deposit(Origin::signed(1), asset::ETH, 400));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            400
+        ));
         assert_eq!(EqLending::lender(&1, &asset::ETH).unwrap().value, 400);
         assert_eq!(
             EqBalances::get_balance(&1, &asset::ETH),
@@ -840,7 +860,7 @@ fn lender_pool_withdraw_not_enough() {
         );
 
         assert_noop!(
-            EqLending::withdraw(Origin::signed(1), asset::ETH, 500),
+            EqLending::withdraw(RuntimeOrigin::signed(1), asset::ETH, 500),
             Error::<Test>::NotEnoughToWithdraw
         );
     });
@@ -864,6 +884,7 @@ fn lender_pool_borrow_ok() {
         assert_ok!(EqLending::do_deposit(&lender, asset::BTC, 50));
 
         // Alright, get your BTC
+        frame_system::Pallet::<Test>::inc_providers(&borr);
         assert_ok!(EqBalances::currency_transfer(
             &borr,
             &main,
@@ -1010,10 +1031,18 @@ fn reward_flow() {
 
         use eq_primitives::LendingPoolManager as _;
 
-        assert_ok!(EqLending::deposit(Origin::signed(1), asset::ETH, 400));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            400
+        ));
         assert_eq!(EqBalances::total_balance(&1, asset::ETH), 600);
 
-        assert_ok!(EqLending::deposit(Origin::signed(2), asset::ETH, 600));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(2),
+            asset::ETH,
+            600
+        ));
         assert_eq!(EqBalances::total_balance(&2, asset::ETH), 400);
 
         assert_ok!(EqLending::add_reward(asset::ETH, 10));
@@ -1034,15 +1063,27 @@ fn reward_flow() {
             EqFixedU128::saturating_from_rational(30, 1000)
         ); // 20/1000 + 10/1000
 
-        assert_ok!(EqLending::deposit(Origin::signed(1), asset::ETH, 100));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            100
+        ));
         assert_eq!(EqBalances::total_balance(&1, asset::ETH), 600 - 100);
         assert_eq!(EqBalances::total_balance(&1, asset::EQ), 12);
 
-        assert_ok!(EqLending::withdraw(Origin::signed(1), asset::ETH, 300));
+        assert_ok!(EqLending::withdraw(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            300
+        ));
         assert_eq!(EqBalances::total_balance(&1, asset::EQ), 12);
         assert_eq!(EqBalances::total_balance(&1, asset::ETH), 600 - 100 + 300);
 
-        assert_ok!(EqLending::withdraw(Origin::signed(2), asset::ETH, 400));
+        assert_ok!(EqLending::withdraw(
+            RuntimeOrigin::signed(2),
+            asset::ETH,
+            400
+        ));
         assert_eq!(EqBalances::total_balance(&2, asset::ETH), 400 + 400);
         assert_eq!(EqBalances::total_balance(&2, asset::EQ), 18);
 
@@ -1052,7 +1093,11 @@ fn reward_flow() {
             EqFixedU128::saturating_from_rational(80, 1000)
         ); // 30/1000 + 20/400
 
-        assert_ok!(EqLending::deposit(Origin::signed(2), asset::ETH, 100));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(2),
+            asset::ETH,
+            100
+        ));
         assert_eq!(EqBalances::total_balance(&2, asset::ETH), 400 + 400 - 100);
         assert_eq!(EqBalances::total_balance(&2, asset::EQ), 18 + 10);
 
@@ -1062,21 +1107,33 @@ fn reward_flow() {
             EqFixedU128::saturating_from_rational(100, 1000)
         ); // 80/1000 + 10/500
 
-        assert_ok!(EqLending::deposit(Origin::signed(1), asset::ETH, 100));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(1),
+            asset::ETH,
+            100
+        ));
         assert_eq!(
             EqBalances::total_balance(&1, asset::ETH),
             600 - 100 + 300 - 100
         );
         assert_eq!(EqBalances::total_balance(&1, asset::EQ), 12 + 14);
 
-        assert_ok!(EqLending::deposit(Origin::signed(2), asset::ETH, 100));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(2),
+            asset::ETH,
+            100
+        ));
         assert_eq!(
             EqBalances::total_balance(&2, asset::ETH),
             400 + 400 - 100 - 100
         );
         assert_eq!(EqBalances::total_balance(&2, asset::EQ), 18 + 10 + 6);
 
-        assert_ok!(EqLending::withdraw(Origin::signed(2), asset::ETH, 400));
+        assert_ok!(EqLending::withdraw(
+            RuntimeOrigin::signed(2),
+            asset::ETH,
+            400
+        ));
         assert_eq!(
             EqBalances::total_balance(&2, asset::ETH),
             400 + 400 - 100 - 100 + 400
@@ -1138,7 +1195,7 @@ fn make_debt_and_transfer_to_bailsman() {
         let free_to_borrow_before = free_to_borrow(asset::BTC);
         println!("free_to_borrow_before = {:?}", free_to_borrow_before);
         assert_ok!(EqBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::BTC,
             account_id_bails,
             free_to_borrow_before
@@ -1188,6 +1245,7 @@ fn check_bails_pool_after_unreg_when_enough_liquidity() {
         );
 
         assert_ok!(EqLending::do_deposit(&lender, asset::BTC, 10));
+        frame_system::Pallet::<Test>::inc_providers(&borr);
         assert_ok!(EqBalances::currency_transfer(
             &borr,
             &main,
@@ -1237,6 +1295,7 @@ fn check_bails_pool_after_unreg_when_not_enough_liquidity() {
 
         assert_ok!(EqLending::do_deposit(&lender, asset::BTC, 10));
         // liquidity = .2 * 45 = 9
+        frame_system::Pallet::<Test>::inc_providers(&borr);
         assert_ok!(EqBalances::currency_transfer(
             &borr,
             &main,
@@ -1294,14 +1353,14 @@ fn baisman_withdraw_usd_ok() {
         ));
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_from),
+            RuntimeOrigin::signed(account_id_from),
             asset::EQD,
             account_id_to,
             50
         ));
 
         assert_ok!(ModuleBalances::transfer(
-            Origin::signed(account_id_bails),
+            RuntimeOrigin::signed(account_id_bails),
             asset::EQD,
             account_id_to,
             bails_collateral_eqd

@@ -112,8 +112,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -121,7 +121,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -155,7 +155,7 @@ impl Get<BlockNumber> for UpdateOnceInBlocks {
 }
 
 impl Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ToggleBinaryCreateOrigin = EnsureRoot<AccountId>;
     type Balance = Balance;
     type AssetGetter = AssetGetterMock;
@@ -173,7 +173,7 @@ parameter_types! {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type MainAsset = BasicCurrencyGet;
     type OnNewAsset = ();
     type WeightInfo = ();
@@ -210,7 +210,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDeposit;
     type BalanceChecker = BalanceCheckerMock;
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Aggregates = AggregatesMock;
     type TreasuryModuleId = TreasuryModuleId;
@@ -222,7 +222,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = eq_primitives::mocks::XcmRouterErrMock;
     type XcmToFee = eq_primitives::mocks::XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type ToggleTransferOrigin = EnsureRoot<AccountId>;
     type ForceXcmTransferOrigin = EnsureRoot<AccountId>;
@@ -248,8 +248,8 @@ impl timestamp::Config for Test {
 //     type FinancialRecalcPeriodBlocks = FinancialRecalcPeriodBlocks;
 //     type AssetGetter = AssetGetterMock;
 //     type AuthorityId = crypto::TestAuthId;
-//     type Event = Event;
-//     type Call = Call;
+//     type RuntimeEvent = RuntimeEvent;
+//     type RuntimeCall = RuntimeCall;
 //     type Whitelist = WhiteListMock;
 //     type UnixTime = TimeMock;
 //     type MedianPriceTimeout = MedianPriceTimeout;

@@ -18,42 +18,42 @@ scale-info = { version = "2.0.1", default-features = false, features = ["derive"
 [dependencies.sp-arithmetic]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 
 [dependencies.sp-std]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 
 [dependencies.sp-runtime]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.frame-support]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 
 [dependencies.sp-io]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.frame-system]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "frame-system"
 
 
 [dependencies.frame-benchmarking]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 optional = true
 package = "frame-benchmarking"
 
@@ -103,17 +103,17 @@ version = "0.1.0"
 [dev-dependencies.sp-io]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dev-dependencies.sp-core]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dev-dependencies.sp-storage]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dev-dependencies]
 hex-literal = "0.3"
@@ -121,8 +121,8 @@ libsecp256k1 = "0.3.2"
 serde_json = "1.0.41"
 trie-db = "0.22.0"
 # Polkadot dependencies
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.29" }
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.29" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
 
 
 [features]

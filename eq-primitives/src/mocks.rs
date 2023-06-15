@@ -24,8 +24,10 @@ use sp_runtime::{
     DispatchError, FixedI64, FixedPointNumber,
 };
 use sp_std::{convert::TryFrom, fmt::Debug};
-use xcm::latest::{MultiLocation, SendError, SendResult, SendXcm, Xcm};
-use xcm_executor::traits::InvertLocation;
+use xcm::v3::{
+    InteriorMultiLocation, Junction::*, Junctions::X2, MultiAssets, MultiLocation, NetworkId,
+    SendError, SendResult, SendXcm, Xcm, XcmHash,
+};
 
 use crate::{
     asset::{self, Asset},
@@ -33,12 +35,19 @@ use crate::{
     PriceGetter, UpdateTimeManager,
 };
 
-/// `send_xcm` do nothing returns `Ok(())`
 pub struct XcmRouterOkMock;
 
 impl SendXcm for XcmRouterOkMock {
-    fn send_xcm(_destination: impl Into<MultiLocation>, _message: Xcm<()>) -> SendResult {
-        Ok(())
+    type Ticket = ();
+    fn validate(
+        _destination: &mut Option<MultiLocation>,
+        _message: &mut Option<Xcm<()>>,
+    ) -> SendResult<Self::Ticket> {
+        Ok(((), MultiAssets::new()))
+    }
+
+    fn deliver(_one_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+        Ok([0u8; 32])
     }
 }
 
@@ -66,10 +75,22 @@ impl XcmRouterCachedMessagesMock {
 
 #[cfg(feature = "std")]
 impl SendXcm for XcmRouterCachedMessagesMock {
-    fn send_xcm(destination: impl Into<MultiLocation>, message: Xcm<()>) -> SendResult {
+    type Ticket = ();
+    fn validate(
+        destination: &mut Option<MultiLocation>,
+        message: &mut Option<Xcm<()>>,
+    ) -> SendResult<()> {
         XCM_MESSAGES
-            .try_with(|cache| cache.borrow_mut().push((destination.into(), message)))
+            .try_with(|cache| {
+                cache
+                    .borrow_mut()
+                    .push((destination.unwrap().into(), message.clone().unwrap()))
+            })
             .map_err(|_| SendError::Unroutable)
+            .map(|_| ((), MultiAssets::new()))
+    }
+    fn deliver(_: ()) -> Result<XcmHash, SendError> {
+        Ok([0; 32])
     }
 }
 
@@ -77,7 +98,14 @@ impl SendXcm for XcmRouterCachedMessagesMock {
 pub struct XcmRouterErrMock;
 
 impl SendXcm for XcmRouterErrMock {
-    fn send_xcm(_destination: impl Into<MultiLocation>, _message: Xcm<()>) -> SendResult {
+    type Ticket = ();
+    fn validate(
+        _destination: &mut Option<MultiLocation>,
+        _message: &mut Option<Xcm<()>>,
+    ) -> SendResult<()> {
+        Err(SendError::Unroutable)
+    }
+    fn deliver(_: ()) -> Result<XcmHash, SendError> {
         Err(SendError::Unroutable)
     }
 }
@@ -108,14 +136,13 @@ impl<B: Zero> Get<B> for ZeroFee {
 /// `XcmToFee` with zero fee
 pub type XcmToFeeZeroMock = XcmToFeeMock<ZeroFee>;
 
-/// Return default both for `ancestry` and `invert_location`
-pub struct LocationInverterMock;
-impl InvertLocation for LocationInverterMock {
-    fn ancestry() -> MultiLocation {
-        MultiLocation::default()
-    }
-    fn invert_location(_l: &MultiLocation) -> Result<MultiLocation, ()> {
-        Ok(MultiLocation::default())
+pub struct UniversalLocationMock;
+impl Get<InteriorMultiLocation> for UniversalLocationMock {
+    fn get() -> InteriorMultiLocation {
+        X2(
+            GlobalConsensus(NetworkId::Polkadot),
+            Parachain(ParachainId::get().into()),
+        )
     }
 }
 

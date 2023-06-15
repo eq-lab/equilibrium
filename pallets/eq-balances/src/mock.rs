@@ -96,7 +96,7 @@ type DummyValidatorId = u64;
 parameter_types! {
     pub const BlockHashCount: u32 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
+        frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
     pub const MainAsset: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
 }
 
@@ -105,8 +105,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u32;
     type BlockNumber = u32;
     type Hash = H256;
@@ -114,7 +114,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header<u32, BlakeTwo256>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -232,7 +232,7 @@ impl BailsmanManager<AccountId, Balance> for BailsmanManagerMock {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type OnNewAsset = ();
     type MainAsset = MainAsset;
@@ -271,7 +271,7 @@ impl Config for Test {
         locked_balance_checker::CheckLocked<Test>,
     );
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Aggregates = AggregatesMock;
     type TreasuryModuleId = TreasuryModuleId;
     type SubaccountsManager = SubaccountsManagerMock;
@@ -283,7 +283,7 @@ impl Config for Test {
     type XcmRouter = ();
     type XcmToFee = ();
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type AccountStore = System;
     type UnixTime = TimeMock;

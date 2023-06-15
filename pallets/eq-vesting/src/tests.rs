@@ -20,7 +20,8 @@
 
 use super::Error;
 use crate::mock::{
-    new_test_ext, transfers_disabled_test_ext, ModuleBalances, ModuleVesting, Origin, System, Test,
+    new_test_ext, transfers_disabled_test_ext, ModuleBalances, ModuleVesting, RuntimeOrigin,
+    System, Test,
 };
 use eq_primitives::balance::EqCurrency;
 use eq_primitives::{asset, balance::BalanceGetter, SignedBalance};
@@ -42,7 +43,7 @@ fn vest_no_vesting() {
         let account_id = 1;
 
         assert_err!(
-            ModuleVesting::vest(Origin::signed(account_id),),
+            ModuleVesting::vest(RuntimeOrigin::signed(account_id),),
             Error::<Test>::NotVesting
         );
 
@@ -148,7 +149,7 @@ fn forced_vested_transfer() {
 
         System::set_block_number(11);
 
-        assert_ok!(ModuleVesting::vest(Origin::signed(2),));
+        assert_ok!(ModuleVesting::vest(RuntimeOrigin::signed(2),));
 
         assert_eq!(
             <ModuleBalances as BalanceGetter<u64, u128>>::get_balance(&1, &asset::EQ),

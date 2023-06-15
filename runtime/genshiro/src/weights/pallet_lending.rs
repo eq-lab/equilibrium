@@ -43,7 +43,7 @@ impl<T: frame_system::Config> eq_lending::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:2 w:2)
 	// Storage: EqLending LendersAggregates (r:1 w:1)
 	fn deposit() -> Weight {
-		Weight::from_ref_time(164_000_000 as u64)
+		Weight::from_parts(164_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(17 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -59,7 +59,7 @@ impl<T: frame_system::Config> eq_lending::WeightInfo for WeightInfo<T> {
 	// Storage: Timestamp Now (r:1 w:0)
 	// Storage: EqLending OnlyBailsmanTill (r:1 w:0)
 	fn withdraw() -> Weight {
-		Weight::from_ref_time(166_000_000 as u64)
+		Weight::from_parts(166_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(20 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -72,7 +72,7 @@ impl<T: frame_system::Config> eq_lending::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates AccountUserGroups (r:6 w:0)
 	// Storage: EqAggregates TotalUserGroups (r:1 w:1)
 	fn payout() -> Weight {
-		Weight::from_ref_time(102_000_000 as u64)
+		Weight::from_parts(102_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(15 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}

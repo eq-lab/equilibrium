@@ -24,6 +24,6 @@ pub trait RedistributeWeightInfo {
 
 impl RedistributeWeightInfo for () {
     fn redistribute(_z: u32) -> Weight {
-        Weight::from_ref_time(10_000)
+        Weight::from_parts(10_000, 0)
     }
 }

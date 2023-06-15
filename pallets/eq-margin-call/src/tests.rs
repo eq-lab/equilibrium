@@ -32,9 +32,8 @@ use eq_utils::{
     ONE_TOKEN,
 };
 use frame_support::dispatch::DispatchError::BadOrigin;
-use frame_support::dispatch::{DispatchError, DispatchErrorWithPostInfo};
+use frame_support::dispatch::{DispatchError, DispatchErrorWithPostInfo, Pays, PostDispatchInfo};
 use frame_support::traits::OffchainWorker;
-use frame_support::weights::{Pays, PostDispatchInfo};
 use frame_support::{assert_err, assert_noop, assert_ok};
 use frame_system::RawOrigin;
 use sp_arithmetic::{FixedI128, FixedPointNumber, FixedU128};

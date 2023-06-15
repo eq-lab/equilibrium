@@ -85,7 +85,7 @@ impl_opaque_keys! {
     }
 }
 
-pub type Extrinsic = TestXt<Call, ()>;
+pub type Extrinsic = TestXt<RuntimeCall, ()>;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 1;
@@ -150,7 +150,7 @@ impl eq_balances::Config for Test {
     type ExistentialDepositBasic = ExistentialDepositBasic;
     type BalanceChecker = eq_bailsman::Pallet<Test>;
     type PriceGetter = OracleMock;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type Aggregates = ModuleAggregates;
     type TreasuryModuleId = TreasuryModuleId;
@@ -162,7 +162,7 @@ impl eq_balances::Config for Test {
     type XcmRouter = eq_primitives::mocks::XcmRouterErrMock;
     type XcmToFee = eq_primitives::mocks::XcmToFeeZeroMock;
     type LocationToAccountId = ();
-    type LocationInverter = eq_primitives::mocks::LocationInverterMock;
+    type UniversalLocation = eq_primitives::mocks::UniversalLocationMock;
     type OrderAggregates = ();
     type UnixTime = EqRate;
 }
@@ -177,7 +177,7 @@ type DummyValidatorId = u64;
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
+        frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
 }
 
 pub const AUTHOR_11_ACCOUNT: DummyValidatorId = 11;
@@ -193,8 +193,6 @@ impl FindAuthor<DummyValidatorId> for Author11 {
 
 impl authorship::Config for Test {
     type FindAuthor = Author11;
-    type UncleGenerations = ();
-    type FilterUncle = ();
     type EventHandler = ();
 }
 
@@ -203,8 +201,8 @@ impl frame_system::Config for Test {
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = BlockNumber;
     type Hash = H256;
@@ -212,7 +210,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
@@ -243,7 +241,7 @@ impl pallet_session::Config for Test {
     type ValidatorId = u64;
     type ValidatorIdOf = ConvertInto;
     type Keys = SessionKeys;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
     type WeightInfo = ();
 }
@@ -356,7 +354,7 @@ parameter_types! {
 
 impl eq_bailsman::Config for Test {
     type AssetGetter = eq_assets::Pallet<Test>;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type BalanceGetter = eq_balances::Pallet<Test>;
     type EqCurrency = eq_balances::Pallet<Test>;
@@ -434,7 +432,7 @@ impl Config for Test {
 }
 
 impl eq_session_manager::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ValidatorsManagementOrigin = EnsureRoot<AccountId>;
     type ValidatorId = DummyValidatorId;
     type RegistrationChecker = Session;
@@ -456,7 +454,7 @@ impl FinancialStorage for Pallet<Test> {
 }
 
 impl eq_assets::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type AssetManagementOrigin = EnsureRoot<AccountId>;
     type MainAsset = MainAsset;
     type OnNewAsset = ();
@@ -465,9 +463,9 @@ impl eq_assets::Config for Test {
 
 impl<LocalCall> system::offchain::SendTransactionTypes<LocalCall> for Test
 where
-    Call: From<LocalCall>,
+    RuntimeCall: From<LocalCall>,
 {
-    type OverarchingCall = Call;
+    type OverarchingCall = RuntimeCall;
     type Extrinsic = Extrinsic;
 }
 
@@ -741,7 +739,7 @@ impl AssetGetter for AssetGetterMock {
 }
 
 impl eq_margin_call::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type UnixTime = ModuleTimestamp;
     type BailsmenManager = ModuleBailsman;

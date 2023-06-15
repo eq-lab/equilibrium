@@ -113,7 +113,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T, I = ()>(PhantomData<(T, I)>);
 
@@ -122,7 +121,8 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
         /// The overarching event type.
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self, I>>
+            + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// The currency adapter trait
         type Currency: Currency<Self::AccountId>;
         /// Convert the block number into a balance
@@ -144,6 +144,7 @@ pub mod pallet {
         /// locked under this module.
         ///
         /// Emits either `VestingCompleted` or `VestingUpdated`.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::vest_locked().max(T::WeightInfo::vest_unlocked()))]
         pub fn vest(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -158,6 +159,7 @@ pub mod pallet {
         /// locked under this module.
         ///
         /// Emits either `VestingCompleted` or `VestingUpdated`.
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::vest_other_locked().max(T::WeightInfo::vest_other_unlocked()))]
         pub fn vest_other(
             origin: OriginFor<T>,
@@ -175,6 +177,7 @@ pub mod pallet {
         /// - `target`: The account that should be transferred the vested funds.
         /// - `amount`: The amount of funds to transfer and will be vested.
         /// - `schedule`: The vesting schedule attached to the transfer.
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::vested_transfer())]
         pub fn force_vested_transfer(
             origin: OriginFor<T>,

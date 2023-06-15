@@ -28,5 +28,5 @@ pub const PHA_PER_SEC: XcmBalance = PHA_PER_SEC_MUL * PHA_UNIT;
 pub const PHA_PRICE: XcmBalance = 200_000_000_000;
 
 parameter_types! {
-    pub const BaseXcmWeight: XcmWeight = 1_000_000_000;
+    pub const BaseXcmWeight: XcmWeight = XcmWeight::from_parts(1_000_000_000, 0);
 }

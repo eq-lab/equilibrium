@@ -38,7 +38,7 @@ impl<T: frame_system::Config> eq_session_manager::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: EqSessionManager IsChanged (r:0 w:1)
 	fn add_validator() -> Weight {
-		Weight::from_ref_time(30_000_000 as u64)
+		Weight::from_parts(30_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3 as u64))
 			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
@@ -47,7 +47,7 @@ impl<T: frame_system::Config> eq_session_manager::WeightInfo for WeightInfo<T> {
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	// Storage: EqSessionManager IsChanged (r:0 w:1)
 	fn remove_validator() -> Weight {
-		Weight::from_ref_time(35_000_000 as u64)
+		Weight::from_parts(35_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}

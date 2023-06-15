@@ -31,6 +31,6 @@ impl<T: crate::Config> PalletWeightInfo for EqWeight<T> {
     fn set_migration() -> Weight {
         T::DbWeight::get()
             .writes(1)
-            .saturating_add(Weight::from_ref_time(1_000_000))
+            .saturating_add(Weight::from_parts(1_000_000, 0))
     }
 }

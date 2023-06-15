@@ -36,19 +36,19 @@ impl WeightToFeePolynomial for WeightToFee {
 
 #[test]
 fn t() {
-    use xcm::v2::{
-        AssetId::Concrete, Fungibility::Fungible, Instruction::*, Junctions::Here, MultiAsset,
+    use xcm::v3::{
+        AssetId::Concrete, Fungibility::Fungible, Instruction::*, MultiAsset, MultiLocation,
         WeightLimit, WildMultiAsset::All,
     };
 
-    let asset_multilocation = (1, Here).into();
+    let asset_multilocation = MultiLocation::parent();
 
     let multi_asset = MultiAsset {
         id: Concrete(asset_multilocation),
         fun: Fungible(1),
     };
     let multi_assets = vec![multi_asset.clone()].into();
-    let beneficiary = (1, Here).into();
+    let beneficiary = MultiLocation::parent();
     let xcm: Xcm<()> = Xcm(vec![
         ReserveAssetDeposited(multi_assets),
         ClearOrigin,
@@ -58,7 +58,6 @@ fn t() {
         },
         DepositAsset {
             assets: All.into(),
-            max_assets: 2, // transferable + fee
             beneficiary,
         },
     ]);

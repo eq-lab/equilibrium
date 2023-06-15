@@ -186,15 +186,14 @@ pub mod pallet {
     use super::*;
     use eq_primitives::subaccount::SubaccountsManager;
     use financial_pallet::Financial;
+    use frame_support::dispatch::PostDispatchInfo;
     use frame_support::pallet_prelude::*;
     use frame_support::traits::WithdrawReasons;
-    use frame_support::weights::PostDispatchInfo;
     use frame_support::PalletId;
     use frame_system::pallet_prelude::*;
     use sp_arithmetic::Permill;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -206,7 +205,7 @@ pub mod pallet {
         + authorship::Config
         + eq_assets::Config
     {
-        type AutoReinitToggleOrigin: EnsureOrigin<Self::Origin>;
+        type AutoReinitToggleOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Timestamp provider
         type UnixTime: UnixTime;
         /// Numerical representation of stored balances
@@ -315,6 +314,7 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::reinit())]
         pub fn reinit(
             origin: OriginFor<T>,
@@ -364,6 +364,7 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn delete_account(
             origin: OriginFor<T>,
@@ -394,7 +395,8 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
-        #[pallet::weight(10000)]
+        #[pallet::call_index(2)]
+        #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn deposit(
             origin: OriginFor<T>,
             request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, T::BlockNumber>,
@@ -433,7 +435,8 @@ pub mod pallet {
         /// Parameters:
         ///  - `request`: OperationRequest.
         ///  - `_signature`: OperationRequest signature
-        #[pallet::weight(10000)]
+        #[pallet::call_index(3)]
+        #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn withdraw(
             origin: OriginFor<T>,
             request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, T::BlockNumber>,
@@ -477,6 +480,7 @@ pub mod pallet {
         ///
         /// Parameters:
         ///  - `account`: Account that should be checked for deletion.
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::delete_account_external())]
         pub fn delete_account_external(
             origin: OriginFor<T>,
@@ -495,6 +499,7 @@ pub mod pallet {
         ///
         /// Parameters:
         ///  - `account`: Account that should be checked for margin call and charged fee.
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::reinit_external())]
         pub fn reinit_external(
             origin: OriginFor<T>,
@@ -508,7 +513,8 @@ pub mod pallet {
         }
 
         /// Function used in test builds for time move
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(6)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn set_now_millis_offset(
             origin: OriginFor<T>,
             offset: u64,
@@ -532,6 +538,7 @@ pub mod pallet {
 
         /// Enables or disables offchain workers. `true` to enable offchain worker
         /// operations, `false` to disable them.
+        #[pallet::call_index(7)]
         #[pallet::weight(<T as Config>::WeightInfo::set_auto_reinit_enabled())]
         pub fn set_auto_reinit_enabled(
             origin: OriginFor<T>,

@@ -40,7 +40,6 @@ use frame_support::{
     pallet_prelude::DispatchResult,
     storage::bounded_btree_set::BoundedBTreeSet,
     traits::{EitherOfDiverse, ExistenceRequirement, LockIdentifier, UnixTime},
-    weights::Pays,
 };
 use sp_runtime::traits::{
     AtLeast32BitUnsigned, CheckedAdd, MaybeSerializeDeserialize, Member, Saturating, Zero,
@@ -65,12 +64,11 @@ pub mod pallet {
         EitherOfDiverse<origin::EnsureManager<T>, <T as Config>::RewardManagementOrigin>;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Numerical representation of stored balances
         type Balance: Member
             + AtLeast32BitUnsigned
@@ -93,7 +91,7 @@ pub mod pallet {
         #[pallet::constant]
         type MaxStakesCount: Get<u32>;
         /// Origin to set manager and pay rewards
-        type RewardManagementOrigin: EnsureOrigin<Self::Origin>;
+        type RewardManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Account with liquidity to pay rewards
         type LiquidityAccount: Get<Self::AccountId>;
         /// Account with liquidity to pay custom rewards
@@ -161,6 +159,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Stake the minimum value of `amount` and current free EQ balance for `period` if `MaxStakesCount` not reached
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::stake())]
         pub fn stake(
             origin: OriginFor<T>,
@@ -172,6 +171,7 @@ pub mod pallet {
             Self::do_stake(who, amount, period, true)
         }
 
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::reward())]
         pub fn reward(
             origin: OriginFor<T>,
@@ -255,6 +255,7 @@ pub mod pallet {
             Ok(Pays::No.into())
         }
 
+        #[pallet::call_index(2)]
         #[pallet::weight(T::DbWeight::get().writes(1).ref_time())]
         pub fn add_manager(
             origin: OriginFor<T>,
@@ -269,6 +270,7 @@ pub mod pallet {
 
         /// Unlock stake if mb_stake_index is some or unlock rewards otherwise.
         /// Checks is lock period ended and throw error if not so.
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::unlock_stake().max(T::WeightInfo::unlock_reward()))]
         pub fn unlock(origin: OriginFor<T>, mb_stake_index: Option<u32>) -> DispatchResult {
             let who = ensure_signed(origin)?;
@@ -298,6 +300,7 @@ pub mod pallet {
             }
         }
 
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::stake() * rewards.len() as u64)]
         pub fn custom_reward(
             origin: OriginFor<T>,

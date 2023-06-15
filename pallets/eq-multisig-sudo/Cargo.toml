@@ -17,33 +17,33 @@ scale-info = { version = "2.0.1", default-features = false, features = ["derive"
 [dependencies.frame-system]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "frame-system"
 
 [dependencies.frame-support]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.sp-std]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.sp-runtime]
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 default-features = false
 
 [dependencies.sp-core]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.sp-io]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 
 [dependencies.eq-utils]
 default-features = false
@@ -54,7 +54,7 @@ version = "0.1.0"
 [dependencies.frame-benchmarking]
 default-features = false
 git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.29"
+branch = "polkadot-v0.9.42"
 package = "frame-benchmarking"
 optional = true
 

@@ -42,7 +42,7 @@ impl<T: frame_system::Config> eq_distribution::WeightInfo for WeightInfo<T> {
 	// Storage: Timestamp Now (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn transfer() -> Weight {
-		Weight::from_ref_time(85_000_000 as u64)
+		Weight::from_parts(85_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(15 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -57,7 +57,7 @@ impl<T: frame_system::Config> eq_distribution::WeightInfo for WeightInfo<T> {
 	// Storage: Vesting Vested (r:1 w:1)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn vested_transfer() -> Weight {
-		Weight::from_ref_time(170_000_000 as u64)
+		Weight::from_parts(170_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(23 as u64))
 			.saturating_add(T::DbWeight::get().writes(9 as u64))
 	}

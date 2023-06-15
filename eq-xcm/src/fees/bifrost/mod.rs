@@ -46,5 +46,5 @@ pub fn ksm_per_second() -> u128 {
 }
 
 parameter_types! {
-    pub const BaseXcmWeight: XcmWeight = 1_000_000_000;
+    pub const BaseXcmWeight: XcmWeight = XcmWeight::from_parts(1_000_000_000, 0);
 }

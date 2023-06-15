@@ -83,7 +83,7 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config + SendTransactionTypes<Call<Self>> + eq_rate::Config
     {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Pallet's AccountId for balances
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -109,7 +109,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
@@ -210,6 +209,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Lock `amount` of Eq for lock
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::lock())]
         pub fn lock(origin: OriginFor<T>, amount: T::Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -220,6 +220,7 @@ pub mod pallet {
         }
 
         /// Unlock all account's locked Eq
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::unlock_external())]
         pub fn unlock_external(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -233,6 +234,7 @@ pub mod pallet {
 
         /// Unlock all account's locked Eq
         /// The dispatch origin for this call must be _None_ (unsigned transaction).
+        #[pallet::call_index(2)]
         #[pallet::weight((<T as Config>::WeightInfo::unlock() + <T as Config>::WeightInfo::validate_unsigned(),
             DispatchClass::Operational))]
         pub fn unlock(
@@ -261,6 +263,7 @@ pub mod pallet {
         /// Start` in `timestamp`
         /// - timestamp: UnixTime timestamp in seconds
         /// WARNING! Check twice before using it!
+        #[pallet::call_index(3)]
         #[pallet::weight(<T as Config>::WeightInfo::set_lock_start())]
         pub fn set_lock_start(origin: OriginFor<T>, timestamp: u64) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
@@ -272,6 +275,7 @@ pub mod pallet {
 
         /// Clear `LockStart` value
         /// WARNING! Check twice before using it!
+        #[pallet::call_index(4)]
         #[pallet::weight(<T as Config>::WeightInfo::clear_lock_start())]
         pub fn clear_lock_start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
@@ -283,6 +287,7 @@ pub mod pallet {
 
         /// Enables or disables offchain worker. `true` to enable offchain worker
         /// operations, `false` to disable.
+        #[pallet::call_index(5)]
         #[pallet::weight(<T as Config>::WeightInfo::set_auto_unlock())]
         pub fn set_auto_unlock(origin: OriginFor<T>, enabled: bool) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;

@@ -60,16 +60,15 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type WhitelistManagementOrigin: EnsureOrigin<Self::Origin>;
+        type WhitelistManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// External actions after removing account from whitelist
         type OnRemove: OnRemove<Self::AccountId>;
         /// Weight information for extrinsics in this pallet.
@@ -79,6 +78,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Adds a `who_to_add` account to whitelist. Requires root authorization
+        #[pallet::call_index(0)]
         #[pallet::weight((
             T::WeightInfo::add_to_whitelist(),
             DispatchClass::Normal))
@@ -106,6 +106,7 @@ pub mod pallet {
         }
 
         /// Removes an account `who_to_remove` from whitelist. Requires sudo authorization
+        #[pallet::call_index(1)]
         #[pallet::weight((
             T::WeightInfo::remove_from_whitelist(),
             DispatchClass::Normal

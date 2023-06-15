@@ -37,20 +37,20 @@ impl<T: frame_system::Config> eq_assets::WeightInfo for WeightInfo<T> {
 	// Storage: FinancialModule PriceLogs (r:15 w:0)
 	// Storage: FinancialModule Metrics (r:0 w:1)
 	fn add_asset() -> Weight {
-		Weight::from_ref_time(27_519_000_000 as u64)
+		Weight::from_parts(27_519_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(16 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: EqAssets Assets (r:1 w:1)
 	// Storage: EqAssets AssetsToRemove (r:1 w:1)
 	fn remove_asset() -> Weight {
-		Weight::from_ref_time(17_000_000 as u64)
+		Weight::from_parts(17_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(2 as u64))
 			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	// Storage: EqAssets Assets (r:1 w:1)
 	fn update_asset() -> Weight {
-		Weight::from_ref_time(16_000_000 as u64)
+		Weight::from_parts(16_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}

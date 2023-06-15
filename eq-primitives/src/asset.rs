@@ -18,17 +18,13 @@
 
 use crate::balance_number::EqFixedU128;
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{Parameter, WeakBoundedVec};
+use frame_support::Parameter;
 use impl_trait_for_tuples::impl_for_tuples;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::FixedPointNumber;
-use sp_runtime::{FixedI64, Percent, Permill};
+use sp_runtime::{FixedI64, FixedPointNumber, Percent, Permill};
 use sp_std::{cmp::Ordering, convert::TryInto, fmt::Debug, str::FromStr, vec::Vec};
-use xcm::{
-    latest::{AssetId, Junction::*, Junctions::*},
-    v1::MultiLocation,
-};
+use xcm::v3::{AssetId, Junction::*, Junctions::*, MultiLocation};
 
 extern crate alloc;
 use alloc::string::String;
@@ -54,13 +50,17 @@ pub struct AssetData<Asset> {
 
 impl AssetData<Asset> {
     pub fn gen_multi_location(&self) -> (MultiLocation, u8) {
-        let key =
-            WeakBoundedVec::force_from(self.id.to_str_bytes(), Some("Asset to MultiLocation"));
+        let id: Vec<u8> = self.id.to_str_bytes();
+        let mut data = [0u8; 32];
+        data[..id.len()].copy_from_slice(&id[..]);
         let multi_location = MultiLocation {
             parents: 0,
             interior: match self.asset_type {
                 AssetType::Native => Here,
-                _ => X1(GeneralKey(key)),
+                _ => X1(GeneralKey {
+                    length: id.len() as u8,
+                    data,
+                }),
             },
         };
         (multi_location, crate::DECIMALS)

@@ -204,7 +204,10 @@ fn testnet_genesis(
                     Permill::from_rational(5u32, 10_000u32),
                     Permill::from_rational(1u32, 1000u32),
                     AssetXcmData::OtherReserved(OtherReservedData {
-                        multi_location: (1, Here).into(),
+                        multi_location: MultiLocation {
+                            parents: 1,
+                            interior: Here,
+                        },
                         decimals: 10,
                     })
                     .encode(),
@@ -278,11 +281,10 @@ fn testnet_genesis(
                     Permill::from_rational(5u32, 10_000u32),
                     Permill::from_rational(1u32, 1000u32),
                     AssetXcmData::OtherReserved(OtherReservedData {
-                        multi_location: (
-                            1,
-                            X3(Parachain(1000), PalletInstance(50), GeneralIndex(1984)),
-                        )
-                            .into(),
+                        multi_location: MultiLocation {
+                            parents: 1,
+                            interior: X3(Parachain(1000), PalletInstance(50), GeneralIndex(1984)),
+                        },
                         decimals: 6,
                     })
                     .encode(),
@@ -370,14 +372,21 @@ fn testnet_genesis(
                     Permill::from_rational(5u32, 10_000u32),
                     Permill::from_rational(1u32, 1000u32),
                     AssetXcmData::OtherReserved(OtherReservedData {
-                        multi_location: (
-                            1,
-                            X2(
+                        multi_location: MultiLocation {
+                            parents: 1,
+                            interior: X2(
                                 Parachain(2000),
-                                GeneralKey(WeakBoundedVec::force_from(vec![0x00, 0x00], None)),
+                                GeneralKey {
+                                    length: 2,
+                                    data: [
+                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00,
+                                    ],
+                                },
                             ),
-                        )
-                            .into(),
+                        },
                         decimals: 12,
                     })
                     .encode(),
@@ -395,14 +404,21 @@ fn testnet_genesis(
                     Permill::from_rational(5u32, 10_000u32),
                     Permill::from_rational(1u32, 1000u32),
                     AssetXcmData::OtherReserved(OtherReservedData {
-                        multi_location: (
-                            1,
-                            X2(
+                        multi_location: MultiLocation {
+                            parents: 1,
+                            interior: X2(
                                 Parachain(2000),
-                                GeneralKey(WeakBoundedVec::force_from(vec![0x00, 0x01], None)),
+                                GeneralKey {
+                                    length: 2,
+                                    data: [
+                                        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                        0x00, 0x00,
+                                    ],
+                                },
                             ),
-                        )
-                            .into(),
+                        },
                         decimals: 12,
                     })
                     .encode(),
@@ -420,7 +436,10 @@ fn testnet_genesis(
                     Permill::from_rational(5u32, 10_000u32),
                     Permill::from_rational(1u32, 1000u32),
                     AssetXcmData::OtherReserved(OtherReservedData {
-                        multi_location: (1, X2(Parachain(2004), PalletInstance(10))).into(),
+                        multi_location: MultiLocation {
+                            parents: 1,
+                            interior: X2(Parachain(2004), PalletInstance(10)),
+                        },
                         decimals: 18,
                     })
                     .encode(),
@@ -438,14 +457,15 @@ fn testnet_genesis(
                     Permill::from_rational(5u32, 10_000u32),
                     Permill::from_rational(1u32, 1000u32),
                     AssetXcmData::OtherReserved(OtherReservedData {
-                        multi_location: (
-                            1,
-                            X2(
-                                Parachain(2012),
-                                GeneralKey(WeakBoundedVec::force_from(b"PARA".to_vec(), None)),
-                            ),
-                        )
-                            .into(),
+                        multi_location: MultiLocation {
+                            parents: 1,
+                            interior: X2(Parachain(2012), {
+                                let id = (b"PARA").to_vec();
+                                let mut data = [0u8; 32];
+                                data[..id.len()].copy_from_slice(&id[..]);
+                                GeneralKey { length: 2, data }
+                            }),
+                        },
                         decimals: 12,
                     })
                     .encode(),

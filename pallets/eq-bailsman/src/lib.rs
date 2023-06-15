@@ -75,8 +75,8 @@ use eq_utils::{
     fixed::{eq_fixedu128_from_balance, fixedi128_from_balance, fixedi128_from_eq_fixedu128},
     vec_map::{SortedVec, VecMap},
 };
+use frame_support::dispatch::{Pays, PostDispatchInfo};
 use frame_support::traits::WithdrawReasons;
-use frame_support::weights::{Pays, PostDispatchInfo};
 use frame_support::{
     pallet_prelude::InvalidTransaction,
     traits::{ExistenceRequirement, Get, UnixTime},
@@ -110,7 +110,6 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
@@ -146,7 +145,7 @@ pub mod pallet {
         /// Used to work with `TotalAggregates` storing aggregated collateral and debt
         type Aggregates: Aggregates<Self::AccountId, Self::Balance>;
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Minimal sum of the collateral and debt abs values to distribute temp Bailsman balances
         #[pallet::constant]
@@ -181,6 +180,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::toggle_auto_redistribution())]
         pub fn toggle_auto_redistribution(
             origin: OriginFor<T>,
@@ -193,6 +193,7 @@ pub mod pallet {
         }
 
         /// Request to redistribute single bailsman sent by offchain worker.
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::redistribute_unsigned(request.queue_len + T::QueueLengthWeightConstant::get()))]
         pub fn redistribute_unsigned(
             origin: OriginFor<T>,
@@ -213,6 +214,7 @@ pub mod pallet {
         }
 
         /// Operation to redistribute single bailsman manually.
+        #[pallet::call_index(2)]
         #[pallet::weight(<T as pallet::Config>::WeightInfo::redistribute(30))]
         pub fn redistribute(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
             ensure_signed(origin)?;

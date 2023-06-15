@@ -21,7 +21,7 @@ use codec::Encode;
 use eq_xcm::ParaId;
 use polkadot_parachain::primitives::Sibling;
 use sp_runtime::TransactionOutcome::*;
-use xcm::v2::{Junction, Junctions::Here};
+use xcm::v3::{send_xcm, Junction, Junctions::Here, WildFungibility};
 
 impl<T: Config> Pallet<T> {
     pub fn do_xcm_transfer(
@@ -63,7 +63,7 @@ impl<T: Config> Pallet<T> {
             fun: Fungible(xcm_fee_amount),
         };
         // Common parameter for ReserveAssetDeposited and Withdraw.
-        // Join to one multi_asset if asset == fee_asset.
+        // Join to single multi_asset if asset == fee_asset.
         let multi_assets = if asset == fee_asset {
             let xcm_amount_and_fee = xcm_amount
                 .checked_add(xcm_fee_amount)
@@ -91,7 +91,7 @@ impl<T: Config> Pallet<T> {
         // wrap in transaction all methods that could cause side effects
         // rollback on any error, but save send_result to show proper error
         let send_result = frame_support::storage::with_transaction(
-            || -> TransactionOutcome<Result<SendResult, DispatchError>> {
+            || -> TransactionOutcome<Result<SendResult<_>, DispatchError>> {
                 // Initialize their_sovereign account as pallet to prevent ED deleting
                 let their_sovereign_info = frame_system::Pallet::<T>::account(&their_sovereign);
 
@@ -211,7 +211,7 @@ impl<T: Config> Pallet<T> {
                                     return Rollback(Err(Error::<T>::XcmInvalidDestination.into()));
                                 }
                                 prefix.pushed_with_interior(Junction::AccountId32 {
-                                    network: NetworkId::Any,
+                                    network: None,
                                     id: acc.unwrap(),
                                 })
                             }
@@ -221,7 +221,7 @@ impl<T: Config> Pallet<T> {
                                     return Rollback(Err(Error::<T>::XcmInvalidDestination.into()));
                                 }
                                 prefix.pushed_with_interior(Junction::AccountKey20 {
-                                    network: NetworkId::Any,
+                                    network: None,
                                     key: acc.unwrap(),
                                 })
                             }
@@ -233,25 +233,24 @@ impl<T: Config> Pallet<T> {
                     }
 
                     xcm.0.push(DepositAsset {
-                        assets: (AllOf {
+                        assets: (AllOfCounted {
                             id: Concrete(fee_location),
-                            fun: xcm::v2::WildFungibility::Fungible,
+                            fun: WildFungibility::Fungible,
+                            count: 2,
                         })
                         .into(),
-                        max_assets: 1, // fee
                         beneficiary: equilibrium_souvereign_multilocation.unwrap(),
                     });
                 }
 
                 xcm.0.push(DepositAsset {
-                    assets: All.into(),
-                    max_assets: 2, // transferable + fee
+                    assets: AllCounted(2).into(),
                     beneficiary: beneficiary.clone(),
                 });
 
                 log::trace!(target: "eq_balances", "Sending XcmMessage dest: {:?}, xcm: {:?}", destination, xcm);
-                match T::XcmRouter::send_xcm(destination.clone(), xcm) {
-                    Ok(()) => Commit(Ok(SendResult::Ok(()))),
+                match send_xcm::<T::XcmRouter>(destination.clone(), xcm) {
+                    Ok(send_result) => Commit(Ok(SendResult::Ok(send_result))),
                     Err(err) => Rollback(Ok(SendResult::Err(err))),
                 }
             },
@@ -285,7 +284,7 @@ impl<T: Config> Pallet<T> {
                 let destination = eq_utils::chain_part(&asset_native_location)
                     .ok_or(Error::<T>::XcmInvalidDestination)?;
                 let asset_location = eq_utils::non_chain_part(&asset_native_location).into();
-                let beneficiary = to.multi_location(NetworkId::Any).into();
+                let beneficiary = to.multi_location().into();
                 (destination, asset_location, beneficiary)
             }
         };

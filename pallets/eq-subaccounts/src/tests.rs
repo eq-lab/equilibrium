@@ -20,7 +20,7 @@
 
 use crate::mock::{
     new_test_ext, AccountId, Balance, MarginCallManagerMock, ModuleAggregates, ModuleBalances,
-    ModuleSubaccounts, Origin, Test,
+    ModuleSubaccounts, RuntimeOrigin, Test,
 };
 use crate::{Error, SubAccType};
 use eq_primitives::TransferReason;
@@ -98,7 +98,7 @@ fn create_bailsman_with_balance(
 
     assert!(
         ModuleSubaccounts::transfer_to_subaccount(
-            Origin::signed(main_acc),
+            RuntimeOrigin::signed(main_acc),
             SubAccType::Bailsman,
             asset,
             balance,
@@ -273,7 +273,7 @@ fn transfer_to_subacc_updates_aggregates() {
             println!("subacc_type {:?} balance {:?}", subacc_type, ltv);
             // Transferring to subacc to update aggregates
             assert_ok!(ModuleSubaccounts::transfer_to_subaccount(
-                Origin::signed(acc_id),
+                RuntimeOrigin::signed(acc_id),
                 subacc_type,
                 asset,
                 transferred_amount
@@ -440,7 +440,7 @@ fn subaccs_count() {
         // subaccounts not exist
         for subacc_type in SubAccType::iterator() {
             assert_ok!(ModuleSubaccounts::transfer_to_subaccount(
-                Origin::signed(acc_id),
+                RuntimeOrigin::signed(acc_id),
                 subacc_type,
                 asset::BTC,
                 11_000_000_000,
@@ -472,7 +472,7 @@ fn transfer_to_subacc() {
         // subaccounts not exist
         for subacc_type in SubAccType::iterator() {
             assert_ok!(ModuleSubaccounts::transfer_to_subaccount(
-                Origin::signed(acc_id),
+                RuntimeOrigin::signed(acc_id),
                 subacc_type,
                 asset::BTC,
                 11_000_000_000,
@@ -492,7 +492,7 @@ fn transfer_to_subacc() {
         // subaccounts exist
         for subacc_type in SubAccType::iterator() {
             assert_ok!(ModuleSubaccounts::transfer_to_subaccount(
-                Origin::signed(acc_id),
+                RuntimeOrigin::signed(acc_id),
                 subacc_type,
                 asset::BTC,
                 1_000_000_000,
@@ -528,7 +528,7 @@ fn transfer_to_bailsman() {
         // check for no register as bailsman with transfer < MinCollateral
 
         assert_ok!(ModuleSubaccounts::transfer_to_subaccount(
-            Origin::signed(acc_id),
+            RuntimeOrigin::signed(acc_id),
             SubAccType::Bailsman,
             asset::EQD,
             1_000_000_000_000,
@@ -544,7 +544,7 @@ fn transfer_to_bailsman() {
         // check for register as bailsman with subacc balance > MinCollateral
 
         assert_ok!(ModuleSubaccounts::transfer_to_subaccount(
-            Origin::signed(acc_id),
+            RuntimeOrigin::signed(acc_id),
             SubAccType::Bailsman,
             asset::EQD,
             100_000_000_000_000,
@@ -574,7 +574,7 @@ fn transfer_from_subaccount() {
             expected_balance_inner = expected_balance_inner + withdrawn;
 
             assert_ok!(ModuleSubaccounts::transfer_from_subaccount(
-                Origin::signed(main_acc),
+                RuntimeOrigin::signed(main_acc),
                 subacc_type,
                 test_asset,
                 withdrawn
@@ -610,7 +610,7 @@ fn transfer_from_non_existent_subacc() {
 
             assert_err!(
                 ModuleSubaccounts::transfer_from_subaccount(
-                    Origin::signed(main_acc),
+                    RuntimeOrigin::signed(main_acc),
                     subacc_type,
                     test_asset,
                     11_987_654_321
@@ -641,7 +641,7 @@ fn transfer_from_subacc_without_balance() {
 
             assert_err!(
                 ModuleSubaccounts::transfer_from_subaccount(
-                    Origin::signed(main_acc),
+                    RuntimeOrigin::signed(main_acc),
                     subacc_type,
                     test_asset,
                     to_withdraw
@@ -689,7 +689,7 @@ fn transfer_from_subacc_fails_low_balance() {
 
             assert_err!(
                 ModuleSubaccounts::transfer_from_subaccount(
-                    Origin::signed(main_acc),
+                    RuntimeOrigin::signed(main_acc),
                     subacc_type,
                     test_asset,
                     to_withdraw
@@ -733,19 +733,19 @@ fn transfer_from_will_unregister_bailsman() {
 
         // Removing funds from subaccounts
         assert_ok!(ModuleSubaccounts::transfer_from_subaccount(
-            Origin::signed(main_acc_1),
+            RuntimeOrigin::signed(main_acc_1),
             SubAccType::Bailsman,
             test_asset,
             initial_bailsman_balance
         ));
         assert_ok!(ModuleSubaccounts::transfer_from_subaccount(
-            Origin::signed(main_acc_2),
+            RuntimeOrigin::signed(main_acc_2),
             SubAccType::Bailsman,
             test_asset,
             initial_bailsman_balance - 9_000_000_000
         ));
         assert_ok!(ModuleSubaccounts::transfer_from_subaccount(
-            Origin::signed(main_acc_3),
+            RuntimeOrigin::signed(main_acc_3),
             SubAccType::Bailsman,
             test_asset,
             999_999_999
@@ -801,7 +801,7 @@ fn transfer_from_bailsman_with_debt() {
         // Should fail whole transfer because of debt
         assert_noop!(
             ModuleSubaccounts::transfer_from_subaccount(
-                Origin::signed(main_acc_1),
+                RuntimeOrigin::signed(main_acc_1),
                 SubAccType::Bailsman,
                 test_asset,
                 101 * 1_000_000_000
@@ -811,7 +811,7 @@ fn transfer_from_bailsman_with_debt() {
 
         // Should be ok, because no need to reinit
         assert_ok!(ModuleSubaccounts::transfer_from_subaccount(
-            Origin::signed(main_acc_2),
+            RuntimeOrigin::signed(main_acc_2),
             SubAccType::Bailsman,
             test_asset,
             89 * 1_000_000_000
@@ -867,7 +867,7 @@ fn transfer_negative_non_borrower_fails() {
 
             assert_err!(
                 ModuleSubaccounts::transfer_from_subaccount(
-                    Origin::signed(main_acc),
+                    RuntimeOrigin::signed(main_acc),
                     subacc_type,
                     test_asset,
                     to_withdraw
@@ -912,7 +912,7 @@ fn borrower_transfer_negative() {
         );
 
         assert_ok!(ModuleSubaccounts::transfer_from_subaccount(
-            Origin::signed(main_acc),
+            RuntimeOrigin::signed(main_acc),
             subacc_type,
             test_asset,
             to_withdraw
@@ -962,7 +962,7 @@ fn transfer_from_borrower_to_account() {
         let dest_acc: AccountId = 900;
 
         assert_ok!(ModuleSubaccounts::transfer(
-            Origin::signed(source_acc),
+            RuntimeOrigin::signed(source_acc),
             subacc_type,
             dest_acc.clone(),
             test_asset,
@@ -1012,7 +1012,7 @@ fn transfer_from_bailsman_to_account() {
         let dest_acc: AccountId = 900;
 
         assert_ok!(ModuleSubaccounts::transfer(
-            Origin::signed(source_acc),
+            RuntimeOrigin::signed(source_acc),
             subacc_type,
             dest_acc.clone(),
             test_asset,
@@ -1060,7 +1060,7 @@ fn trasnsfer_from_bailsman_should_fail_when_not_enough_balance() {
 
         assert_err!(
             ModuleSubaccounts::transfer(
-                Origin::signed(source_acc),
+                RuntimeOrigin::signed(source_acc),
                 subacc_type,
                 dest_acc.clone(),
                 test_asset,
@@ -1097,7 +1097,7 @@ fn transfer_from_subaccount_to_subaccount_err() {
 
         assert_noop!(
             ModuleSubaccounts::transfer(
-                Origin::signed(source_acc),
+                RuntimeOrigin::signed(source_acc),
                 subacc_type,
                 dest_subacc.clone(),
                 collat_asset,

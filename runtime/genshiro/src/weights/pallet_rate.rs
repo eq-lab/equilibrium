@@ -51,7 +51,7 @@ impl<T: frame_system::Config> eq_rate::WeightInfo for WeightInfo<T> {
 	// Storage: Subaccounts OwnerAccount (r:1 w:0)
 	// Storage: EqBalances Account (r:1 w:0)
 	fn reinit() -> Weight {
-		Weight::from_ref_time(3_683_760_000 as u64)
+		Weight::from_parts(3_683_760_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(75 as u64))
 			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
@@ -71,7 +71,7 @@ impl<T: frame_system::Config> eq_rate::WeightInfo for WeightInfo<T> {
 	// Storage: Subaccounts OwnerAccount (r:1 w:0)
 	// Storage: EqBalances Account (r:1 w:0)
 	fn reinit_external() -> Weight {
-		Weight::from_ref_time(1_959_201_000 as u64)
+		Weight::from_parts(1_959_201_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(73 as u64))
 			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
@@ -89,7 +89,7 @@ impl<T: frame_system::Config> eq_rate::WeightInfo for WeightInfo<T> {
 	// Storage: EqBalances Account (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn delete_account() -> Weight {
-		Weight::from_ref_time(286_703_000 as u64)
+		Weight::from_parts(286_703_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(22 as u64))
 			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
@@ -106,13 +106,13 @@ impl<T: frame_system::Config> eq_rate::WeightInfo for WeightInfo<T> {
 	// Storage: EqBalances Account (r:1 w:0)
 	// Storage: EqRate LastFeeUpdate (r:0 w:1)
 	fn delete_account_external() -> Weight {
-		Weight::from_ref_time(208_667_000 as u64)
+		Weight::from_parts(208_667_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(21 as u64))
 			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	// Storage: EqRate AutoReinitEnabled (r:0 w:1)
 	fn set_auto_reinit_enabled() -> Weight {
-		Weight::from_ref_time(6_069_000 as u64)
+		Weight::from_parts(6_069_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 }

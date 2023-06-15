@@ -192,7 +192,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     // #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
@@ -202,7 +201,7 @@ pub mod pallet {
         #[pallet::constant]
         type ModuleId: Get<frame_support::PalletId>;
 
-        type MarketMakersManagementOrigin: EnsureOrigin<Self::Origin>;
+        type MarketMakersManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Numerical representation of stored balances
         type Balance: Member
             + AtLeast32BitUnsigned
@@ -217,7 +216,7 @@ pub mod pallet {
         /// Used for currency-related operations and calculations
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
         /// Weight information for extrinsics of eqDex.
@@ -237,6 +236,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create pool for a given currency
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::create_pool())]
         pub fn create_pool(
             origin: OriginFor<T>,
@@ -271,6 +271,7 @@ pub mod pallet {
         }
 
         /// Change minimal deposit for pool
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::change_min_amount())]
         pub fn change_min_amount(
             origin: OriginFor<T>,
@@ -293,6 +294,7 @@ pub mod pallet {
 
         /// Set new duration for epoch
         /// Duration will change at the next epoch
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::set_epoch_duration())]
         pub fn set_epoch_duration(
             origin: OriginFor<T>,
@@ -322,7 +324,8 @@ pub mod pallet {
 
         /// <dev>
         /// Set new duration for current epoch and restart timer
-        #[pallet::weight(10_000)]
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn force_set_epoch(
             origin: OriginFor<T>,
             epoch_duration: Timestamp,
@@ -338,6 +341,7 @@ pub mod pallet {
         }
 
         /// Add `manager` to managers list of a market maker with a given `mm_id`
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::add_manager())]
         pub fn add_manager(
             origin: OriginFor<T>,
@@ -371,6 +375,7 @@ pub mod pallet {
         // }
 
         /// Allows Mm to borrow (not more than weight) from specified pools
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::set_allocations(weight_per_asset.len() as u32))]
         pub fn set_allocations(
             origin: OriginFor<T>,
@@ -405,6 +410,7 @@ pub mod pallet {
         }
 
         /// Manager's function to borrow funds from pool to use them in DEX
+        #[pallet::call_index(6)]
         #[pallet::weight(T::WeightInfo::borrow())]
         pub fn borrow(
             origin: OriginFor<T>,
@@ -417,6 +423,7 @@ pub mod pallet {
         }
 
         /// Manager's function to return funds to pool
+        #[pallet::call_index(7)]
         #[pallet::weight(T::WeightInfo::repay())]
         pub fn repay(
             origin: OriginFor<T>,
@@ -429,6 +436,7 @@ pub mod pallet {
         }
 
         /// User's function to deposit funds to pool
+        #[pallet::call_index(8)]
         #[pallet::weight(T::WeightInfo::deposit())]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -441,6 +449,7 @@ pub mod pallet {
         }
 
         /// User's function to request deposited funds back
+        #[pallet::call_index(9)]
         #[pallet::weight(T::WeightInfo::request_withdrawal())]
         pub fn request_withdrawal(
             origin: OriginFor<T>,
@@ -453,6 +462,7 @@ pub mod pallet {
         }
 
         /// User's function to withdraw funds from pool 2 epochs after request
+        #[pallet::call_index(10)]
         #[pallet::weight(T::WeightInfo::withdraw())]
         pub fn withdraw(origin: OriginFor<T>, currency: Asset) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -461,6 +471,7 @@ pub mod pallet {
         }
 
         /// Manager's function to create orders via trading account
+        #[pallet::call_index(11)]
         #[pallet::weight(
             <T as pallet::Config>::DexWeightInfo::create_limit_order()
                 .max(<T as pallet::Config>::DexWeightInfo::create_market_order())
@@ -483,6 +494,7 @@ pub mod pallet {
         }
 
         /// Delete order. This must be called by order owner or root.
+        #[pallet::call_index(12)]
         #[pallet::weight(<T as Config>::DexWeightInfo::delete_order_external())]
         pub fn delete_order(
             origin: OriginFor<T>,

@@ -40,7 +40,7 @@ impl<T: frame_system::Config> eq_wrapped_dot::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:2 w:2)
 	// Storage: EqWrappedDot CurrentBalance (r:1 w:1)
 	fn deposit() -> Weight {
-		Weight::from_ref_time(78_000_000 as u64)
+		Weight::from_parts(78_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(9 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
@@ -51,7 +51,7 @@ impl<T: frame_system::Config> eq_wrapped_dot::WeightInfo for WeightInfo<T> {
 	// Storage: System Account (r:1 w:1)
 	// Storage: EqAggregates AccountUserGroups (r:3 w:0)
 	fn withdraw() -> Weight {
-		Weight::from_ref_time(74_000_000 as u64)
+		Weight::from_parts(74_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(9 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
@@ -65,7 +65,7 @@ impl<T: frame_system::Config> eq_wrapped_dot::WeightInfo for WeightInfo<T> {
 	// Storage: Subaccounts OwnerAccount (r:1 w:0)
 	// Storage: EqAggregates AccountUserGroups (r:6 w:1)
 	fn withdraw_unbond() -> Weight {
-		Weight::from_ref_time(89_000_000 as u64)
+		Weight::from_parts(89_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(16 as u64))
 			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
@@ -82,9 +82,9 @@ impl<T: frame_system::Config> eq_wrapped_dot::WeightInfo for WeightInfo<T> {
 	// Storage: EqAggregates TotalUserGroups (r:2 w:2)
 	/// The range of component `c` is `[1, 50]`.
 	fn on_initialize(c: u32, ) -> Weight {
-		Weight::from_ref_time(62_036_000 as u64)
+		Weight::from_parts(62_036_000 as u64, 0)
 			// Standard Error: 30_000
-			.saturating_add(Weight::from_ref_time(24_230_000 as u64).saturating_mul(c as u64))
+			.saturating_add(Weight::from_parts(24_230_000 as u64, 0).saturating_mul(c as u64))
 			.saturating_add(T::DbWeight::get().reads(14 as u64))
 			.saturating_add(T::DbWeight::get().reads((5 as u64).saturating_mul(c as u64)))
 			.saturating_add(T::DbWeight::get().writes(6 as u64))
@@ -93,7 +93,7 @@ impl<T: frame_system::Config> eq_wrapped_dot::WeightInfo for WeightInfo<T> {
 	// Storage: ParachainInfo ParachainId (r:1 w:0)
 	// Storage: EqWrappedDot RelayStakingInfo (r:0 w:1)
 	fn on_finalize() -> Weight {
-		Weight::from_ref_time(5_000_000 as u64)
+		Weight::from_parts(5_000_000 as u64, 0)
 			.saturating_add(T::DbWeight::get().reads(1 as u64))
 			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}

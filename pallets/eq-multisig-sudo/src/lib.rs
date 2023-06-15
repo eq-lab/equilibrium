@@ -46,9 +46,8 @@ use sp_std::vec;
 use frame_support::Parameter;
 
 use frame_support::{
-    dispatch::DispatchResultWithPostInfo,
+    dispatch::{DispatchResultWithPostInfo, GetDispatchInfo},
     traits::{Get, UnfilteredDispatchable},
-    weights::{GetDispatchInfo, Pays},
 };
 
 #[allow(unused_imports)]
@@ -74,17 +73,16 @@ pub mod pallet {
     use sp_runtime::DispatchResult;
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// A sudo-able call.
-        type Call: Parameter
-            + UnfilteredDispatchable<Origin = Self::Origin>
+        type RuntimeCall: Parameter
+            + UnfilteredDispatchable<RuntimeOrigin = Self::RuntimeOrigin>
             + GetDispatchInfo
             + From<pallet::Call<Self>>;
         /// Maximal number of signatories
@@ -220,7 +218,7 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         /// Attempt to decode and return a call, provided by the user or from the storage.
-        fn decode_proposal(call_hash: &[u8; 32]) -> Option<(<T as Config>::Call, usize)> {
+        fn decode_proposal(call_hash: &[u8; 32]) -> Option<(<T as Config>::RuntimeCall, usize)> {
             let mb_data = <MultisigProposals<T>>::get(&call_hash).map(|p| p.call);
             if mb_data.is_none() {
                 return None;
@@ -255,6 +253,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Adds a key to the multisig signatory list. Requires root.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::add_key())]
         pub fn add_key(origin: OriginFor<T>, key: T::AccountId) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
@@ -277,6 +276,7 @@ pub mod pallet {
         }
 
         /// Removes a key from the multisig signatory list. Requires root.
+        #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::remove_key())]
         pub fn remove_key(origin: OriginFor<T>, key: T::AccountId) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
@@ -311,6 +311,7 @@ pub mod pallet {
         }
 
         /// Modifies the multisig threshold value i.e. the required number of signatories for a call to proceed. Requires root.
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::modify_threshold())]
         pub fn modify_threshold(
             origin: OriginFor<T>,
@@ -338,10 +339,11 @@ pub mod pallet {
         }
 
         /// Proposes a call to be signed. Requires account to be in multisig signatory list.
+        #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::propose())]
         pub fn propose(
             origin: OriginFor<T>,
-            call: Box<<T as Config>::Call>,
+            call: Box<<T as Config>::RuntimeCall>,
         ) -> DispatchResultWithPostInfo {
             // This is a public call, so we ensure that an origin is a signed account.
             let who = ensure_signed(origin)?;
@@ -387,6 +389,7 @@ pub mod pallet {
         }
 
         /// Approves a proposal. Requires an account be in the multisig signatory list.
+        #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::approve())]
         pub fn approve(origin: OriginFor<T>, call_hash: [u8; 32]) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -451,6 +454,7 @@ pub mod pallet {
         }
 
         /// Cancels an earlier submitted proposal.
+        #[pallet::call_index(5)]
         #[pallet::weight(T::WeightInfo::cancel_proposal())]
         pub fn cancel_proposal(
             origin: OriginFor<T>,

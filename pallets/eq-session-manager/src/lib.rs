@@ -50,14 +50,13 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type ValidatorsManagementOrigin: EnsureOrigin<Self::Origin>;
+        type ValidatorsManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// The overarching event type.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Representation of validator id
         type ValidatorId: Member
             + Parameter
@@ -76,6 +75,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight(<T as Config>::WeightInfo::add_validator())]
         pub fn add_validator(
             origin: OriginFor<T>,
@@ -120,6 +120,7 @@ pub mod pallet {
         }
 
         /// Removes validator. Root authorization required to remove validator.
+        #[pallet::call_index(1)]
         #[pallet::weight(<T as Config>::WeightInfo::remove_validator())]
         pub fn remove_validator(
             origin: OriginFor<T>,
