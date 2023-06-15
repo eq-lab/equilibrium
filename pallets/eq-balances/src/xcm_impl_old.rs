@@ -143,7 +143,8 @@ impl<T: Config> Pallet<T> {
                     id: Concrete(xcm_fee_asset_multilocation),
                     fun: Fungible(xcm_fee_amount),
                 };
-                let multi_assets: MultiAssets = vec![xcm_fee_asset_multiasset.clone(), multi_asset].into();
+                let multi_assets: MultiAssets =
+                    vec![xcm_fee_asset_multiasset.clone(), multi_asset].into();
                 let xcm = Xcm(vec![
                     WithdrawAsset(multi_assets.clone()),
                     ClearOrigin,
