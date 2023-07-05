@@ -1429,6 +1429,34 @@ impl pallet_collator_selection::Config for Runtime {
     type WeightInfo = (); // weights::pallet_collator_selection::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+    pub const BinaryOptPalletId: PalletId = PalletId(*b"binaries");
+}
+
+pub struct UpdateOnceInBlocks;
+impl Get<BlockNumber> for UpdateOnceInBlocks {
+    fn get() -> BlockNumber {
+        BINARIES_UPDATE_ONCE_IN_BLOCKS
+    }
+}
+
+// defines how often binaries update happens
+pub const BINARIES_UPDATE_ONCE_IN_BLOCKS: BlockNumber = 3;
+
+impl gens_binary_opt::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type ToggleBinaryCreateOrigin = EnsureRoot<AccountId>;
+    type Balance = Balance;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type PriceGetter = Oracle;
+    type UnixTime = EqRate;
+    type EqCurrency = eq_balances::Pallet<Runtime>;
+    type PalletId = BinaryOptPalletId;
+    type TreasuryModuleId = TreasuryAccount;
+    type WeightInfo = (); // weights::pallet_binary_opt::WeightInfo<Runtime>;
+    type UpdateOnceInBlocks = UpdateOnceInBlocks;
+}
+
 use eq_primitives::{
     asset::{Asset, AssetXcmData, OnNewAsset},
     balance::AccountData,
@@ -1485,6 +1513,7 @@ construct_runtime!(
         EqLending: eq_lending::{Pallet, Call, Storage, Event<T>, Config<T>},
         Migration: eq_migration::{Pallet, Call, Storage, Event<T>},
         CurveAmm: equilibrium_curve_amm::{Pallet, Call, Storage, Event<T>},
+        GensBinary: gens_binary_opt::{Pallet, Call, Config, Storage, Event<T>},
 
         // XCM helpers.
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Storage, Origin, Config},

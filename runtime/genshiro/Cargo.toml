@@ -400,6 +400,11 @@ default-features = false
 path = "../../pallets/eq-dex"
 version = "0.1.0"
 
+[dependencies.gens-binary-opt]
+default-features = false
+path = "../../pallets/gens-binary-opt"
+version = "0.3.0"
+
 [features]
 
 default = ["std"]
@@ -484,8 +489,8 @@ std = [
   "eq-bailsman/std",
   "eq-oracle/std",
   "eq-margin-call/std",
-  "eq-dex/std"
-
+  "eq-dex/std",
+  "gens-binary-opt/std"
 ]
 
 runtime-benchmarks = [
