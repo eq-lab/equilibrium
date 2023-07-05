@@ -707,6 +707,8 @@ fn testnet_genesis(
         },
 
         eq_lending: Default::default(),
+
+        gens_binary: Default::default()
     }
 }
 
