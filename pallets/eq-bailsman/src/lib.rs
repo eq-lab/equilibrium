@@ -287,7 +287,7 @@ pub mod pallet {
                                 }
 
                                 let (curr_distr_id, mut queue) = Self::distribution_queue();
-                                queue.push(
+                                queue.push_unsafe(
                                     curr_distr_id + 1,
                                     Distribution {
                                         total_usd,

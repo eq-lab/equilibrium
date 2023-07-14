@@ -519,7 +519,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                         amount,
                         binary.minimal_amount,
                     );
-                    votes.push(who.clone(), (expected_result, amount));
+                    votes.insert(who.clone(), (expected_result, amount));
                 }
             }
 

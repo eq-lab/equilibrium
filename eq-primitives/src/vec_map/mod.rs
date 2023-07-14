@@ -327,7 +327,7 @@ impl<K: Ord, V> VecMap<K, V> {
 
     /// Caller must ensure that `key` is greater than any key presented in map
     /// Otherwise `value` will be discarded
-    pub fn push(&mut self, key: K, value: V) -> bool {
+    pub fn push_unsafe(&mut self, key: K, value: V) -> bool {
         if let Some((k, _)) = self.0.last() {
             if &key <= k {
                 return false;
