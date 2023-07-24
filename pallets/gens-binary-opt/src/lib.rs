@@ -203,20 +203,23 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// New binary option just started
-        /// \[binary_id, target_asset, binary_mode, proper_asset\]
-        Create(BinaryId, Asset, BinaryMode, Asset),
+        /// \[binary_id, target_asset, binary_mode, proper_asset, start_time, end_time, fee, deposit_offset\]
+        Create(BinaryId, Asset, BinaryMode, Asset, u64, u64, Permill, u64),
         /// Binary option deleted
         /// \[binary_id\]
         Purge(BinaryId),
         /// `who` participants in binary option with `deposit`
-        /// \[binary_id, who, deposit\]
-        Enter(BinaryId, T::AccountId, T::Balance),
+        /// \[binary_id, who, deposit, expected_result\]
+        Enter(BinaryId, T::AccountId, T::Balance, bool),
         /// `who` quits binary option
-        /// \[binary_id, who\]
-        Quit(BinaryId, T::AccountId),
+        /// \[binary_id, who, deposit, expected_result\]
+        Quit(BinaryId, T::AccountId, T::Balance, bool),
         /// `who` wins binary option and claims `reward`
         /// \[binary_id, who, reward\]
         Claim(BinaryId, T::AccountId, T::Balance),
+        /// Binary option just ended
+        /// \[binary_id, false_balance, true_balance, result\]
+        End(BinaryId, T::Balance, T::Balance, bool)
     }
 
     #[pallet::error]
@@ -378,6 +381,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .iter()
                 .filter(|(_, (prediction, _))| *prediction == new_result)
                 .count() as u32;
+
+            Self::deposit_event(Event::End(
+                binary_id,
+                binary.total.0.into(),
+                binary.total.1.into(),
+                new_result,
+            ));
+
             Some((binary, Some(new_result), new_winners_left))
         } else {
             Some((binary, result, winners_left))
@@ -432,7 +443,16 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         };
         Binaries::<T, I>::insert(binary_id, (binary_params, Option::<bool>::None, 0));
 
-        Self::deposit_event(Event::Create(binary_id, target, target_mode, proper));
+        Self::deposit_event(Event::Create(
+            binary_id,
+            target,
+            target_mode,
+            proper,
+            start_time,
+            end_time,
+            fee,
+            deposit_offset,
+        ));
         Ok(().into())
     }
 
@@ -547,7 +567,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     .ok_or(ArithmeticError::Overflow)?;
             }
 
-            Self::deposit_event(Event::Enter(binary_id, who, amount));
+            Self::deposit_event(Event::Enter(
+                binary_id,
+                who,
+                amount,
+                expected_result
+            ));
             Ok(().into())
         })
     }
@@ -617,7 +642,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         votes.remove(&who);
         Votes::<T, I>::set(binary_id, votes);
 
-        Self::deposit_event(Event::Quit(binary_id, who));
+        Self::deposit_event(Event::Quit(
+            binary_id,
+            who,
+            amount,
+            expected_result
+        ));
         Ok(().into())
     }
 
@@ -719,3 +749,4 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         .map(|value| value.into())
     }
 }
+
