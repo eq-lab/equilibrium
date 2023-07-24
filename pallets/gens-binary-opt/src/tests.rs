@@ -200,9 +200,24 @@ fn start_multiple_similar_binaries_consequentially() {
 
         time_move(40);
 
+        assert_err!(Module::create(
+                RawOrigin::Root.into(),
+                BINARY_ID_0,
+                60,
+                DEPOSIT_OFFSET,
+                TARGET_ASSET,
+                CallPut(OLD_TARGET_PRICE),
+                PROPER_ASSET,
+                MINIMAL_DEPOSIT,
+                ZERO_FEE,
+                PENALTY,
+            ),
+            Error::InvalidId
+        );
+
         assert_ok!(Module::create(
             RawOrigin::Root.into(),
-            BINARY_ID_0,
+            BINARY_ID_1,
             60,
             DEPOSIT_OFFSET,
             TARGET_ASSET,
@@ -215,7 +230,7 @@ fn start_multiple_similar_binaries_consequentially() {
 
         time_move(60);
 
-        assert_ok!(Module::purge(RawOrigin::Signed(USER_1).into(), BINARY_ID_0));
+        assert_ok!(Module::purge(RawOrigin::Signed(USER_1).into(), BINARY_ID_1));
     })
 }
 
@@ -1288,3 +1303,4 @@ fn fee_test() {
         assert_eq!(balances[&(get_pallet_account(), PROPER_ASSET)], 0);
     })
 }
+

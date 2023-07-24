@@ -163,6 +163,10 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    #[pallet::storage]
+    #[pallet::getter(fn last_id)]
+    pub type LastId<T: Config<I>, I: 'static = ()> = StorageValue<_, BinaryId>;
+
     #[pallet::hooks]
     impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
         fn on_initialize(n: BlockNumberFor<T>) -> Weight {
@@ -244,6 +248,8 @@ pub mod pallet {
         ParticipateTimeIsOver,
         // Could not vote for opposite result in the same binary option
         DepositForOppositeResult,
+        // New binary option must use ID strictly greater than all previously created binary option IDs
+        InvalidId
     }
 
     #[pallet::call]
@@ -424,6 +430,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             binary_id,
         );
 
+        eq_ensure!(
+            LastId::<T, I>::get().map(|last_id| binary_id > last_id).unwrap_or(true),
+            Error::<T, I>::InvalidId,
+            target: "gens_binary_opt",
+            "Option ID {:?} must be greater than all previous IDs",
+            binary_id,
+        );
+
         let start_time = Self::get_timestamp();
         let end_time = start_time
             .checked_add(duration)
@@ -443,6 +457,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         };
         Binaries::<T, I>::insert(binary_id, (binary_params, Option::<bool>::None, 0));
 
+        LastId::<T, I>::set(Some(binary_id));
+
         Self::deposit_event(Event::Create(
             binary_id,
             target,
@@ -453,6 +469,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             fee,
             deposit_offset,
         ));
+
         Ok(().into())
     }
 
