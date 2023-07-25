@@ -363,6 +363,19 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        #[pallet::call_index(6)]
+        #[pallet::weight(T::WeightInfo::set_last_id())]
+        pub fn set_last_id(
+            origin: OriginFor<T>,
+            binary_id: BinaryId,
+        ) -> DispatchResultWithPostInfo {
+            T::ToggleBinaryCreateOrigin::ensure_origin(origin)?;
+
+            LastId::<T, I>::set(Some(binary_id));
+
+            Ok(Pays::No.into())
+        }
     }
 }
 

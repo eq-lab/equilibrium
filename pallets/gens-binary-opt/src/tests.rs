@@ -3,7 +3,7 @@
 use eq_utils::ONE_TOKEN;
 use frame_support::{assert_err, assert_ok};
 use frame_system::RawOrigin;
-use sp_runtime::FixedI64;
+use sp_runtime::{DispatchError, FixedI64};
 
 use crate::{mock::*, BinaryMode::*};
 
@@ -1304,3 +1304,30 @@ fn fee_test() {
     })
 }
 
+#[test]
+fn user_cant_change_last_id() {
+    new_test_ext().execute_with(|| {
+        assert_err!(Module::set_last_id(
+            RawOrigin::Signed(USER_0).into(),
+            BINARY_ID_2,
+        ), DispatchError::BadOrigin
+        );
+    })
+}
+
+#[test]
+fn root_can_change_last_id() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Module::set_last_id(
+            RawOrigin::Root.into(),
+            BINARY_ID_2,
+        ));
+        assert_eq!(Module::last_id(), Some(BINARY_ID_2));
+
+        assert_ok!(Module::set_last_id(
+            RawOrigin::Root.into(),
+            BINARY_ID_2,
+        ));
+        assert_eq!(Module::last_id(), Some(BINARY_ID_2));
+    })
+}
