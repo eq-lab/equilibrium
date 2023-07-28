@@ -223,7 +223,7 @@ pub mod pallet {
         Claim(BinaryId, T::AccountId, T::Balance),
         /// Binary option just ended
         /// \[binary_id, false_balance, true_balance, result\]
-        End(BinaryId, T::Balance, T::Balance, bool)
+        End(BinaryId, T::Balance, T::Balance, bool),
     }
 
     #[pallet::error]
@@ -249,7 +249,7 @@ pub mod pallet {
         // Could not vote for opposite result in the same binary option
         DepositForOppositeResult,
         // New binary option must use ID strictly greater than all previously created binary option IDs
-        InvalidId
+        InvalidId,
     }
 
     #[pallet::call]
@@ -597,12 +597,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     .ok_or(ArithmeticError::Overflow)?;
             }
 
-            Self::deposit_event(Event::Enter(
-                binary_id,
-                who,
-                amount,
-                expected_result
-            ));
+            Self::deposit_event(Event::Enter(binary_id, who, amount, expected_result));
             Ok(().into())
         })
     }
@@ -672,12 +667,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         votes.remove(&who);
         Votes::<T, I>::set(binary_id, votes);
 
-        Self::deposit_event(Event::Quit(
-            binary_id,
-            who,
-            amount,
-            expected_result
-        ));
+        Self::deposit_event(Event::Quit(binary_id, who, amount, expected_result));
         Ok(().into())
     }
 
@@ -779,4 +769,3 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         .map(|value| value.into())
     }
 }
-

@@ -200,7 +200,8 @@ fn start_multiple_similar_binaries_consequentially() {
 
         time_move(40);
 
-        assert_err!(Module::create(
+        assert_err!(
+            Module::create(
                 RawOrigin::Root.into(),
                 BINARY_ID_0,
                 60,
@@ -1307,10 +1308,9 @@ fn fee_test() {
 #[test]
 fn user_cant_change_last_id() {
     new_test_ext().execute_with(|| {
-        assert_err!(Module::set_last_id(
-            RawOrigin::Signed(USER_0).into(),
-            BINARY_ID_2,
-        ), DispatchError::BadOrigin
+        assert_err!(
+            Module::set_last_id(RawOrigin::Signed(USER_0).into(), BINARY_ID_2,),
+            DispatchError::BadOrigin
         );
     })
 }
@@ -1318,16 +1318,10 @@ fn user_cant_change_last_id() {
 #[test]
 fn root_can_change_last_id() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Module::set_last_id(
-            RawOrigin::Root.into(),
-            BINARY_ID_2,
-        ));
+        assert_ok!(Module::set_last_id(RawOrigin::Root.into(), BINARY_ID_2,));
         assert_eq!(Module::last_id(), Some(BINARY_ID_2));
 
-        assert_ok!(Module::set_last_id(
-            RawOrigin::Root.into(),
-            BINARY_ID_2,
-        ));
+        assert_ok!(Module::set_last_id(RawOrigin::Root.into(), BINARY_ID_2,));
         assert_eq!(Module::last_id(), Some(BINARY_ID_2));
     })
 }
