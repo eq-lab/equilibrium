@@ -26,7 +26,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub use chainbridge;
-use codec::Encode;
+use codec::{Encode, Decode};
 use core::marker::PhantomData;
 pub use eq_assets;
 pub use eq_balances;
@@ -1556,6 +1556,7 @@ pub type Executive = frame_executive::Executive<
     system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    CustomOnRuntimeUpgrade,
 >;
 
 #[derive(Clone, Eq, PartialEq, scale_info::TypeInfo)]
@@ -1563,6 +1564,51 @@ pub struct CallsWithReinit;
 impl Contains<RuntimeCall> for CallsWithReinit {
     fn contains(call: &RuntimeCall) -> bool {
         matches!(call, RuntimeCall::Subaccounts(..))
+    }
+}
+
+/// Storage record type for a pool
+#[derive(Encode, Decode, Clone, Default, PartialEq, Eq, Debug, scale_info::TypeInfo)]
+struct OldPoolInfo<AccountId, AssetId, Number, Balance> {
+    /// Owner of pool
+    pub owner: AccountId,
+    /// LP multiasset
+    pub pool_asset: AssetId,
+    /// List of multiassets supported by the pool
+    pub assets: Vec<AssetId>,
+    /// Initial amplification coefficient (leverage)
+    pub amplification: Number,
+    /// Amount of the fee pool charges for the exchange
+    pub fee: Permill,
+    /// Amount of the admin fee pool charges for the exchange
+    pub admin_fee: Permill,
+    /// Current balances excluding admin_fee
+    pub balances: Vec<Balance>,
+    /// Current balances including admin_fee
+    pub total_balances: Vec<Balance>,
+}
+
+pub struct CustomOnRuntimeUpgrade;
+
+impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
+    fn on_runtime_upgrade() -> Weight {
+        let _ = equilibrium_curve_amm::Pools::<Runtime>::translate(
+            | _pool_id: equilibrium_curve_amm::PoolId, old_pool_data: OldPoolInfo<AccountId, AssetId, CurveNumber, Balance> | {
+                Some(equilibrium_curve_amm::PoolInfo {
+                    owner: old_pool_data.owner,
+                    pool_asset: old_pool_data.pool_asset,
+                    assets: old_pool_data.assets,
+                    amplification: old_pool_data.amplification,
+                    fee: old_pool_data.fee,
+                    admin_fee: old_pool_data.admin_fee,
+                    balances: old_pool_data.balances,
+                    total_balances: old_pool_data.total_balances,
+                    is_enabled: true,
+                })
+            }
+        );
+
+        Weight::from_parts(1u64, 0)
     }
 }
 
@@ -1912,6 +1958,7 @@ parameter_types! {
 
 impl equilibrium_curve_amm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type AdminOrigin = system::EnsureRoot<Self::AccountId>;
     type AssetId = AssetId;
     type Balance = Balance;
     type Currency = BasicCurrency;
