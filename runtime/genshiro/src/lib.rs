@@ -26,7 +26,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub use chainbridge;
-use codec::{Encode, Decode};
+use codec::{Decode, Encode};
 use core::marker::PhantomData;
 pub use eq_assets;
 pub use eq_balances;
@@ -1593,7 +1593,8 @@ pub struct CustomOnRuntimeUpgrade;
 impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
         let _ = equilibrium_curve_amm::Pools::<Runtime>::translate(
-            | _pool_id: equilibrium_curve_amm::PoolId, old_pool_data: OldPoolInfo<AccountId, AssetId, CurveNumber, Balance> | {
+            |_pool_id: equilibrium_curve_amm::PoolId,
+             old_pool_data: OldPoolInfo<AccountId, AssetId, CurveNumber, Balance>| {
                 Some(equilibrium_curve_amm::PoolInfo {
                     owner: old_pool_data.owner,
                     pool_asset: old_pool_data.pool_asset,
@@ -1605,7 +1606,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                     total_balances: old_pool_data.total_balances,
                     is_enabled: true,
                 })
-            }
+            },
         );
 
         Weight::from_parts(1u64, 0)
