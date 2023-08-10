@@ -593,6 +593,9 @@ pub mod pallet {
             #[allow(unused_must_use)]
             T::OnPriceSet::on_price_set(asset::EQD, I64F64::from_num(1)).unwrap();
 
+            #[allow(unused_must_use)]
+            T::OnPriceSet::on_price_set(asset::MXUSDC, I64F64::from_num(0)).unwrap();
+
             let update_lp_token_prices = || -> DispatchResult {
                 let update_price = |asset, amm_type| -> DispatchResult {
                     let lp_price = match amm_type {
@@ -917,6 +920,9 @@ impl<T: Config> Pallet<T> {
         signer: &Signer<T, T::AuthorityId, ForAll>,
     ) {
         for (asset, price_result) in Self::get_prices(source_type) {
+            if asset == asset::MXUSDC {
+                continue;
+            }
             match price_result {
                 Ok(price) => {
                     Self::submit_tx_update_price(asset, price, block_number, signer);
@@ -1261,9 +1267,6 @@ impl<T: Config> PriceGetter for Pallet<T> {
     {
         if asset == &asset::EQD {
             return Ok(FixedNumber::one());
-        }
-        if asset == &asset::MXUSDC {
-            return Ok(FixedNumber::zero());
         }
 
         let item = <PricePoints<T>>::get(&asset).ok_or_else(|| {

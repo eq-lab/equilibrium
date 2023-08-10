@@ -246,6 +246,10 @@ impl CurveAmmTrait for CurveAmmStub {
     fn withdraw_admin_fees(_who: &Self::AccountId, _pool_id: u32) -> DispatchResultWithPostInfo {
         Ok(().into())
     }
+
+    fn set_enable_state(_pool_id: u32, _is_enabled: bool) -> DispatchResultWithPostInfo {
+        Ok(().into())
+    }
 }
 
 impl eq_assets::Config for Test {
