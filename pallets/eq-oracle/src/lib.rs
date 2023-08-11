@@ -103,7 +103,7 @@ use eq_primitives::{calculate_unsigned_priority, str_asset};
 use eq_primitives::{Aggregates, AggregatesAssetRemover, LendingAssetRemoval, UserGroup};
 use eq_utils::{
     eq_ensure,
-    fixed::{fixedi64_from_balance, fixedi64_to_i64f64},
+    fixed::{fixedi64_from_balance, fixedi64_to_i64f64, i64f64_to_fixedi64},
     ONE_TOKEN,
 };
 use eq_whitelists::CheckWhitelisted;
@@ -593,9 +593,6 @@ pub mod pallet {
             #[allow(unused_must_use)]
             T::OnPriceSet::on_price_set(asset::EQD, I64F64::from_num(1)).unwrap();
 
-            #[allow(unused_must_use)]
-            T::OnPriceSet::on_price_set(asset::MXUSDC, I64F64::from_num(0)).unwrap();
-
             let update_lp_token_prices = || -> DispatchResult {
                 let update_price = |asset, amm_type| -> DispatchResult {
                     let lp_price = match amm_type {
@@ -637,11 +634,19 @@ pub mod pallet {
                 Ok(())
             };
 
+            let update_mxusdc_token_price = || -> DispatchResult {
+                let mxusdc_price = I64F64::from_num(0);
+                Self::set_the_only_price(asset::MXUSDC, i64f64_to_fixedi64(mxusdc_price));
+                T::OnPriceSet::on_price_set(asset::MXUSDC, mxusdc_price)?;
+                Ok(())
+            };
+
             let block_timeout =
                 T::BlockNumber::unique_saturated_from(T::LpPriceBlockTimeout::get());
             let current_block = frame_system::Pallet::<T>::block_number();
             if (current_block % block_timeout).is_zero() {
                 let _ = update_lp_token_prices();
+                let _ = update_mxusdc_token_price();
             }
 
             if (current_block % REMOVE_ASSET_PERIOD.into()).is_zero() {
