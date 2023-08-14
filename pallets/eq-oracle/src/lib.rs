@@ -1273,7 +1273,7 @@ impl<T: Config> PriceGetter for Pallet<T> {
         if asset == &asset::EQD {
             return Ok(FixedNumber::one());
         }
-        // mxusdc token lost value after Multichain incident
+        // mxusdc token price is zero before Multichain incident will be resolved
         if asset == &asset::MXUSDC {
             return Ok(FixedNumber::zero());
         }
