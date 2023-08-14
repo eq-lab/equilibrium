@@ -1273,7 +1273,10 @@ impl<T: Config> PriceGetter for Pallet<T> {
         if asset == &asset::EQD {
             return Ok(FixedNumber::one());
         }
-
+        // mxusdc token lost value after Multichain incident
+        if asset == &asset::MXUSDC {
+            return Ok(FixedNumber::zero());
+        }
         let item = <PricePoints<T>>::get(&asset).ok_or_else(|| {
             log::error!(
                 "{}:{}. Currency not found in PricePoints. asset: {:?}.",
