@@ -1136,6 +1136,7 @@ impl<T: Config> Pallet<T> {
     ) -> Result<FixedI64, sp_runtime::DispatchError> {
         let pool = T::CurveAmm::pool(pool_id).ok_or(Error::<T>::PoolNotFound)?;
         let assets = pool.assets;
+        let balances = pool.balances;
         let prices = assets
             .into_iter()
             .map(|a| {
@@ -1148,15 +1149,25 @@ impl<T: Config> Pallet<T> {
                 }
             })
             .collect::<Result<Vec<FixedI64>, sp_runtime::DispatchError>>()?;
+
+        let balances_sum = balances.iter().fold(FixedI64::zero(), |acc, &x| {
+            acc.saturating_add(fixedi64_from_balance(x).unwrap_or_default())
+        });
+
         let prices_len = prices.len();
-        let mean_price = if prices_len == 0 {
+        let mean_price = if prices_len == 0 || balances_sum.is_zero() {
             FixedI64::zero()
         } else {
-            let prices_sum = prices
-                .into_iter()
-                .fold(FixedI64::zero(), |acc, x| acc.saturating_add(x));
+            let prices_sum = prices.into_iter().zip(balances.into_iter()).fold(
+                FixedI64::zero(),
+                |acc, (price, balance)| {
+                    acc.saturating_add(
+                        price.saturating_mul(fixedi64_from_balance(balance).unwrap_or_default()),
+                    )
+                },
+            );
 
-            prices_sum / FixedI64::saturating_from_integer(prices_len as u64)
+            prices_sum / balances_sum
         };
 
         let virtual_price = fixedi64_from_balance(
