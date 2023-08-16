@@ -631,6 +631,10 @@ impl<T: Config> BailsmanManager<T::AccountId, T::Balance> for Pallet<T> {
             .sort_by(|a, b| T::AssetGetter::priority(a.0).cmp(&T::AssetGetter::priority(b.0)));
 
         for (asset, balance) in account_balances {
+            // MXUSDC token price is zero before Multichain incident will be resolved
+            if asset == asset::MXUSDC {
+                continue;
+            }
             let (amount, source_acc, dest_acc) = match balance {
                 SignedBalance::Positive(balance_inner) => {
                     let mut amount = balance_inner;
