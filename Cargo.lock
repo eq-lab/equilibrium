@@ -3651,8 +3651,8 @@ dependencies = [
 
 [[package]]
 name = "equilibrium-curve-amm"
-version = "0.2.3"
-source = "git+https://github.com/equilibrium-eosdt/equilibrium-curve-amm?branch=polkadot-v0.9.42#13d8041a1da71e5fa3dce6fcd49165a2092854be"
+version = "0.2.4"
+source = "git+https://github.com/equilibrium-eosdt/equilibrium-curve-amm?branch=polkadot-v0.9.42#4d880b1f6cc79d632380e7969f48a79e4a164c6f"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -3668,7 +3668,7 @@ dependencies = [
 [[package]]
 name = "equilibrium-curve-amm-rpc"
 version = "0.1.8"
-source = "git+https://github.com/equilibrium-eosdt/equilibrium-curve-amm?branch=polkadot-v0.9.42#13d8041a1da71e5fa3dce6fcd49165a2092854be"
+source = "git+https://github.com/equilibrium-eosdt/equilibrium-curve-amm?branch=polkadot-v0.9.42#4d880b1f6cc79d632380e7969f48a79e4a164c6f"
 dependencies = [
  "equilibrium-curve-amm-rpc-runtime-api",
  "jsonrpsee",
@@ -3683,7 +3683,7 @@ dependencies = [
 [[package]]
 name = "equilibrium-curve-amm-rpc-runtime-api"
 version = "0.1.7"
-source = "git+https://github.com/equilibrium-eosdt/equilibrium-curve-amm?branch=polkadot-v0.9.42#13d8041a1da71e5fa3dce6fcd49165a2092854be"
+source = "git+https://github.com/equilibrium-eosdt/equilibrium-curve-amm?branch=polkadot-v0.9.42#4d880b1f6cc79d632380e7969f48a79e4a164c6f"
 dependencies = [
  "equilibrium-curve-amm",
  "parity-scale-codec",
@@ -13406,7 +13406,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.7",
  "rand 0.8.5",
  "static_assertions",

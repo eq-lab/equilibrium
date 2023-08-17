@@ -349,7 +349,7 @@ default-features = false
 git = "https://github.com/equilibrium-eosdt/equilibrium-curve-amm"
 branch = "polkadot-v0.9.42"
 package = "equilibrium-curve-amm"
-version = "0.2.3"
+version = "0.2.4"
 
 [dependencies.equilibrium-curve-amm-rpc-runtime-api]
 default-features = false
