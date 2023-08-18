@@ -149,10 +149,4 @@ impl<T: frame_system::Config> equilibrium_curve_amm::WeightInfo for WeightInfo<T
 			.saturating_add(T::DbWeight::get().reads(12 as u64))
 			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
-
-	// Storage: CurveAmm Pools (r:0 w:1)
-	fn set_enable_state() -> Weight {
-		Weight::from_parts(98_000_000 as u64, 0)
-			.saturating_add(T::DbWeight::get().writes(1 as u64))
-	}
 }

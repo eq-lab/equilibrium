@@ -1605,7 +1605,6 @@ impl equilibrium_curve_amm::Config for Runtime {
     type AssetId = AssetId;
     type Balance = Balance;
     type Currency = BasicCurrency;
-    type AdminOrigin = EnsureRoot<AccountId>;
     type CreationFee = CreationFee;
     type Assets = EqCurveAssetsAdapter;
     type OnUnbalanced = CurveUnbalanceHandler;

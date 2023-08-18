@@ -1914,7 +1914,6 @@ impl equilibrium_curve_amm::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type AssetId = AssetId;
     type Balance = Balance;
-    type AdminOrigin = EnsureRoot<AccountId>;
     type Currency = BasicCurrency;
     type CreationFee = CreationFee;
     type Assets = EqCurveAssetsAdapter;
