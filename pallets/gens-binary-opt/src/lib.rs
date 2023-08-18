@@ -208,7 +208,17 @@ pub mod pallet {
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// New binary option just started
         /// \[binary_id, target_asset, binary_mode, proper_asset, start_time, end_time, fee, deposit_offset\]
-        Create(BinaryId, Asset, BinaryMode, Asset, u64, u64, Permill, u64),
+        Create(
+            BinaryId,
+            Asset,
+            BinaryMode,
+            Asset,
+            u64,
+            u64,
+            Permill,
+            u64,
+            Permill,
+        ),
         /// Binary option deleted
         /// \[binary_id\]
         Purge(BinaryId),
@@ -481,6 +491,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             end_time,
             fee,
             deposit_offset,
+            penalty,
         ));
 
         Ok(().into())
