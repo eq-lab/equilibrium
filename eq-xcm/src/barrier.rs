@@ -55,7 +55,7 @@ impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldEx
                         Err(ProcessMessageError::Unsupported)
                     }
                 }
-                // End we expect reserve asset deposited for other assets
+                // We expect reserve asset deposited for other assets
                 [ReserveAssetDeposited(multi_assets), ClearOrigin, BuyExecution {
                     ref mut weight_limit,
                     ..
@@ -71,6 +71,14 @@ impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldEx
                     } else {
                         Err(ProcessMessageError::Unsupported)
                     }
+                }
+                // Allow to receive ReceiveTeleportedAsset at all, checks done in IsTeleporter
+                [ReceiveTeleportedAsset(_), ClearOrigin, BuyExecution {
+                    ref mut weight_limit,
+                    ..
+                }, DepositAsset { .. }] => {
+                    *weight_limit = Limited(max_weight);
+                    Ok(())
                 }
                 _ => Err(ProcessMessageError::Unsupported),
             }

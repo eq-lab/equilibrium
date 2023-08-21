@@ -18,6 +18,10 @@
 
 use super::*;
 use codec::Encode;
+use eq_primitives::{
+    asset::{EQ, EQD},
+    xcm_origins::dot::PARACHAIN_STATEMINT,
+};
 use eq_xcm::ParaId;
 use polkadot_parachain::primitives::Sibling;
 use sp_runtime::TransactionOutcome::*;
@@ -69,14 +73,14 @@ impl<T: Config> Pallet<T> {
                 .checked_add(xcm_fee_amount)
                 .ok_or(ArithmeticError::Overflow)?;
             vec![MultiAsset {
-                id: Concrete(asset_location),
+                id: Concrete(asset_location.clone()),
                 fun: Fungible(xcm_amount_and_fee),
             }]
             .into()
         } else {
             vec![
                 MultiAsset {
-                    id: Concrete(asset_location),
+                    id: Concrete(asset_location.clone()),
                     fun: Fungible(xcm_amount),
                 },
                 fee_multi_asset.clone(),
@@ -173,6 +177,34 @@ impl<T: Config> Pallet<T> {
 
                             (WithdrawAsset(multi_assets), local_transfers_result)
                         }
+                        // Transfering EQ & EQD to Statemint
+                        (true, false)
+                            if [EQ, EQD].contains(&asset) && destination == PARACHAIN_STATEMINT =>
+                        {
+                            let treasury_acc = T::TreasuryModuleId::get().into_account_truncating();
+                            let local_transfers_result = Self::withdraw(
+                                &from,
+                                asset,
+                                amount,
+                                true,
+                                Some(WithdrawReason::XcmTransfer),
+                                WithdrawReasons::empty(),
+                                ExistenceRequirement::AllowDeath,
+                            )
+                            .and(Self::currency_transfer(
+                                &from,
+                                &treasury_acc,
+                                fee_asset,
+                                fee_amount,
+                                ExistenceRequirement::AllowDeath,
+                                TransferReason::XcmPayment,
+                                true,
+                            ));
+                            (
+                                WithdrawAsset(fee_multi_asset.clone().into()),
+                                local_transfers_result,
+                            )
+                        }
                         // In this branch we should send [ReserveAssetDeposited, Withdraw, ClearOrigin, BuyExecution, ...]
                         // but it will fail in barrier on destination
                         (true, false) => return Rollback(Err(Error::<T>::XcmWrongFeeAsset.into())),
@@ -182,29 +214,74 @@ impl<T: Config> Pallet<T> {
                     return Rollback(Err(err));
                 }
 
-                let mut xcm = Xcm::<()>(vec![
-                    transfer_instruction,
-                    ClearOrigin,
-                    BuyExecution {
-                        fees: fee_multi_asset,
-                        weight_limit: WeightLimit::Unlimited,
-                    },
-                ]);
-
-                if (self_reserved, fee_self_reserved) == (false, true) {
-                    // Moonbeam case: pay EQ to withdraw mxUSDC and return remains EQ to our souvereign
-                    // May be change later to send [ReserveAssetDeposited, BuyExecution, Withdraw, ClearOrigin]
+                let mut xcm = if [EQ, EQD].contains(&asset) && destination == PARACHAIN_STATEMINT {
+                    let mut xcm = Xcm::<()>(vec![
+                        transfer_instruction,
+                        BuyExecution {
+                            fees: fee_multi_asset,
+                            weight_limit: WeightLimit::Unlimited,
+                        },
+                    ]);
                     let equilibrium_souvereign: T::AccountId =
-                        if destination.clone() == MultiLocation::new(1, Here) {
-                            ParaId::from(T::ParachainId::get()).into_account_truncating()
-                        } else {
-                            Sibling::from(T::ParachainId::get()).into_account_truncating()
-                        };
-
-                    // depence on beneficiary type take 32 or 20 bytes from our souvereign account
+                        Sibling::from(T::ParachainId::get()).into_account_truncating();
                     let encoded = Encode::encode(&equilibrium_souvereign);
+                    let (prefix, _) = beneficiary.clone().split_last_interior();
+                    let acc = encoded.try_into();
+                    if let Err(_) = acc {
+                        return Rollback(Err(Error::<T>::XcmInvalidDestination.into()));
+                    }
                     let equilibrium_souvereign_multilocation =
-                        match beneficiary.clone().split_last_interior() {
+                        prefix.pushed_with_interior(Junction::AccountId32 {
+                            network: None,
+                            id: acc.unwrap(),
+                        });
+                    if let Err(_) = equilibrium_souvereign_multilocation {
+                        return Rollback(Err(Error::<T>::XcmInvalidDestination.into()));
+                    }
+
+                    xcm.0.push(ReceiveTeleportedAsset(
+                        MultiAsset {
+                            id: Concrete(asset_location.clone()),
+                            fun: Fungible(xcm_amount),
+                        }
+                        .into(),
+                    ));
+                    xcm.0.push(DepositAsset {
+                        assets: (AllOfCounted {
+                            id: Concrete(fee_location),
+                            fun: WildFungibility::Fungible,
+                            count: 2,
+                        })
+                        .into(),
+                        beneficiary: equilibrium_souvereign_multilocation.unwrap(),
+                    });
+                    xcm
+                } else {
+                    let mut xcm = Xcm::<()>(vec![
+                        transfer_instruction,
+                        ClearOrigin,
+                        BuyExecution {
+                            fees: fee_multi_asset,
+                            weight_limit: WeightLimit::Unlimited,
+                        },
+                    ]);
+
+                    if (self_reserved, fee_self_reserved) == (false, true) {
+                        // Moonbeam case: pay EQ to withdraw mxUSDC and return remains EQ to our souvereign
+                        // May be change later to send [ReserveAssetDeposited, BuyExecution, Withdraw, ClearOrigin]
+                        let equilibrium_souvereign: T::AccountId =
+                            if destination.clone() == MultiLocation::new(1, Here) {
+                                ParaId::from(T::ParachainId::get()).into_account_truncating()
+                            } else {
+                                Sibling::from(T::ParachainId::get()).into_account_truncating()
+                            };
+
+                        // depence on beneficiary type take 32 or 20 bytes from our souvereign account
+                        let encoded = Encode::encode(&equilibrium_souvereign);
+                        let equilibrium_souvereign_multilocation = match beneficiary
+                            .clone()
+                            .split_last_interior()
+                        {
                             (prefix, Some(Junction::AccountId32 { .. })) => {
                                 let acc = encoded.try_into();
                                 if let Err(_) = acc {
@@ -228,20 +305,23 @@ impl<T: Config> Pallet<T> {
                             _ => return Rollback(Err(Error::<T>::XcmInvalidDestination.into())),
                         };
 
-                    if let Err(_) = equilibrium_souvereign_multilocation {
-                        return Rollback(Err(Error::<T>::XcmInvalidDestination.into()));
+                        if let Err(_) = equilibrium_souvereign_multilocation {
+                            return Rollback(Err(Error::<T>::XcmInvalidDestination.into()));
+                        }
+
+                        xcm.0.push(DepositAsset {
+                            assets: (AllOfCounted {
+                                id: Concrete(fee_location),
+                                fun: WildFungibility::Fungible,
+                                count: 2,
+                            })
+                            .into(),
+                            beneficiary: equilibrium_souvereign_multilocation.unwrap(),
+                        });
                     }
 
-                    xcm.0.push(DepositAsset {
-                        assets: (AllOfCounted {
-                            id: Concrete(fee_location),
-                            fun: WildFungibility::Fungible,
-                            count: 2,
-                        })
-                        .into(),
-                        beneficiary: equilibrium_souvereign_multilocation.unwrap(),
-                    });
-                }
+                    xcm
+                };
 
                 xcm.0.push(DepositAsset {
                     assets: AllCounted(2).into(),

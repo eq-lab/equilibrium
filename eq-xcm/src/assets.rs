@@ -100,8 +100,9 @@ impl<
         _origin: &MultiLocation,
         _what: &MultiAsset,
         _context: &XcmContext,
-    ) -> Result<(), XcmError> {
-        Err(XcmError::Unimplemented)
+    ) -> XcmResult<()> {
+        // All checks done in IsTeleporter
+        Ok(())
     }
 
     fn check_in(_origin: &MultiLocation, _what: &MultiAsset, _context: &XcmContext) {}

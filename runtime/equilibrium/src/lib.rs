@@ -34,21 +34,14 @@ pub use eq_bridge;
 pub use eq_claim;
 pub use eq_distribution;
 pub use eq_multisig_sudo;
+pub use eq_primitives;
 use eq_primitives::asset::{self, Asset, AssetGetter};
+use eq_primitives::asset::{AssetXcmData, OnNewAsset};
 use eq_primitives::balance::{AccountData, DebtCollateralDiscounted, EqCurrency};
 use eq_primitives::balance_number::EqFixedU128;
+use eq_primitives::curve_number::{CurveNumber, CurveNumberConvert};
 use eq_primitives::subaccount::SubAccType;
 use eq_primitives::xcm_origins::{dot::*, RELAY};
-use eq_xcm::ParaId;
-use frame_support::traits::tokens::imbalance::SplitTwoWays;
-use frame_support::weights::WeightToFee;
-use frame_support::StorageMap;
-use mocks::{BalanceAwareMock, XbasePriceMock};
-use sp_core::ConstU32;
-
-pub use eq_primitives;
-use eq_primitives::asset::{AssetXcmData, OnNewAsset};
-use eq_primitives::curve_number::{CurveNumber, CurveNumberConvert};
 use eq_primitives::BlockNumberToBalance;
 use eq_primitives::{Aggregates, TransferReason, UnsignedPriorityPair, UserGroup};
 pub use eq_rate;
@@ -57,12 +50,16 @@ pub use eq_treasury;
 use eq_utils::{XcmBalance, ONE_TOKEN};
 pub use eq_vesting;
 use eq_whitelists;
+use eq_xcm::ParaId;
 pub use equilibrium_curve_amm;
 use financial_pallet::{self, FinancialSystemTrait};
 use financial_primitives::{CalcReturnType, CalcVolatilityType};
+use frame_support::traits::tokens::imbalance::SplitTwoWays;
 use frame_support::traits::{
     Contains, ExistenceRequirement, InstanceFilter, Nothing, OnUnbalanced, UnixTime,
 };
+use frame_support::weights::WeightToFee;
+use frame_support::StorageMap;
 pub use frame_support::{
     construct_runtime, debug,
     dispatch::{DispatchClass, DispatchError, DispatchResult},
@@ -79,11 +76,13 @@ pub use frame_support::{
 use frame_system as system;
 use frame_system::limits::BlockLength;
 use frame_system::limits::BlockWeights;
+use mocks::{BalanceAwareMock, XbasePriceMock};
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
 use sp_api::impl_runtime_apis;
 use sp_arithmetic::FixedPointNumber;
 use sp_arithmetic::PerThing;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
+use sp_core::ConstU32;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::{
@@ -111,8 +110,8 @@ use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use polkadot_runtime_constants::weights::RocksDbWeight;
 use xcm::v3::{
-    InteriorMultiLocation, Junction::*, Junctions::*, MultiLocation, NetworkId, OriginKind,
-    Weight as XcmWeight, Xcm,
+    AssetId::Concrete, InteriorMultiLocation, Junction::*, Junctions::*, MultiAsset, MultiLocation,
+    NetworkId, OriginKind, Weight as XcmWeight, Xcm,
 };
 use xcm_builder::{
     AllowKnownQueryResponses, AllowSubscriptionsFrom, EnsureXcmOrigin, FixedWeightBounds,
@@ -1805,6 +1804,41 @@ parameter_types! {
         X2(GlobalConsensus(RelayNetwork::get().unwrap()), Parachain(<ParachainInfo as Get<ParaId>>::get().into()));
 }
 
+pub struct AllowTeleportForStatemint;
+impl ContainsPair<MultiAsset, MultiLocation> for AllowTeleportForStatemint {
+    fn contains(asset: &MultiAsset, origin: &MultiLocation) -> bool {
+        use eq_primitives::asset::{EQ, EQD};
+        let allowed_assets = [EQ, EQD];
+
+        let (origin_dest, _) = origin.clone().split_last_interior();
+
+        let origin_matches = matches!(origin_dest, PARACHAIN_STATEMINT);
+
+        match &asset.id {
+            Concrete(asset_multilocation) if origin_matches && asset.is_fungible(None) => {
+                for allowed in allowed_assets {
+                    let is_allowed = <EqAssets as asset::AssetGetter>::get_asset_data(&allowed)
+                        .map(|asset_data| {
+                            asset_data
+                                .get_xcm_data()
+                                .map(|(allowed_multi_location, _, _)| {
+                                    &allowed_multi_location == asset_multilocation
+                                })
+                                .unwrap_or(false)
+                        })
+                        .unwrap_or(false);
+                    if is_allowed {
+                        return true;
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        false
+    }
+}
+
 pub struct TreasuryAccount;
 impl Get<AccountId> for TreasuryAccount {
     fn get() -> AccountId {
@@ -1857,7 +1891,7 @@ impl Config for XcmConfig {
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = MultiNativeAsset;
-    type IsTeleporter = NoTeleport;
+    type IsTeleporter = AllowTeleportForStatemint;
     type UniversalLocation = UniversalLocation;
     type Barrier = Barrier;
     type Weigher = Weigher;
