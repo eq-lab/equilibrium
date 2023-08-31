@@ -396,7 +396,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             new_manager: T::AccountId,
         ) -> DispatchResultWithPostInfo {
-            <EnsureManagerOrManagementOrigin<T, I>>::ensure_origin(origin)?;
+            T::ToggleBinaryCreateOrigin::ensure_origin(origin)?;
 
             PalletManager::<T, I>::set(Some(new_manager.clone()));
             Self::deposit_event(Event::GensBinaryManagerSet(new_manager));
