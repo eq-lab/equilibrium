@@ -121,7 +121,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("Gens-parachain"),
     impl_name: create_runtime_str!("Gens-parachain"),
     authoring_version: 10,
-    spec_version: 19,
+    spec_version: 20,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
