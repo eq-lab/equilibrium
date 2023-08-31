@@ -126,7 +126,7 @@ fn try_push_last() {
         5 => "f",
     ];
 
-    assert!(!a.push(4, "d"));
+    assert!(!a.push_unsafe(4, "d"));
     assert_eq!(
         a,
         map![
@@ -136,7 +136,7 @@ fn try_push_last() {
         ]
     );
 
-    assert!(!a.push(5, "d"));
+    assert!(!a.push_unsafe(5, "d"));
     assert_eq!(
         a,
         map![
@@ -146,7 +146,7 @@ fn try_push_last() {
         ]
     );
 
-    assert!(a.push(6, "d"));
+    assert!(a.push_unsafe(6, "d"));
     assert_eq!(
         a,
         map![
