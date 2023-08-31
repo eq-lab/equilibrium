@@ -234,6 +234,9 @@ pub mod pallet {
         /// Binary option just ended
         /// \[binary_id, false_balance, true_balance, result\]
         End(BinaryId, T::Balance, T::Balance, bool),
+        /// new pallet manager is set
+        /// \[new_manager\]
+        GensBinaryManagerSet(T::AccountId),
     }
 
     #[pallet::error]
@@ -278,7 +281,7 @@ pub mod pallet {
             fee: Permill,
             penalty: Permill,
         ) -> DispatchResultWithPostInfo {
-            T::ToggleBinaryCreateOrigin::ensure_origin(origin)?;
+            <EnsureManagerOrManagementOrigin<T, I>>::ensure_origin(origin)?;
 
             Self::create_inner(
                 binary_id,
@@ -380,9 +383,23 @@ pub mod pallet {
             origin: OriginFor<T>,
             binary_id: BinaryId,
         ) -> DispatchResultWithPostInfo {
-            T::ToggleBinaryCreateOrigin::ensure_origin(origin)?;
+            <EnsureManagerOrManagementOrigin<T, I>>::ensure_origin(origin)?;
 
             LastId::<T, I>::set(Some(binary_id));
+
+            Ok(Pays::No.into())
+        }
+
+        #[pallet::call_index(7)]
+        #[pallet::weight(T::WeightInfo::set_manager())]
+        pub fn set_manager(
+            origin: OriginFor<T>,
+            new_manager: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            <EnsureManagerOrManagementOrigin<T, I>>::ensure_origin(origin)?;
+
+            PalletManager::<T, I>::set(Some(new_manager.clone()));
+            Self::deposit_event(Event::GensBinaryManagerSet(new_manager));
 
             Ok(Pays::No.into())
         }

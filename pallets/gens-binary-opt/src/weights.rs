@@ -12,6 +12,7 @@ pub trait WeightInfo {
     fn claim_other() -> Weight;
     fn on_initialize() -> Weight;
     fn set_last_id() -> Weight;
+    fn set_manager() -> Weight;
 }
 
 impl WeightInfo for () {
@@ -44,6 +45,10 @@ impl WeightInfo for () {
     }
 
     fn set_last_id() -> Weight {
+        Weight::zero()
+    }
+
+    fn set_manager() -> Weight {
         Weight::zero()
     }
 }
