@@ -1095,7 +1095,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn do_reinit(who: &<T as system::Config>::AccountId) -> Result<(), DispatchError> {
-        // technical accounts: bailsman, treasury, lender
+        // technical accounts: bailsman, distribution
         let basic_asset = T::AssetGetter::get_main_asset();
         let bailsman_acc_id: T::AccountId = T::BailsmanModuleId::get().into_account_truncating();
         let distribution_acc_id: T::AccountId =

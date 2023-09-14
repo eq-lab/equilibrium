@@ -564,8 +564,6 @@ impl<T: Config> BailsmanManager<T::AccountId, T::Balance> for Pallet<T> {
     }
 
     fn unregister_bailsman(who: &T::AccountId) -> Result<(), DispatchError> {
-        Self::do_redistribute(who)?;
-
         // Ensuring account is a bailsman
         let existing = T::Aggregates::in_usergroup(who, UserGroup::Bailsmen);
         eq_ensure!(
@@ -577,6 +575,7 @@ impl<T: Config> BailsmanManager<T::AccountId, T::Balance> for Pallet<T> {
             line!(),
             who
         );
+        Self::do_redistribute(who)?;
 
         // Ensuring account does not have any debt
         for (_, balance) in T::BalanceGetter::iterate_account_balances(who) {
@@ -819,8 +818,10 @@ impl<T: Config> Pallet<T> {
                 distribution,
                 &mut transfer_accumulator,
             )?;
-
-            distribution.remaining_bailsmen -= 1;
+            distribution.remaining_bailsmen = distribution
+                .remaining_bailsmen
+                .checked_sub(1)
+                .ok_or(ArithmeticError::Underflow)?;
         }
 
         let is_last_distribution = queue
