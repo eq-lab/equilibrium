@@ -121,7 +121,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("Gens-parachain"),
     impl_name: create_runtime_str!("Gens-parachain"),
     authoring_version: 10,
-    spec_version: 20,
+    spec_version: 21,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -1592,22 +1592,9 @@ pub struct CustomOnRuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
-        let _ = equilibrium_curve_amm::Pools::<Runtime>::translate(
-            |_pool_id: equilibrium_curve_amm::PoolId,
-             old_pool_data: OldPoolInfo<AccountId, AssetId, CurveNumber, Balance>| {
-                Some(equilibrium_curve_amm::PoolInfo {
-                    owner: old_pool_data.owner,
-                    pool_asset: old_pool_data.pool_asset,
-                    assets: old_pool_data.assets,
-                    amplification: old_pool_data.amplification,
-                    fee: old_pool_data.fee,
-                    admin_fee: old_pool_data.admin_fee,
-                    balances: old_pool_data.balances,
-                    total_balances: old_pool_data.total_balances,
-                    is_enabled: true,
-                })
-            },
-        );
+        let vesting_account = VestingAccount::get();
+        let burn_amount = 134700188190863716;
+        let _ = EqBalances::withdraw(&vesting_account, eq_primitives::asset::GENS, burn_amount, true, None, WithdrawReasons::all(), ExistenceRequirement::AllowDeath);
 
         Weight::from_parts(1u64, 0)
     }

@@ -177,14 +177,6 @@ pub mod pallet {
                 Weight::from_parts(1, 0)
             }
         }
-
-        fn on_runtime_upgrade() -> Weight {
-            use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
-            EqPalletAccountInitializer::<T>::initialize(
-                &T::PalletId::get().into_account_truncating(),
-            );
-            Weight::from_parts(1, 0)
-        }
     }
 
     #[pallet::genesis_config]
