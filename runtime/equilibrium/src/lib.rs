@@ -1871,7 +1871,8 @@ match_types! {
         &PARACHAIN_LITENTRY |
         &PARACHAIN_POLKADEX |
         &PARACHAIN_COMPOSABLE |
-        &PARACHAIN_BIFROST
+        &PARACHAIN_BIFROST |
+        &PARACHAIN_PENDULUM
     };
 }
 

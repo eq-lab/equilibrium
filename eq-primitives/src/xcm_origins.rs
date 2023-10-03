@@ -78,6 +78,11 @@ pub mod dot {
         parents: 1,
         interior: X1(Parachain(2019)),
     };
+
+    pub const PARACHAIN_PENDULUM: MultiLocation = MultiLocation {
+        parents: 1,
+        interior: X1(Parachain(2094)),
+    };
 }
 
 // Kusama parachains
