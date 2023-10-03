@@ -1870,7 +1870,8 @@ match_types! {
         &PARACHAIN_PHALA |
         &PARACHAIN_LITENTRY |
         &PARACHAIN_POLKADEX |
-        &PARACHAIN_COMPOSABLE
+        &PARACHAIN_COMPOSABLE |
+        &PARACHAIN_BIFROST
     };
 }
 
