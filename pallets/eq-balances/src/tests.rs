@@ -1853,3 +1853,77 @@ fn locked_balance_remove_lock() {
         ));
     });
 }
+
+#[test]
+fn allow_xdots_swap() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(ModuleBalances::allow_xdots_swap(
+            RawOrigin::Root.into(),
+            vec![XDotAsset::XDOT, XDotAsset::XDOT3]
+        ));
+
+        assert_eq!(
+            AllowedXdotsSwap::<Test>::get(),
+            vec![XDotAsset::XDOT, XDotAsset::XDOT3]
+        );
+
+        assert_ok!(ModuleBalances::allow_xdots_swap(
+            RawOrigin::Root.into(),
+            vec![XDotAsset::XDOT2]
+        ));
+
+        assert_eq!(AllowedXdotsSwap::<Test>::get(), vec![XDotAsset::XDOT2]);
+    });
+}
+
+#[test]
+fn swap_xdot() {
+    new_test_ext().execute_with(|| {
+        let account: u64 = 1;
+
+        assert_ok!(ModuleBalances::deposit_creating(
+            &account,
+            asset::XDOT,
+            40 * ONE_TOKEN,
+            true,
+            None
+        ));
+
+        assert_ok!(ModuleBalances::deposit_creating(
+            &account,
+            XDOT2,
+            100 * ONE_TOKEN,
+            true,
+            None
+        ));
+
+        assert_ok!(ModuleBalances::deposit_creating(
+            &account,
+            XDOT3,
+            215 * ONE_TOKEN,
+            true,
+            None
+        ));
+
+        assert_ok!(ModuleBalances::allow_xdots_swap(
+            RawOrigin::Root.into(),
+            vec![XDotAsset::XDOT, XDotAsset::XDOT3],
+        ));
+
+        assert_err!(
+            ModuleBalances::swap_xdot(Some(account).into(), vec![XDotAsset::XDOT2]),
+            Error::<Test>::XDotSwapNotAllowed
+        );
+
+        assert_balance!(&account, 100 * ONE_TOKEN, 0, XDOT2);
+
+        assert_ok!(ModuleBalances::swap_xdot(
+            Some(account).into(),
+            vec![XDotAsset::XDOT, XDotAsset::XDOT3]
+        ));
+
+        assert_balance!(&account, 0, 0, XDOT);
+        assert_balance!(&account, 0, 0, XDOT3);
+        assert_balance!(&account, 255 * ONE_TOKEN, 0, DOT);
+    });
+}

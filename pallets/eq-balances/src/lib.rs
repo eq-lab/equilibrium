@@ -37,7 +37,7 @@
 use codec::Codec;
 pub use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
 use eq_primitives::{
-    asset::{Asset, AssetGetter, GLMR},
+    asset::{Asset, AssetGetter, DOT, GLMR, XDOT, XDOT2, XDOT3},
     balance::{
         AccountData, BalanceChecker, BalanceGetter, BalanceRemover, DebtCollateralDiscounted,
         DepositReason, EqCurrency, LockGetter, WithdrawReason, XcmDestination,
@@ -57,6 +57,7 @@ use eq_utils::{
     XcmBalance,
 };
 use frame_support::{
+    codec::{Decode, Encode},
     dispatch::DispatchError,
     ensure,
     storage::PrefixIterator,
@@ -64,7 +65,7 @@ use frame_support::{
         BalanceStatus, ExistenceRequirement, Get, Imbalance, LockIdentifier, StoredMap, UnixTime,
         WithdrawReasons,
     },
-    PalletId,
+    transactional, PalletId,
 };
 pub use pallet::*;
 #[allow(unused_imports)]
@@ -482,6 +483,72 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        #[pallet::call_index(15)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
+        pub fn allow_xdots_swap(
+            origin: OriginFor<T>,
+            xdot_assets: Vec<XDotAsset>,
+        ) -> DispatchResultWithPostInfo {
+            T::ToggleTransferOrigin::ensure_origin(origin)?;
+
+            AllowedXdotsSwap::<T>::put(xdot_assets);
+
+            Ok(().into())
+        }
+
+        #[pallet::call_index(16)]
+        #[pallet::weight(T::DbWeight::get().reads_writes(1, 2))]
+        #[transactional]
+        pub fn swap_xdot(
+            origin: OriginFor<T>,
+            xdot_assets: Vec<XDotAsset>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::ensure_xdot_swap_allowed(&xdot_assets)?;
+
+            let balances = Self::iterate_account_balances(&who);
+
+            for xdot_asset in xdot_assets {
+                let asset = match xdot_asset {
+                    XDotAsset::XDOT => XDOT,
+                    XDotAsset::XDOT2 => XDOT2,
+                    XDotAsset::XDOT3 => XDOT3,
+                };
+
+                let balance = balances
+                    .get(&asset)
+                    .filter(|b| b.is_positive())
+                    .map(|sb| sb.abs());
+
+                match balance {
+                    Some(balance) => {
+                        Self::ensure_transfers_enabled(&asset, balance)?;
+
+                        Self::withdraw(
+                            &who,
+                            asset,
+                            balance,
+                            false,
+                            Some(WithdrawReason::XDotSwap),
+                            WithdrawReasons::empty(),
+                            ExistenceRequirement::KeepAlive,
+                        )?;
+
+                        Self::deposit_creating(
+                            &who,
+                            DOT,
+                            balance,
+                            false,
+                            Some(DepositReason::XDotSwap),
+                        )?;
+                    }
+                    None => {}
+                }
+            }
+
+            Ok(().into())
+        }
     }
 
     #[pallet::hooks]
@@ -588,6 +655,8 @@ pub mod pallet {
         XcmTransfersLimitExceeded,
         /// Balance is less than locked amount
         Locked,
+        /// XDOT swap is not allowed
+        XDotSwapNotAllowed,
     }
 
     /// Reserved balances
@@ -628,6 +697,10 @@ pub mod pallet {
     /// Stores limit value
     #[pallet::storage]
     pub type DailyXcmLimit<T: Config> = StorageValue<_, T::Balance, OptionQuery>;
+
+    /// Stores limit value
+    #[pallet::storage]
+    pub type AllowedXdotsSwap<T: Config> = StorageValue<_, Vec<XDotAsset>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -1662,6 +1735,21 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    fn ensure_xdot_swap_allowed(xdot_assets: &Vec<XDotAsset>) -> DispatchResult {
+        let allowed = AllowedXdotsSwap::<T>::get();
+
+        eq_ensure!(
+            xdot_assets.iter().all(|a| allowed.contains(a)),
+            Error::<T>::XDotSwapNotAllowed,
+            target: "eq_balances",
+            "{}:{}. Swap is not allowed for the specified XDOT asset.",
+            file!(),
+            line!(),
+        );
+
+        Ok(())
+    }
+
     fn unreserve_all(who: &T::AccountId) {
         Reserved::<T>::iter_prefix(&who).for_each(|(asset, reserved)| {
             Self::unreserve(who, asset, reserved);
@@ -1753,4 +1841,11 @@ pub struct XcmDestinationResolved {
     destination: MultiLocation,
     asset_location: MultiLocation,
     beneficiary: MultiLocation,
+}
+
+#[derive(Decode, Encode, Clone, Debug, PartialEq, scale_info::TypeInfo)]
+pub enum XDotAsset {
+    XDOT,
+    XDOT2,
+    XDOT3,
 }
