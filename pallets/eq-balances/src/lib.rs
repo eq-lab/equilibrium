@@ -516,19 +516,16 @@ pub mod pallet {
                     XDotAsset::XDOT3 => XDOT3,
                 };
 
-                let balance = balances
-                    .get(&asset)
-                    .filter(|b| b.is_positive())
-                    .map(|sb| sb.abs());
+                let signed_balance = balances.get(&asset);
 
-                match balance {
-                    Some(balance) => {
-                        Self::ensure_transfers_enabled(&asset, balance)?;
+                match signed_balance {
+                    Some(SignedBalance::Positive(balance)) => {
+                        Self::ensure_transfers_enabled(&asset, *balance)?;
 
                         Self::withdraw(
                             &who,
                             asset,
-                            balance,
+                            *balance,
                             false,
                             Some(WithdrawReason::XDotSwap),
                             WithdrawReasons::empty(),
@@ -538,11 +535,12 @@ pub mod pallet {
                         Self::deposit_creating(
                             &who,
                             DOT,
-                            balance,
+                            *balance,
                             false,
                             Some(DepositReason::XDotSwap),
                         )?;
                     }
+                    Some(SignedBalance::Negative(_)) => {}
                     None => {}
                 }
             }
