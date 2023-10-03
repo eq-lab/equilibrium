@@ -195,6 +195,7 @@ impl AsQuerySymbol for Asset {
             (_, asset::BTC | asset::WBTC | asset::MXWBTC | asset::IBTC | asset::KBTC) => {
                 Ok("btc".into())
             }
+            (_, asset::LDOT) => Ok("liquid-staking-dot".into()),
             (_, _) => Ok(self.to_str()),
         }
     }
