@@ -5,22 +5,12 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-
-[dependencies.sp-arithmetic]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
+substrate-fixed = { workspace = true }
 
 [dependencies.eq-primitives]
 default-features = false
@@ -32,13 +22,8 @@ version = "0.1.0"
 default-features = false
 git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
 package = "financial-pallet"
-branch = "polkadot-v0.9.42"
+branch = "release-polkadot-v1.1.0"
 version = "0.1.2"
-
-[dependencies.substrate-fixed]
-git = "https://github.com/equilibrium-eosdt/substrate-fixed"
-branch = "scale-info-2.0.1"
-package = "substrate-fixed"
 
 [features]
 default = ["std"]

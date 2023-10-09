@@ -5,36 +5,24 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
 codec = {package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
 safe-mix = {default-features = false, version = "1.0.0"}
 serde = {version = "1.0.123", default-features = false, optional = true}
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 log = { version = "0.4.17", default-features = false }
-
-[dependencies.eq-utils]
-default-features = false
-package = "eq-utils"
-path = "../../eq-utils"
-version = "0.1.0"
-
-[dependencies.eq-primitives]
-default-features = false
-package = "eq-primitives"
-path = "../../eq-primitives"
-version = "0.1.0"
-
-[dependencies.eq-oracle]
-default-features = false
-package = "eq-oracle"
-path = "../eq-oracle"
-version = "0.1.0"
-optional=true
-
-[dependencies.eq-balances]
-default-features = false
-package = "eq-balances"
-path = "../eq-balances"
-version = "0.1.0"
+frame-support = {workspace = true}
+eq-primitives = { path = "../../eq-primitives", default-features = false }
+eq-utils = { path = "../../eq-utils", default-features = false }
+eq-whitelists = { path = "../eq-whitelists", default-features = false, optional = true }
+eq-assets = { path = "../eq-assets", default-features = false }
+eq-oracle = { path = "../eq-oracle", default-features = false, optional = true }
+eq-balances = { path = "../eq-balances", default-features = false }
+eq-vesting = { path = "../eq-vesting", default-features = false, optional = true }
 
 [dev-dependencies.eq-bailsman]
 default-features = false
@@ -45,91 +33,45 @@ version = "0.1.0"
 [dev-dependencies.financial-pallet]
 default-features = false
 git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
-branch = "polkadot-v0.9.42"
+branch = "release-polkadot-v1.1.0"
 package = "financial-pallet"
 version = "0.1.1"
 
 [dev-dependencies.financial-primitives]
 default-features = false
 git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
-branch = "polkadot-v0.9.42"
+branch = "release-polkadot-v1.1.0"
 package = "financial-primitives"
 version = "0.1.0"
 
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
 [dev-dependencies.sp-core]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
-[dependencies.frame-system]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "frame-system"
 
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
 
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+
+
+
+
 
 [dev-dependencies.sp-io]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
-[dependencies.sp-arithmetic]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+
 
 [dev-dependencies.substrate-fixed]
 git = "https://github.com/equilibrium-eosdt/substrate-fixed"
 branch = "scale-info-2.0.1"
 package = "substrate-fixed"
 
-[dev-dependencies.timestamp]
+[dev-dependencies.pallet-timestamp]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-timestamp"
-
-[dependencies.frame-benchmarking]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "frame-benchmarking"
-optional = true
-
-[dependencies.eq-whitelists]
-default-features = false
-package = "eq-whitelists"
-path = "../eq-whitelists"
-version = "0.1.0"
-optional = true
-
-[dependencies.eq-vesting]
-default-features = false
-package = "eq-vesting"
-path = "../eq-vesting"
-version = "0.1.0"
-optional = true
-
-[dependencies.eq-assets]
-default-features = false
-package = "eq-assets"
-path = "../eq-assets"
-version = "0.1.0"
-
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [features]
 default = ["std"]
@@ -152,7 +94,7 @@ test = [
   "eq-bailsman/std",
   "financial-pallet/std",
   "financial-primitives/std",
-  "timestamp/std",
+  "pallet-timestamp/std",
   "eq-assets/std",
 ]
 production = []

@@ -5,69 +5,20 @@ name = "eq-utils"
 version = "0.1.0"
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
-
-[dependencies.codec]
-package = "parity-scale-codec"
-version = "3.0.0"
-default-features = false
-features = ["derive"]
-
-[dependencies.serde]
-version = "1.0.123"
-default-features = false
-features = ["derive"]
-
-[dependencies.sp-arithmetic]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-io]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "sp-std"
-
-[dependencies.substrate-fixed]
-git = "https://github.com/equilibrium-eosdt/substrate-fixed"
-branch = "scale-info-2.0.1"
-package = "substrate-fixed"
-
-[dependencies.xcm]
-default-features = false
-git = "https://github.com/paritytech/polkadot"
-branch = "release-v0.9.42"
-
-[dependencies.equilibrium-curve-amm]
-default-features = false
-git = "https://github.com/equilibrium-eosdt/equilibrium-curve-amm"
-branch = "polkadot-v0.9.42"
-package = "equilibrium-curve-amm"
-version = "0.2.4"
-
-[dependencies.eq-primitives]
-default-features = false
-package = "eq-primitives"
-path = "../eq-primitives"
-version = "0.1.0"
+frame-support = {workspace = true}
+substrate-fixed = { workspace = true }
+xcm = { workspace = true }
+sp-io = { workspace = true }
+equilibrium-curve-amm = { workspace = true }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0.123", default-features = false, features = ["derive"] }
+eq-primitives = { path = "../eq-primitives", default-features = false }
 
 [features]
 default = ["std"]

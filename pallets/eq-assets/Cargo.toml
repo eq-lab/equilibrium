@@ -5,13 +5,20 @@ name = "eq-assets"
 version = "0.1.0"
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 log = { version = "0.4.17", default-features = false }
-
-[dependencies.xcm]
-default-features = false
-git = "https://github.com/paritytech/polkadot"
-branch = "release-v0.9.42"
+frame-support = {workspace = true}
+eq-primitives = { path = "../../eq-primitives", default-features = false }
+eq-utils = { path = "../../eq-utils", default-features = false }
+financial-pallet = { workspace = true }
+xcm = { workspace = true }
+sp-application-crypto = { workspace = true }
+sp-io = { workspace = true }
 
 [dependencies.codec]
 package = "parity-scale-codec"
@@ -19,83 +26,25 @@ version = "3.0.0"
 default-features = false
 features = ["derive"]
 
-[dependencies.sp-application-crypto]
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-default-features = false
-
 [dependencies.serde]
 version = "1.0.123"
 optional = true
 features = ["derive"]
 
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.frame_system]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "frame-system"
-
-[dependencies.sp-runtime]
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-default-features = false
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-io]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.eq-utils]
-default-features = false
-package = "eq-utils"
-path = "../../eq-utils"
-version = "0.1.0"
-
-[dependencies.eq-primitives]
-default-features = false
-package = "eq-primitives"
-path = "../../eq-primitives"
-version = "0.1.0"
-
-[dependencies.financial-pallet]
-default-features = false
-git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
-branch = "polkadot-v0.9.42"
-package = "financial-pallet"
-version = "0.1.2"
-
 [dev-dependencies.sp-core]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [dev-dependencies.sp-io]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [dev-dependencies.sp-runtime]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.frame-benchmarking]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "frame-benchmarking"
-optional = true
-
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [features]
 default = ["std"]
@@ -104,7 +53,7 @@ std = [
   "serde",
 	"codec/std",
 	"frame-support/std",
-	"frame_system/std",
+	"frame-system/std",
   "sp-application-crypto/std",
   "sp-runtime/std",
   "sp-std/std",

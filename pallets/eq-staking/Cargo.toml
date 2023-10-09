@@ -8,62 +8,32 @@ version = "0.1.0"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
 	"derive",
 ] }
 scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
-frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-timestamp = { default-features = false, package = "pallet-timestamp", optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
 
-[dependencies.eq-primitives]
-default-features = false
-package = "eq-primitives"
-path = "../../eq-primitives"
-version = "0.1.0"
+frame-support = { workspace = true }
+sp-core = { workspace = true }
+pallet-timestamp = { workspace = true, optional = true }
 
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.eq-utils]
-default-features = false
-optional = true
-package = "eq-utils"
-path = "../../eq-utils"
-version = "0.1.0"
-
-[dependencies.eq-assets]
-default-features = false
-optional = true
-package = "eq-assets"
-path = "../eq-assets"
-version = "0.1.0"
-
-[dependencies.eq-rate]
-default-features = false
-optional = true
-package = "eq-rate"
-path = "../eq-rate"
-version = "0.1.0"
-
-[dependencies.eq-balances]
-default-features = false
-optional = true
-package = "eq-balances"
-path = "../eq-balances"
-version = "0.1.0"
+eq-primitives = { path = "../../eq-primitives", default-features = false }
+eq-assets = { path = "../eq-assets", default-features = false, optional = true }
+eq-utils = { path = "../../eq-utils", default-features = false, optional = true }
+eq-rate = { path = "../eq-rate", default-features = false, optional = true }
+eq-balances = { path = "../eq-balances", default-features = false, optional = true }
 
 [dev-dependencies]
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42" }
-eq-balances = { version = "0.1.0", path = "../eq-balances" }
-eq-assets = { version = "0.1.0", path = "../eq-assets" }
-eq-utils = { version = "0.1.0", path = "../../eq-utils" }
-timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.42"}
+sp-io = { workspace = true }
+eq-balances = { path = "../eq-balances" }
+eq-assets = { path = "../eq-assets" }
+eq-utils = { path = "../../eq-utils" }
+pallet-timestamp = { workspace = true }
 
 [features]
 default = ["std"]
@@ -85,7 +55,7 @@ runtime-benchmarks = [
 	"eq-utils",
 	"eq-balances/runtime-benchmarks",
 	"eq-assets/runtime-benchmarks",
-	"timestamp/runtime-benchmarks",
+	"pallet-timestamp/runtime-benchmarks",
 	"eq-rate/runtime-benchmarks"
 ]
 try-runtime = ["frame-support/try-runtime"]

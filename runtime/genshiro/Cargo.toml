@@ -8,402 +8,104 @@ version = "3.0.0"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
+sp-core = { workspace = true }
+pallet-timestamp = { workspace = true }
+pallet-session = { workspace = true }
+equilibrium-curve-amm = { workspace = true }
 hex-literal = { version = "0.3.1", optional = true }
 serde = {version = "1.0.123", features = ["derive"], optional = true}
 serde_json = {git = "https://github.com/nikvolf/json", default-features = false, features = ["alloc"]}
 static_assertions = "1.1.0"
 smallvec = "1.6.1"
 log = { version = "0.4.17", default-features = false }
-# Cumulus dependencies
-cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-primitives-timestamp = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-session-benchmarking = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false, version = "3.0.0" }
-pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-parachain-info = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
+
+# Substrate dependencies
+frame-support = {workspace = true}
+pallet-authorship = { workspace = true }
+aura = { workspace = true }
+frame-executive = { workspace = true }
+sp-api = { workspace = true }
+sp-block-builder = { workspace = true }
+sp-consensus-aura = { workspace = true }
+sp-inherents = { workspace = true }
+sp-offchain = { workspace = true }
+sp-session = { workspace = true }
+sp-transaction-pool = { workspace = true }
+sp-version = { workspace = true }
+sudo = { workspace = true }
+transaction-payment = { workspace = true }
+pallet-utility = { workspace = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+frame-system-rpc-runtime-api = { workspace = true }
+financial-pallet = { workspace = true }
+financial-primitives = { workspace = true }
+sp-io = { workspace = true }
+frame-system-benchmarking = { workspace = true, optional = true }
+
+# Cumulus dependencies
+cumulus-pallet-aura-ext = { workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+cumulus-primitives-timestamp = { workspace = true }
+cumulus-primitives-utility = { workspace = true }
+cumulus-pallet-dmp-queue = { workspace = true }
+cumulus-pallet-xcmp-queue = { workspace = true }
+cumulus-pallet-session-benchmarking = { workspace = true }
+pallet-collator-selection = { workspace = true }
+parachain-info = { workspace = true }
 
 # Polkadot dependencies
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
-polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
-polkadot-runtime-constants = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
-polkadot-primitives = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
-xcm-builder = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
-pallet-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
+polkadot-parachain-primitives = { workspace = true}
+polkadot-runtime-common = { workspace = true}
+polkadot-runtime-constants = { workspace = true}
+polkadot-primitives = { workspace = true}
+xcm = { workspace = true}
+xcm-builder = { workspace = true}
+xcm-executor = { workspace = true}
+pallet-xcm = { workspace = true}
+frame-try-runtime = { workspace = true, optional = true }
 
-frame-try-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, branch = "polkadot-v0.9.42" }
+substrate-fixed = { workspace = true, features = ["serde"] }
+equilibrium-curve-amm-rpc-runtime-api = { workspace = true }
 
-[dependencies.node-primitives]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-version = "2.0.0"
-
-[dependencies.sp-arithmetic]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.eq-primitives]
-default-features = false
-package = "eq-primitives"
-path = "../../eq-primitives"
-version = "0.1.0"
-
-[dependencies.common-runtime]
-default-features = false
-path = "../common"
-version = "3.0.0"
-
-[dependencies.eq-balances]
-default-features = false
-package = "eq-balances"
-path = "../../pallets/eq-balances"
-version = "0.1.0"
-
-[dependencies.eq-rate]
-default-features = false
-package = "eq-rate"
-path = "../../pallets/eq-rate"
-version = "0.1.0"
-
-[dependencies.eq-treasury]
-default-features = false
-package = "eq-treasury"
-path = "../../pallets/eq-treasury"
-version = "0.1.0"
-
-[dependencies.eq-vesting]
-default-features = false
-package = "eq-vesting"
-path = "../../pallets/eq-vesting"
-version = "0.1.0"
-
-[dependencies.eq-distribution]
-default-features = false
-package = "eq-distribution"
-path = "../../pallets/eq-distribution"
-version = "0.1.0"
-
-[dependencies.eq-session-manager]
-default-features = false
-package = "eq-session-manager"
-path = "../../pallets/eq-session-manager"
-version = "0.1.0"
-
-[dependencies.eq-subaccounts]
-default-features = false
-package = "eq-subaccounts"
-path = "../../pallets/eq-subaccounts"
-version = "0.1.0"
-
-[dependencies.chainbridge]
-default-features = false
-package = "chainbridge"
-path = "../../pallets/chainbridge"
-version = "1.2.0"
-
-[dependencies.eq-bridge]
-default-features = false
-package = "eq-bridge"
-path = "../../pallets/eq-bridge"
-version = "1.2.0"
-
-[dependencies.eq-lending]
-default-features = false
-package = "eq-lending"
-path = "../../pallets/eq-lending"
-version = "0.1.0"
-
-[dependencies.aura]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-aura"
-
-
-[dependencies.authorship]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-authorship"
-
-
-[dependencies.codec]
-default-features = false
-features = ["derive"]
-package = "parity-scale-codec"
-version = "3.0.0"
-
-[dependencies.frame-executive]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.pallet-session]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-api]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-block-builder]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-consensus-aura]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-version = "0.10.0-dev"
-
-[dependencies.sp-core]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-inherents]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-io]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-offchain]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-session]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-transaction-pool]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sp-version]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-
-[dependencies.sudo]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-sudo"
-
-
-[dependencies.frame-system]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "frame-system"
-
-
-[dependencies.timestamp]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-timestamp"
-
-
-[dependencies.transaction-payment]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-transaction-payment"
-
-
-[dependencies.pallet-utility]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-utility"
-
-
-[dependencies.pallet-transaction-payment-rpc-runtime-api]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-transaction-payment-rpc-runtime-api"
-
-
-[dependencies.frame-system-rpc-runtime-api]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "frame-system-rpc-runtime-api"
-
+eq-primitives = { path = "../../eq-primitives", default-features = false }
+common-runtime = { path = "../common", default-features = false }
+eq-balances = { path = "../../pallets/eq-balances", default-features = false }
+eq-rate = { path = "../../pallets/eq-rate", default-features = false }
+eq-treasury = { path = "../../pallets/eq-treasury", default-features = false }
+eq-vesting = { path = "../../pallets/eq-vesting", default-features = false }
+eq-distribution = { path = "../../pallets/eq-distribution", default-features = false }
+eq-session-manager = { path = "../../pallets/eq-session-manager", default-features = false }
+eq-subaccounts = { path = "../../pallets/eq-subaccounts", default-features = false }
+chainbridge = { path = "../../pallets/chainbridge", default-features = false }
+eq-bridge = { path = "../../pallets/eq-bridge", default-features = false }
+eq-lending = { path = "../../pallets/eq-lending", default-features = false }
+eq-whitelists = { path = "../../pallets/eq-whitelists", default-features = false }
+eq-assets = { path = "../../pallets/eq-assets", default-features = false }
+eq-oracle = { path = "../../pallets/eq-oracle", default-features = false }
+eq-utils = { path = "../../eq-utils", default-features = false }
+eq-xcm = { path = "../../eq-xcm", default-features = false, features = ["kusama"] }
+eq-aggregates = { path = "../../pallets/eq-aggregates", default-features = false }
+eq-multisig-sudo = { path = "../../pallets/eq-multisig-sudo", default-features=false }
+eq-xdot-pool-rpc-runtime-api = { path = "../../pallets/eq-xdot-pool/rpc/runtime-api", default-features = false }
+eq-balances-rpc-runtime-api = { path = "../../pallets/eq-balances/rpc/runtime-api", default-features = false }
+eq-migration = { path = "../../pallets/eq-migration", default-features = false }
+eq-bailsman = { path = "../../pallets/eq-bailsman", default-features = false }
+eq-margin-call = { path = "../../pallets/eq-margin-call", default-features=false }
+eq-dex = { path = "../../pallets/eq-dex", default-features = false }
+gens-binary-opt = { path = "../../pallets/gens-binary-opt", default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 package = "substrate-wasm-builder"
-
-[dependencies.frame-benchmarking]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-optional = true
-
-[dependencies.eq-utils]
-default-features = false
-package = "eq-utils"
-path = "../../eq-utils"
-version = "0.1.0"
-
-[dependencies.eq-xcm]
-default-features = false
-package = "eq-xcm"
-path = "../../eq-xcm"
-features = ["kusama"]
-
-[dependencies.frame-system-benchmarking]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-optional = true
-
-
-[dependencies.substrate-fixed]
-features = ["serde"]
-git = "https://github.com/equilibrium-eosdt/substrate-fixed"
-branch = "scale-info-2.0.1"
-package = "substrate-fixed"
-
-[dependencies.eq-aggregates]
-default-features = false
-package = "eq-aggregates"
-path = "../../pallets/eq-aggregates"
-version = "0.1.0"
-
-[dependencies.eq-assets]
-default-features = false
-package = "eq-assets"
-path = "../../pallets/eq-assets"
-version = "0.1.0"
-
-[dependencies.eq-multisig-sudo]
-default-features=false
-package = "eq-multisig-sudo"
-path = "../../pallets/eq-multisig-sudo"
-version = "0.1.0"
-
-[dependencies.financial-pallet]
-default-features = false
-git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
-branch = "polkadot-v0.9.42"
-package = "financial-pallet"
-version = "0.1.2"
-
-[dependencies.financial-primitives]
-default-features = false
-git = "https://github.com/equilibrium-eosdt/equilibrium-financial-pallet"
-branch = "polkadot-v0.9.42"
-package = "financial-primitives"
-version = "0.1.0"
-
-[dependencies.equilibrium-curve-amm]
-default-features = false
-git = "https://github.com/equilibrium-eosdt/equilibrium-curve-amm"
-branch = "polkadot-v0.9.42"
-package = "equilibrium-curve-amm"
-version = "0.2.4"
-
-[dependencies.equilibrium-curve-amm-rpc-runtime-api]
-default-features = false
-git = "https://github.com/equilibrium-eosdt/equilibrium-curve-amm"
-branch = "polkadot-v0.9.42"
-package = "equilibrium-curve-amm-rpc-runtime-api"
-version = "0.1.7"
-
-[dependencies.eq-xdot-pool-rpc-runtime-api]
-default-features = false
-package = "eq-xdot-pool-rpc-runtime-api"
-path = "../../pallets/eq-xdot-pool/rpc/runtime-api"
-version = "0.1.0"
-
-[dependencies.eq-balances-rpc-runtime-api]
-default-features = false
-package = "eq-balances-rpc-runtime-api"
-path = "../../pallets/eq-balances/rpc/runtime-api"
-version = "0.1.0"
-
-[dependencies.eq-whitelists]
-default-features = false
-path = "../../pallets/eq-whitelists"
-version = "0.1.0"
-
-[dependencies.eq-migration]
-default-features = false
-path = "../../pallets/eq-migration"
-version = "0.1.0"
-
-[dependencies.eq-bailsman]
-default-features = false
-path = "../../pallets/eq-bailsman"
-version = "0.1.0"
-
-[dependencies.eq-oracle]
-default-features = false
-path = "../../pallets/eq-oracle"
-version = "0.1.0"
-
-[dependencies.eq-margin-call]
-default-features=false
-path = "../../pallets/eq-margin-call"
-version = "0.1.0"
-
-[dependencies.eq-dex]
-default-features = false
-path = "../../pallets/eq-dex"
-version = "0.1.0"
-
-[dependencies.gens-binary-opt]
-default-features = false
-path = "../../pallets/gens-binary-opt"
-version = "0.3.0"
 
 [features]
 
@@ -439,7 +141,7 @@ std = [
   "sp-transaction-pool/std",
   "sp-version/std",
   "sudo/std",
-  "timestamp/std",
+  "pallet-timestamp/std",
   "transaction-payment/std",
   "pallet-utility/std",
   "pallet-transaction-payment-rpc-runtime-api/std",
@@ -456,7 +158,6 @@ std = [
   "eq-aggregates/std",
   "eq-subaccounts/std",
   "sp-arithmetic/std",
-  "node-primitives/std",
   "frame-benchmarking/std",
   "eq-utils/std",
   "eq-distribution/std",
@@ -472,7 +173,7 @@ std = [
   "cumulus-pallet-session-benchmarking/std",
   "pallet-collator-selection/std",
   "parachain-info/std",
-  "polkadot-parachain/std",
+  "polkadot-parachain-primitives/std",
   "polkadot-runtime-common/std",
   "polkadot-runtime-constants/std",
   "xcm/std",

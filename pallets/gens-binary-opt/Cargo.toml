@@ -8,50 +8,23 @@ version = "0.3.0"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
+pallet-timestamp = { workspace = true, optional = true }
+frame-support = {workspace = true}
 serde = {version = "1.0.123", optional = true, features = ["derive"]}
 codec = {package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 log = { version = "0.4.17", default-features = false }
-
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.frame-system]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.frame-benchmarking]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-optional = true
-
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.eq-primitives]
-default-features = false
-path = "../../eq-primitives"
-version = "0.1.0"
-
-[dependencies.eq-utils]
-default-features = false
-path = "../../eq-utils"
-version = "0.1.0"
+eq-primitives = { path = "../../eq-primitives", default-features = false }
+eq-utils = { path = "../../eq-utils", default-features = false }
 
 [dev-dependencies.sp-core]
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [dev-dependencies.eq-assets]
 path = "../eq-assets"
@@ -77,18 +50,10 @@ version = "0.1.0"
 path = "../eq-whitelists"
 version = "0.1.0"
 
-[dependencies.timestamp]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "pallet-timestamp"
-optional = true
-
 [dev-dependencies.session]
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 package = "pallet-session"
-
 
 [features]
 default = ["std"]
@@ -102,11 +67,11 @@ std = [
   "sp-std/std",
   "eq-primitives/std",
   "eq-utils/std",
-  "timestamp/std",
+  "pallet-timestamp/std",
 ]
 runtime-benchmarks = [
   "frame-benchmarking",
-  "timestamp/runtime-benchmarks",
+  "pallet-timestamp/runtime-benchmarks",
 ]
 try-runtime = [
   "frame-support/try-runtime",

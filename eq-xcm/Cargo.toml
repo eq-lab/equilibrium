@@ -5,96 +5,36 @@ name = "eq-xcm"
 version = "0.1.0"
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
 smallvec = "1.6.1"
 hex-literal = "0.3.1"
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
-
-[dependencies.codec]
-default-features = false
-package = "parity-scale-codec"
-version = "3.0.0"
-features = ["derive", "full"]
-
-[dependencies.log]
-default-features = false
-version = "0.4.0"
-
-[dependencies.frame-system]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.pallet-staking]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-core]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-io]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "full"] }
+log = { version = "0.4.0", default-features = false }
+frame-support = {workspace = true}
+xcm = { workspace = true }
+sp-io = { workspace = true }
+sp-core = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+xcm-executor = { workspace = true }
+xcm-builder = { workspace = true }
+pallet-staking = { workspace = true }
+eq-primitives = { path = "../eq-primitives", default-features = false }
+eq-utils = { path = "../eq-utils", default-features = false }
 
 [dependencies.sp-trie]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [dependencies.sp-state-machine]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.cumulus-primitives-core]
-default-features = false
-git = "https://github.com/paritytech/cumulus"
-branch = "polkadot-v0.9.42"
-
-[dependencies.xcm]
-default-features = false
-git = "https://github.com/paritytech/polkadot"
-branch = "release-v0.9.42"
-
-[dependencies.xcm-executor]
-default-features = false
-git = "https://github.com/paritytech/polkadot"
-branch = "release-v0.9.42"
-
-[dependencies.xcm-builder]
-default-features = false
-git = "https://github.com/paritytech/polkadot"
-branch = "release-v0.9.42"
-
-[dependencies.eq-primitives]
-default-features = false
-package = "eq-primitives"
-path = "../eq-primitives"
-version = "0.1.0"
-
-[dependencies.eq-utils]
-default-features = false
-package = "eq-utils"
-path = "../eq-utils"
-version = "0.1.0"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [features]
 default = ["std"]

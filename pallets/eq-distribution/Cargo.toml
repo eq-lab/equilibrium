@@ -7,108 +7,44 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+sp-arithmetic = {workspace = true}
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+frame-benchmarking={workspace = true, optional = true}
+frame-system = {workspace = true}
 codec = {package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
 log = "0.4.14"
 safe-mix = {default-features = false, version = "1.0.0"}
 serde = {version = "1.0.123", optional = true}
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+frame-support = {workspace = true}
+pallet-timestamp = { workspace = true }
+eq-primitives = { path = "../../eq-primitives", default-features = false }
+eq-utils = { path = "../../eq-utils", default-features = false }
+eq-whitelists = { path = "../eq-whitelists", default-features = false, optional = true }
+eq-assets = { path = "../eq-assets", default-features = false }
+eq-oracle = { path = "../eq-oracle", default-features = false, optional = true }
+eq-balances = { path = "../eq-balances", default-features = false }
 
-[dependencies.frame-system]
+[dev-dependencies.pallet-collective]
 default-features = false
-package = "frame-system"
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-runtime]
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-default-features = false
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.sp-arithmetic]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.pallet-timestamp]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.pallet-collective]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-
-[dependencies.eq-primitives]
-default-features = false
-package = "eq-primitives"
-path = "../../eq-primitives"
-version = "0.1.0"
-
-[dependencies.eq-assets]
-default-features = false
-package = "eq-assets"
-path = "../eq-assets"
-version = "0.1.0"
-
-[dependencies.eq-utils]
-default-features = false
-package = "eq-utils"
-path = "../../eq-utils"
-version = "0.1.0"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [dev-dependencies.sp-core]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [dev-dependencies.sp-io]
 default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [dev-dependencies.polkadot-primitives]
 default-features = false
-git = "https://github.com/paritytech/polkadot"
-branch = "release-v0.9.42"
-
-[dependencies.eq-balances]
-default-features = false
-package = "eq-balances"
-path = "../eq-balances"
-version = "0.1.0"
-
-[dependencies.eq-whitelists]
-default-features = false
-package = "eq-whitelists"
-path = "../eq-whitelists"
-version = "0.1.0"
-optional = true
-
-[dependencies.eq-oracle]
-default-features = false
-package = "eq-oracle"
-path = "../eq-oracle"
-version = "0.1.0"
-optional = true
-
-[dependencies.frame-benchmarking]
-default-features = false
-git = "https://github.com/paritytech/substrate"
-branch = "polkadot-v0.9.42"
-package = "frame-benchmarking"
-
-optional = true
+git = "https://github.com/paritytech/polkadot-sdk"
+branch = "release-polkadot-v1.1.0"
 
 [features]
 default = ["std"]
@@ -126,7 +62,6 @@ std = [
     "pallet-timestamp/std",
     "eq-primitives/std",
     "eq-utils/std",
-    "pallet-collective/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
