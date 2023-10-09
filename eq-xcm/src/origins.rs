@@ -41,17 +41,17 @@ impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone> AccountIdConversion<Acc
     fn multi_location(who: AccountType) -> MultiLocation {
         who.multi_location().into()
     }
-}
-
-impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone>
-    xcm_executor::traits::Convert<MultiLocation, AccountId> for AccountIdConversion<AccountId>
-{
-    fn convert(location: MultiLocation) -> Result<AccountId, MultiLocation> {
-        Self::account_id(location)
-    }
 
     fn reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
         Ok(Self::multi_location(AccountType::Id32(who.into())).into())
+    }
+}
+
+impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone>
+    xcm_executor::traits::ConvertLocation<AccountId> for AccountIdConversion<AccountId>
+{
+    fn convert_location(location: &MultiLocation) -> Option<AccountId> {
+        Self::account_id(location).ok()
     }
 }
 

@@ -60,7 +60,7 @@ frame_support::construct_runtime!(
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         EqLockdrop: eq_lockdrop::{Pallet, Call, Storage, Event<T>},
         EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
         Session: pallet_session::{Pallet, Call, Storage, Event},
         // EqBailsman: eq_bailsman::{Pallet, Call, Storage, Event<T>},
@@ -84,7 +84,7 @@ type Block = frame_system::mocking::MockBlock<Test>;
 type DummyValidatorId = u64;
 
 pub type ModuleBalances = eq_balances::Pallet<Test>;
-pub type ModuleTimestamp = timestamp::Pallet<Test>;
+pub type ModuleTimestamp = pallet_timestamp::Pallet<Test>;
 pub type ModuleLockdrop = eq_lockdrop::Pallet<Test>;
 pub type ModuleVesting = eq_vesting::Pallet<Test>;
 
@@ -646,7 +646,7 @@ parameter_types! {
     pub const MinimumPeriod: u64 = 1;
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;

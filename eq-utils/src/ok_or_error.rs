@@ -22,7 +22,7 @@ macro_rules! ok_or_error {
         match $x {
             Some(v) => Ok(v),
             None => {
-                frame_support::log::error!($($arg)+);
+                log::error!($($arg)+);
                 Err($y)
             }
         }

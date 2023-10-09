@@ -11,7 +11,7 @@ pub const BINARY_ID: u64 = 0;
 pub const FIVE_SECONDS: u64 = 5;
 pub struct Pallet<T: Config>(crate::Pallet<T>);
 
-pub trait Config: crate::Config + timestamp::Config {}
+pub trait Config: crate::Config + pallet_timestamp::Config {}
 
 fn create_binary<T: Config>() {
     pallet::Pallet::<T>::create(
@@ -45,7 +45,7 @@ fn add_money<T: Config>(caller: &T::AccountId, amount: T::Balance) {
 }
 
 fn time_move<T: Config>(moment: u64) {
-    timestamp::Pallet::<T>::set_timestamp((1000 * moment as u32).into());
+    pallet_timestamp::Pallet::<T>::set_timestamp((1000 * moment as u32).into());
 }
 
 // fn debug<T:Config> () {

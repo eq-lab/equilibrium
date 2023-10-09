@@ -23,7 +23,7 @@ use eq_primitives::{
     xcm_origins::dot::PARACHAIN_STATEMINT,
 };
 use eq_xcm::ParaId;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitivesprimitives::primitives::Sibling;
 use sp_runtime::TransactionOutcome::*;
 use xcm::v3::{send_xcm, Junction, Junctions::Here, WildFungibility};
 

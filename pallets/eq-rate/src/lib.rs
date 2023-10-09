@@ -202,7 +202,7 @@ pub mod pallet {
         frame_system::Config
         + SendTransactionTypes<Call<Self>>
         + pallet_session::Config
-        + authorship::Config
+        + pallet_authorship::Config
         + eq_assets::Config
     {
         type AutoReinitToggleOrigin: EnsureOrigin<Self::RuntimeOrigin>;
@@ -641,7 +641,6 @@ pub mod pallet {
         pub keys: Vec<T::AuthorityId>,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
@@ -651,7 +650,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let extra_genesis_builder: fn(&Self) = |config| {
                 Pallet::<T>::initialize_keys(&config.keys);
@@ -1366,7 +1365,7 @@ impl<T: Config> Pallet<T> {
         // treasury module account id
         let treasury_account = T::TreasuryModuleId::get().into_account_truncating();
         //
-        if let Some(author) = authorship::Pallet::<T>::author() {
+        if let Some(author) = pallet_authorship::Pallet::<T>::author() {
             let (fee_for_account, fee_for_author) = ration(
                 fee_amount,
                 T::WeightFeeTreasury::get(),

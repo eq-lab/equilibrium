@@ -343,7 +343,6 @@ pub mod pallet {
         pub lock_start: u64,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
@@ -354,7 +353,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             use eq_primitives::balance::EqCurrency;
             use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};

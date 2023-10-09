@@ -22,7 +22,7 @@ use frame_support::traits::{Contains, ProcessMessageError};
 use xcm::v3::{
     Instruction, Instruction::*, Junction::*, Junctions::*, MultiLocation, Weight, WeightLimit::*,
 };
-use xcm_executor::traits::ShouldExecute;
+use xcm_executor::traits::{Properties, ShouldExecute};
 
 pub struct AllowReserveAssetDepositedFrom<EqAssets, AllowedOrigins>(
     PhantomData<(EqAssets, AllowedOrigins)>,
@@ -34,7 +34,7 @@ impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldEx
         origin: &MultiLocation,
         instructions: &mut [Instruction<RuntimeCall>],
         max_weight: Weight,
-        _weight_credit: &mut Weight,
+        _properties: &mut Properties,
     ) -> Result<(), ProcessMessageError> {
         if AllowedOrigins::contains(origin) {
             match instructions {
@@ -95,7 +95,7 @@ impl ShouldExecute for AllowReserveTransferAssetsFromAccountId {
         origin: &MultiLocation,
         instructions: &mut [Instruction<RuntimeCall>],
         _max_weight: Weight,
-        _weight_credit: &mut Weight,
+        _properties: &mut Properties,
     ) -> Result<(), ProcessMessageError> {
         if eq_utils::chain_part(origin).is_none()
             && matches!(eq_utils::non_chain_part(origin), X1(AccountId32 { .. }))

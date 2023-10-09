@@ -20,7 +20,6 @@ use crate::Asset;
 use financial_pallet::{AssetMetrics, FinancialMetrics};
 #[allow(unused_imports)]
 use financial_pallet::{Metrics, PerAssetMetrics, PriceLogs, Updates}; // Compiler thinks this import is unused
-use frame_support::{StorageMap, StorageValue};
 use substrate_fixed::types::I64F64;
 
 /// Trait used to access Financial pallet storage from other pallets

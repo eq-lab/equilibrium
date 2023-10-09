@@ -21,16 +21,14 @@
 
 use balance::Balance;
 use balance_number::EqFixedU128;
-use frame_support::{
-    codec::{Decode, Encode, FullCodec},
-    dispatch::{DispatchError, DispatchResult, DispatchResultWithPostInfo},
-};
+use codec::{Decode, Encode, FullCodec};
+use frame_support::dispatch::{DispatchResult, DispatchResultWithPostInfo};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member},
     transaction_validity::TransactionPriority,
-    FixedI64, RuntimeDebug,
+    DispatchError, FixedI64, RuntimeDebug,
 };
 use sp_std::convert::TryInto;
 use sp_std::fmt::Debug;

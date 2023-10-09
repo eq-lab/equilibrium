@@ -81,7 +81,7 @@ type BlockNumber = u64;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 pub type Block = frame_system::mocking::MockBlock<Test>;
 
-pub type ModuleTimestamp = timestamp::Pallet<Test>;
+pub type ModuleTimestamp = pallet_timestamp::Pallet<Test>;
 pub type ModuleSystem = frame_system::Pallet<Test>;
 pub type ModuleBinaries = crate::Pallet<Test>;
 pub type CurrencyMock =
@@ -101,7 +101,7 @@ frame_support::construct_runtime!(
         GensBinaryOpt: gens_binary_opt::{Pallet, Call, Storage, Event<T>},
         EqAssets: eq_assets::{Pallet, Call, Storage, Event},
         EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
     }
 );
 
@@ -160,7 +160,7 @@ impl Config for Test {
     type Balance = Balance;
     type AssetGetter = AssetGetterMock;
     type PriceGetter = OracleMock;
-    type UnixTime = timestamp::Pallet<Test>;
+    type UnixTime = pallet_timestamp::Pallet<Test>;
     type EqCurrency = EqCurrencyMock;
     type PalletId = BinaryOpModuleId;
     type TreasuryModuleId = TreasuryAccount;
@@ -229,7 +229,7 @@ impl eq_balances::Config for Test {
     type UnixTime = TimeZeroDurationMock;
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;

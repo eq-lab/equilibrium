@@ -92,7 +92,7 @@ pub mod pallet {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + authorship::Config {
+    pub trait Config: frame_system::Config + pallet_authorship::Config {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Pallets AccountId for balances
@@ -215,7 +215,6 @@ pub mod pallet {
         pub empty: (),
     }
 
-    #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
             Self {
@@ -225,7 +224,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig {
         fn build(&self) {
             use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
             let extra_genesis_builder: fn(&Self) = |_: &GenesisConfig| {

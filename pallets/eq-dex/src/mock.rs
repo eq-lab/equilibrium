@@ -57,7 +57,7 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 pub(crate) type OracleMock = eq_primitives::price::mock::OracleMock<AccountId>;
-pub(crate) type ModuleTimestamp = timestamp::Pallet<Test>;
+pub(crate) type ModuleTimestamp = pallet_timestamp::Pallet<Test>;
 pub(crate) type ModuleSystem = frame_system::Pallet<Test>;
 pub type ModuleRate = eq_rate::Pallet<Test>;
 pub type ModuleDex = eq_dex::Pallet<Test>;
@@ -73,7 +73,7 @@ frame_support::construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
         EqDex: eq_dex::{Pallet, Call, Storage, Event<T>},
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
         Session: pallet_session::{Pallet, Call, Storage, Event},
@@ -269,7 +269,7 @@ impl MarginCallManager<AccountId, Balance> for MarginCallManagerMock {
     }
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;

@@ -21,8 +21,10 @@ use codec::{Decode, Encode, FullCodec};
 use cumulus_primitives_core::ParaId;
 use eq_primitives::balance::Balance;
 use frame_support::weights::{Weight, WeightToFee};
-use frame_support::RuntimeDebug;
-use sp_runtime::traits::{Get, StaticLookup};
+use sp_runtime::{
+    traits::{Get, StaticLookup},
+    RuntimeDebug,
+};
 use sp_std::boxed::Box;
 use sp_std::marker::PhantomData;
 use sp_std::{vec, vec::Vec};

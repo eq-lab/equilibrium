@@ -17,10 +17,9 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use codec::{Decode, Encode};
-use frame_support::RuntimeDebug;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::DispatchError;
+use sp_runtime::{DispatchError, RuntimeDebug};
 
 /// Types of subaccounts. Every master account can have only one subaccount of
 /// each type

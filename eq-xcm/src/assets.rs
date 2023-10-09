@@ -83,7 +83,7 @@ impl<
         EqMatches: EqMatchesFungible<Asset, Balance>,
         EqBridge: chainbridge::Bridge<AccountId, Balance, chainbridge::ChainId, chainbridge::ResourceId>
             + chainbridge::ResourceGetter<chainbridge::ResourceId>,
-        AccountIdConverter: xcm_executor::traits::Convert<MultiLocation, AccountId>,
+        AccountIdConverter: xcm_executor::traits::ConvertLocation<AccountId>,
         CheckedAccount: Get<Option<AccountId>>,
     > TransactAsset
     for EqCurrencyAdapter<
@@ -124,8 +124,8 @@ impl<
     ) -> XcmResult<()> {
         log::trace!(target: "xcm::eq_currency_adapter", "deposit_asset {:?} to {:?}", what, who);
         let (asset, amount) = EqMatches::matches_fungible(&what).ok_or(XcmError::AssetNotFound)?;
-        let who = AccountIdConverter::convert_ref(who)
-            .map_err(|()| XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
+        let who = AccountIdConverter::convert_location(who)
+            .ok_or(XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
 
         match <EqCurrency as Get<Option<XcmMode>>>::get() {
             None | Some(XcmMode::Xcm(_)) => {
@@ -171,8 +171,8 @@ impl<
     ) -> XcmResult<Assets> {
         log::trace!(target: "xcm::eq_currency_adapter", "withdraw_asset {:?} from {:?}", what, who);
         let (asset, amount) = EqMatches::matches_fungible(what).ok_or(XcmError::AssetNotFound)?;
-        let who = AccountIdConverter::convert_ref(who)
-            .map_err(|()| XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
+        let who = AccountIdConverter::convert_location(who)
+            .ok_or(XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
 
         log::trace!(target: "xcm::eq_currency_adapter", "withdraw {:?}", amount);
         EqCurrency::withdraw(
@@ -200,10 +200,10 @@ impl<
             None | Some(XcmMode::Xcm(_)) => {
                 let (asset, amount) =
                     EqMatches::matches_fungible(what).ok_or(XcmError::AssetNotFound)?;
-                let from = AccountIdConverter::convert_ref(from)
-                    .map_err(|()| XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
-                let to = AccountIdConverter::convert_ref(to)
-                    .map_err(|()| XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
+                let from = AccountIdConverter::convert_location(from)
+                    .ok_or(XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
+                let to = AccountIdConverter::convert_location(to)
+                    .ok_or(XcmError::FailedToTransactAsset("AccountIdConversionFailed"))?;
 
                 log::trace!(target: "xcm::eq_currency_adapter", "currency_transfer {:?}", amount);
                 EqCurrency::currency_transfer(
@@ -424,6 +424,7 @@ impl<
         &mut self,
         mut weight: XcmWeight,
         mut payment: Assets,
+		_context: &XcmContext,
     ) -> Result<Assets, XcmError> {
         for (id, payment_amount) in payment.fungible.iter_mut() {
             match id {
@@ -462,7 +463,7 @@ impl<
         }
     }
 
-    fn refund_weight(&mut self, weight: XcmWeight) -> Option<MultiAsset> {
+    fn refund_weight(&mut self, weight: XcmWeight, _context: &XcmContext) -> Option<MultiAsset> {
         for asset in self.assets.iter_mut() {
             if asset.weight.all_lt(weight) {
                 continue;

@@ -60,7 +60,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         EqSubaccounts: eq_subaccounts::{Pallet, Call, Storage, Event<T>},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
         EqBailsman: eq_bailsman::{Pallet, Call, Storage, Event<T>},
         EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>},
         EqWhitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>},
@@ -140,7 +140,7 @@ thread_local! {
     static MARGIN_STATE: RefCell<MarginState> = RefCell::new(MarginState::Good);
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -214,7 +214,7 @@ impl eq_bailsman::Config for Test {
     type PriceGetter = OracleMock;
     type MinimalCollateral = MinimalCollateral;
     type MinTempBalanceUsd = MinTempBalanceUsd;
-    type UnixTime = timestamp::Pallet<Self>;
+    type UnixTime = pallet_timestamp::Pallet<Self>;
     type PalletId = BailsmanModuleId;
     type Aggregates = ModuleAggregates;
     type WeightInfo = ();

@@ -202,7 +202,6 @@ pub mod pallet {
         pub empty: (),
     }
 
-    #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
             Self {
@@ -212,7 +211,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig {
+    impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
         fn build(&self) {
             let extra_genesis_builder: fn(&Self) = |_: &GenesisConfig| {
                 use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};

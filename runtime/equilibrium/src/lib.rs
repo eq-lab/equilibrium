@@ -106,7 +106,7 @@ use system::EnsureRoot;
 // Polkadot imports
 use codec::Encode;
 use frame_support::pallet_prelude::Get;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitivesprimitives::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use polkadot_runtime_constants::weights::RocksDbWeight;
 use xcm::v3::{
@@ -152,15 +152,6 @@ pub fn native_version() -> NativeVersion {
         can_author_with: Default::default(),
     }
 }
-
-pub const MILLISECS_PER_BLOCK: u64 = 12000;
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = 60 * MINUTES;
-pub const DAYS: BlockNumber = 24 * HOURS;
-pub const WEEKS: BlockNumber = 7 * DAYS;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -438,7 +429,7 @@ parameter_types! {
     pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
 
-impl timestamp::Config for Runtime {
+impl pallet_timestamp::Config for Runtime {
     /// A timestamp: milliseconds since the unix epoch.
     type Moment = u64;
     type OnTimestampSet = Aura;
@@ -768,7 +759,7 @@ parameter_types! {
     pub const UncleGenerations: BlockNumber = 5;
 }
 
-impl authorship::Config for Runtime {
+impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
     type EventHandler = ();
 }
@@ -1067,7 +1058,7 @@ impl eq_rate::Config for Runtime {
     type MinSurplus = MinSurplus;
     type BailsmanManager = Bailsman;
     type MinTempBailsman = MinTempBalanceUsd;
-    type UnixTime = timestamp::Pallet<Runtime>;
+    type UnixTime = pallet_timestamp::Pallet<Runtime>;
     type EqBuyout = eq_treasury::Pallet<Runtime>;
     type BailsmanModuleId = BailsmanModuleId;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1743,7 +1734,14 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
     type OnSystemEvent = ();
-    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+    type CheckAssociatedRelayNumber =
+        cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+    type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
+        Runtime,
+        RELAY_CHAIN_SLOT_DURATION_MILLIS,
+        BLOCK_PROCESSING_VELOCITY,
+        UNINCLUDED_SEGMENT_CAPACITY,
+    >;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -2520,12 +2518,12 @@ construct_runtime!(
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
         } = 1,
         Utility: pallet_utility::{Pallet, Call, Event} = 2,
-        Timestamp: timestamp::{Pallet, Call, Storage, Inherent} = 4,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 4,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 5,
         EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>, Config<T>,} = 6,
 
         // Collator support. the order of these 4 are important and shall not change.
-        Authorship: authorship::{Pallet, Storage} = 7,
+        Authorship: pallet_authorship::{Pallet, Storage} = 7,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 8,
         Aura: aura::{Pallet, Config<T>} = 9,
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 10,
@@ -2537,7 +2535,7 @@ construct_runtime!(
         EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 15,
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>} = 16,
-        // Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
+        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
         Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned} = 18,
         Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,} = 19,
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned} = 20,

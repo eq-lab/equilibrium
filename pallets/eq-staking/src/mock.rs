@@ -61,7 +61,7 @@ frame_support::construct_runtime!(
         EqAssets: eq_assets::{Pallet, Call, Storage, Event},
         EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         EqStaking: eq_staking::{Pallet, Call, Event<T>},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
     }
 );
 
@@ -264,7 +264,7 @@ impl eq_balances::Config for Test {
     type UnixTime = TimeZeroDurationMock;
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -289,7 +289,7 @@ impl eq_staking::Config for Test {
     type EqCurrency = EqBalances;
     type BalanceGetter = EqBalances;
     type LockGetter = EqBalances;
-    type UnixTime = timestamp::Pallet<Test>;
+    type UnixTime = pallet_timestamp::Pallet<Test>;
     type MaxStakesCount = MaxStakesCount;
     type RewardManagementOrigin = EnsureRoot<AccountId>;
     type LiquidityAccount = TreasuryAccount;

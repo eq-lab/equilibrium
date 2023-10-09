@@ -58,7 +58,7 @@ frame_support::construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Authorship: authorship::{Pallet, Storage},
+        Authorship: pallet_authorship::{Pallet, Storage},
         EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>},
         EqAggregates: eq_aggregates::{Pallet, Call, Storage},
         EqTreasury: eq_treasury::{Pallet, Call, Storage, Event<T>},
@@ -297,7 +297,7 @@ impl FindAuthor<DummyValidatorId> for Author11 {
     }
 }
 
-impl authorship::Config for Test {
+impl pallet_authorship::Config for Test {
     type FindAuthor = Author11;
 
     type EventHandler = ();

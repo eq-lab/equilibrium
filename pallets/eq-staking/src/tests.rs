@@ -234,8 +234,8 @@ fn reward_ok() {
         assert_eq!(Stakes::<Test>::get(account_with_stake), stakes_before);
         assert_eq!(Stakes::<Test>::get(account_no_stake).len(), 0);
 
-        timestamp::Pallet::<Test>::set_timestamp(RewardsLockPeriod::get().as_secs() * 1000);
-        let now = timestamp::Pallet::<Test>::now();
+        pallet_timestamp::Pallet::<Test>::set_timestamp(RewardsLockPeriod::get().as_secs() * 1000);
+        let now = pallet_timestamp::Pallet::<Test>::now();
 
         for acc in [account_with_stake, account_no_stake] {
             let balance = eq_balances::Pallet::<Test>::get_balance(&acc, &asset::EQ);
@@ -317,7 +317,7 @@ fn unlock_stakes_ok() {
         for i in 0..periods.len() {
             let mut stake = Stakes::<Test>::get(ACCOUNT_1);
             let stake_lock_before = eq_balances::Pallet::<Test>::get_lock(ACCOUNT_1, STAKING_ID);
-            timestamp::Pallet::<Test>::set_timestamp(periods[i].as_secs() * 1000);
+            pallet_timestamp::Pallet::<Test>::set_timestamp(periods[i].as_secs() * 1000);
             assert_ok!(Pallet::<Test>::unlock(
                 RuntimeOrigin::signed(ACCOUNT_1),
                 Some(0 as u32)
@@ -375,8 +375,8 @@ fn unlock_rewards_ok() {
             let reward_stake_lock_before = eq_balances::Pallet::<Test>::get_lock(acc, STAKING_ID);
             let balance_before = eq_balances::Pallet::<Test>::get_balance(&acc, &asset::EQ);
             let stakes_before = Stakes::<Test>::get(acc);
-            let now = timestamp::Pallet::<Test>::now();
-            timestamp::Pallet::<Test>::set_timestamp(
+            let now = pallet_timestamp::Pallet::<Test>::now();
+            pallet_timestamp::Pallet::<Test>::set_timestamp(
                 now + RewardsLockPeriod::get().as_secs() * 1000,
             );
             assert_ok!(Pallet::<Test>::unlock(RuntimeOrigin::signed(acc), None));
@@ -454,7 +454,9 @@ fn unlock_rewards_err() {
             Pallet::<Test>::unlock(RuntimeOrigin::signed(ACCOUNT_1), None),
             Error::<Test>::LockPeriodNotEnded
         );
-        timestamp::Pallet::<Test>::set_timestamp((RewardsLockPeriod::get().as_secs() - 1) * 1000);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(
+            (RewardsLockPeriod::get().as_secs() - 1) * 1000,
+        );
         assert_noop!(
             Pallet::<Test>::unlock(RuntimeOrigin::signed(ACCOUNT_1), None),
             Error::<Test>::LockPeriodNotEnded

@@ -1,7 +1,7 @@
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
-use frame_support::dispatch::Weight;
+use frame_support::weights::Weight;
 
 pub trait WeightInfo {
     fn create() -> Weight;

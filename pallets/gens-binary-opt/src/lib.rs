@@ -20,6 +20,7 @@
 #![deny(warnings)]
 
 use codec::Codec;
+use codec::{Decode, Encode};
 use eq_primitives::balance::Balance;
 use eq_primitives::{
     asset::{Asset, AssetGetter},
@@ -27,9 +28,9 @@ use eq_primitives::{
     price::PriceGetter,
     TransferReason,
 };
+use frame_system::pallet_prelude::{HeaderFor};
 use eq_utils::eq_ensure;
 use frame_support::{
-    codec::{Decode, Encode},
     dispatch::DispatchResultWithPostInfo,
     traits::{ExistenceRequirement, Get, UnixTime},
     PalletId,
@@ -131,7 +132,7 @@ pub mod pallet {
         /// Used for currency-related operations and calculations
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
         #[pallet::constant]
-        type UpdateOnceInBlocks: Get<Self::BlockNumber>;
+        type UpdateOnceInBlocks: Get<BlockNumberFor<Self>>;
         #[pallet::constant]
         type PalletId: Get<PalletId>;
         /// Treasury account
@@ -180,13 +181,14 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
-    #[cfg_attr(feature = "std", derive(Default))]
-    pub struct GenesisConfig {
-        pub empty: (),
+    #[derive(Default)]
+    pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
+        #[serde(skip)]
+        pub empty: PhantomData<I>,
     }
 
     #[pallet::genesis_build]
-    impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig {
+    impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
         fn build(&self) {
             use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
             EqPalletAccountInitializer::<T>::initialize(
@@ -445,12 +447,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         penalty: Permill,
     ) -> DispatchResult {
         T::AssetGetter::get_asset_data(&target).map_err(|err| {
-            frame_support::log::error!("Option's target asset {:?} does not exist", target);
+            log::error!("Option's target asset {:?} does not exist", target);
             err
         })?;
 
         T::AssetGetter::get_asset_data(&proper).map_err(|err| {
-            frame_support::log::error!("Option's proper asset {:?} does not exist", proper);
+            log::error!("Option's proper asset {:?} does not exist", proper);
             err
         })?;
 

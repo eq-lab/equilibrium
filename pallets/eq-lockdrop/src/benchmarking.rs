@@ -30,10 +30,10 @@ use eq_whitelists;
 use frame_benchmarking::{account, benchmarks, whitelisted_caller};
 use frame_support::{dispatch::UnfilteredDispatchable, unsigned::ValidateUnsigned, PalletId};
 use frame_system::{Pallet as System, RawOrigin};
+use pallet_timestamp;
 use sp_runtime::traits::One;
 use sp_runtime::FixedI64;
 use sp_std::vec;
-use timestamp;
 
 const SEED: u32 = 0;
 const BUDGET: u128 = 100_000_000_000_000;
@@ -42,7 +42,7 @@ const MILLISECS_PER_SEC: u64 = 1000;
 pub struct Pallet<T: Config>(crate::Pallet<T>);
 
 pub trait Config:
-    timestamp::Config
+    pallet_timestamp::Config
     + eq_whitelists::Config
     + eq_oracle::Config
     + eq_assets::Config

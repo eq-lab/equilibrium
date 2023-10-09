@@ -707,7 +707,6 @@ pub mod pallet {
         pub is_xcm_enabled: Option<XcmMode>,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
@@ -719,7 +718,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let config = self;
             for (ref who, balance) in config.balances.iter() {

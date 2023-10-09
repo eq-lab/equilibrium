@@ -113,7 +113,6 @@ pub mod pallet {
         pub _runtime: PhantomData<T>,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
@@ -125,7 +124,7 @@ pub mod pallet {
 
     /// Genesis
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig<T>| {
                 for (
@@ -163,23 +162,6 @@ pub mod pallet {
                 }
             };
             extra_genesis_builder(self);
-        }
-    }
-
-    #[cfg(feature = "std")]
-    impl<T: Config> GenesisConfig<T> {
-        /// Direct implementation of `GenesisBuild::build_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn build_storage(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as GenesisBuild<T>>::build_storage(self)
-        }
-
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage(&self, storage: &mut sp_runtime::Storage) -> Result<(), String> {
-            <Self as GenesisBuild<T>>::assimilate_storage(self, storage)
         }
     }
 

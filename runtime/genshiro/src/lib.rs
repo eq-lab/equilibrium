@@ -62,7 +62,7 @@ pub use frame_support::{
 use frame_system as system;
 use frame_system::limits::{BlockLength, BlockWeights};
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain_primitives::primitivesprimitives::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use polkadot_runtime_constants::weights::RocksDbWeight;
 use sp_api::impl_runtime_apis;
@@ -480,7 +480,7 @@ parameter_types! {
     pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
 
-impl timestamp::Config for Runtime {
+impl pallet_timestamp::Config for Runtime {
     /// A timestamp: milliseconds since the unix epoch.
     type Moment = u64;
     type OnTimestampSet = Aura;
@@ -801,7 +801,7 @@ impl transaction_payment::Config for Runtime {
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 
-impl authorship::Config for Runtime {
+impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
     type EventHandler = ();
 }
@@ -1027,7 +1027,7 @@ impl eq_rate::Config for Runtime {
     type MinSurplus = MinSurplus;
     type BailsmanManager = Bailsman;
     type MinTempBailsman = MinTempBalanceUsd;
-    type UnixTime = timestamp::Pallet<Runtime>;
+    type UnixTime = pallet_timestamp::Pallet<Runtime>;
     type EqBuyout = eq_treasury::Pallet<Runtime>;
     type BailsmanModuleId = BailsmanModuleId;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1220,7 +1220,14 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
     type OnSystemEvent = ();
-    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
+    type CheckAssociatedRelayNumber =
+        cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
+    type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
+        Runtime,
+        RELAY_CHAIN_SLOT_DURATION_MILLIS,
+        BLOCK_PROCESSING_VELOCITY,
+        UNINCLUDED_SEGMENT_CAPACITY,
+    >;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -1477,12 +1484,12 @@ construct_runtime!(
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
         },
         Utility: pallet_utility::{Pallet, Call, Event},
-        Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
         EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>, Config<T>,},
 
         // Collator support. the order of these 4 are important and shall not change.
-        Authorship: authorship::{Pallet, Storage},
+        Authorship: pallet_authorship::{Pallet, Storage},
         CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
         Aura: aura::{Pallet, Config<T>},
@@ -1497,7 +1504,7 @@ construct_runtime!(
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>},
-        // Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
         Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,},
 

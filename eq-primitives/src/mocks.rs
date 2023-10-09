@@ -187,5 +187,5 @@ impl<AccountId: Encode + Decode> Get<AccountId> for VestingAccountMock<AccountId
 }
 
 frame_support::parameter_types! {
-    pub ParachainId: polkadot_parachain::primitives::Id = 2011u32.into();
+    pub ParachainId: polkadot_parachain_primitives::primitives::Id = 2011u32.into();
 }

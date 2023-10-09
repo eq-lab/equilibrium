@@ -73,7 +73,7 @@ frame_support::construct_runtime!(
         EqBailsman: eq_bailsman::{Pallet, Call, Storage, Event<T>},
         EqMarginCall: eq_margin_call::{Pallet, Storage, Call, Event<T>},
         EqAssets: eq_assets::{Pallet, Storage, Call, Event},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
     }
 );
 
@@ -333,7 +333,7 @@ parameter_types! {
 }
 
 /* -------------- timestamp ---------------------------------- */
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -489,7 +489,7 @@ impl EqBuyout<AccountId, Balance> for EqBuyoutMock {
 
 pub type ModuleMarginCall = eq_margin_call::Pallet<Test>;
 pub type ModuleSystem = system::Pallet<Test>;
-pub type ModuleTimestamp = timestamp::Pallet<Test>;
+pub type ModuleTimestamp = pallet_timestamp::Pallet<Test>;
 pub type ModuleBailsman = eq_bailsman::Pallet<Test>;
 pub type ModuleBalances = eq_balances::Pallet<Test>;
 

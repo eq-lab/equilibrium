@@ -33,7 +33,7 @@ const BALANCE: u128 = 100 * ONE_TOKEN;
 pub struct Pallet<T: Config>(crate::Pallet<T>);
 
 pub trait Config:
-    eq_assets::Config + eq_balances::Config + timestamp::Config + eq_rate::Config + crate::Config
+    eq_assets::Config + eq_balances::Config + pallet_timestamp::Config + eq_rate::Config + crate::Config
 {
 }
 

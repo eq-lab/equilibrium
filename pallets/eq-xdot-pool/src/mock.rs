@@ -123,7 +123,7 @@ impl frame_system::Config for Test {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -491,7 +491,7 @@ frame_support::construct_runtime!(
         Balances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         EqAggregates: eq_aggregates::{Pallet, Call, Storage},
         EqAssets: eq_assets::{Pallet, Call, Storage, Event},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
         Xdot: eq_xdot_pool::{Pallet, Call, Storage, Event<T>},
     }
 );

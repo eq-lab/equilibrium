@@ -65,15 +65,13 @@ use core::{
     str::FromStr,
 };
 
+use codec::{Decode, Encode};
 use equilibrium_curve_amm::traits::CurveAmm;
 use equilibrium_curve_amm::PoolId as CurvePoolId;
 use financial_pallet::FinancialSystemTrait;
 use financial_primitives::OnPriceSet;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
-#[cfg(feature = "std")]
-use frame_support::traits::GenesisBuild;
 use frame_support::{
-    codec::{Decode, Encode},
     dispatch::DispatchResult,
     traits::{Get, UnixTime},
 };
@@ -728,7 +726,6 @@ pub mod pallet {
         pub update_date: u64,
     }
 
-    #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
             Self {
@@ -739,7 +736,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig {
         fn build(&self) {
             let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig| {
                 let default_price_point = PricePoint {
@@ -1410,26 +1407,5 @@ impl<T: Config> OnNewAsset for Pallet<T> {
                 // do nothing
             }
         }
-    }
-}
-
-/// Genesis boilerplate
-#[cfg(feature = "std")]
-impl GenesisConfig {
-    /// Direct implementation of `GenesisBuild::build_storage`.
-    ///
-    /// Kept in order not to break dependency.
-    pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-        <Self as GenesisBuild<T>>::build_storage(self)
-    }
-
-    /// Direct implementation of `GenesisBuild::assimilate_storage`.
-    ///
-    /// Kept in order not to break dependency.
-    pub fn assimilate_storage<T: Config>(
-        &self,
-        storage: &mut sp_runtime::Storage,
-    ) -> Result<(), String> {
-        <Self as GenesisBuild<T>>::assimilate_storage(self, storage)
     }
 }

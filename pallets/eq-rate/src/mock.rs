@@ -65,12 +65,12 @@ frame_support::construct_runtime!(
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
-        Authorship: authorship::{Pallet, Storage},
+        Authorship: pallet_authorship::{Pallet, Storage},
         System: system::{Pallet, Call, Event<T>},
         Balances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         EqBailsman: eq_bailsman::{Pallet, Call, Storage, Event<T>},
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
         EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>},
         Session: pallet_session::{Pallet, Call, Storage, Event},
         EqMarginCall: eq_margin_call::{Pallet, Call, Storage, Event<T>},
@@ -191,7 +191,7 @@ impl FindAuthor<DummyValidatorId> for Author11 {
     }
 }
 
-impl authorship::Config for Test {
+impl pallet_authorship::Config for Test {
     type FindAuthor = Author11;
     type EventHandler = ();
 }
@@ -251,7 +251,7 @@ thread_local! {
     pub static EQ_BUYOUT_ARGS: RefCell<Option<(AccountId, Balance)>> = RefCell::new(None);
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -757,7 +757,7 @@ impl eq_margin_call::Config for Test {
 
 pub type ModuleRate = Pallet<Test>;
 pub type ModuleSystem = system::Pallet<Test>;
-pub type ModuleTimestamp = timestamp::Pallet<Test>;
+pub type ModuleTimestamp = pallet_timestamp::Pallet<Test>;
 pub type ModuleBailsman = eq_bailsman::Pallet<Test>;
 pub type ModuleBalances = eq_balances::Pallet<Test>;
 pub type ModuleAggregates = eq_aggregates::Pallet<Test>;

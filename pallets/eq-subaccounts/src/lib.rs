@@ -341,7 +341,6 @@ pub mod pallet {
         pub timestamp: u64,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
@@ -352,7 +351,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig<T>| {
                 for &(ref master_acc, subacc_type, ref subaccount, ref sub_acc_balance) in

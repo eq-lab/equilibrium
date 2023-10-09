@@ -164,7 +164,6 @@ pub mod pallet {
         pub whitelist: Vec<T::AccountId>,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
@@ -174,7 +173,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig<T>| {
                 let mut accounts = Vec::new();

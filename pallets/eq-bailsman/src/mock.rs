@@ -169,7 +169,7 @@ impl PriceGetter for OracleMock {
     }
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -355,7 +355,7 @@ impl Config for Test {
     type PriceGetter = OracleMock;
     type MinimalCollateral = MinimalCollateral;
     type MinTempBalanceUsd = MinTempBalanceUsd;
-    type UnixTime = timestamp::Pallet<Self>;
+    type UnixTime = pallet_timestamp::Pallet<Self>;
     type PalletId = BailsmanModuleId;
     type Aggregates = eq_aggregates::Pallet<Test>;
     type WeightInfo = ();

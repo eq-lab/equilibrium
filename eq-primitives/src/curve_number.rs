@@ -18,8 +18,8 @@
 
 use crate::balance::Balance;
 use crate::ONE_TOKEN;
+use codec::{CompactAs, Decode, Encode};
 use equilibrium_curve_amm::traits::CheckedConvert;
-use frame_support::codec::{CompactAs, Decode, Encode};
 use sp_arithmetic::per_things::Rounding;
 use sp_runtime::helpers_128bit::multiply_by_rational_with_rounding;
 use sp_runtime::sp_std::convert::{TryFrom, TryInto};

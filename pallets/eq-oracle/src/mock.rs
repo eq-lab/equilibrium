@@ -56,7 +56,7 @@ frame_support::construct_runtime!(
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         EqOracle: eq_oracle::{Pallet, Call, Storage, Event<T>},
         EqWhitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>},
-        Timestamp: timestamp::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage},
         EqAssets: eq_assets::{Pallet, Call, Storage, Event},
         Financial: financial_pallet::{Pallet, Call, Storage, Event<T>},
     }
@@ -96,7 +96,7 @@ impl frame_system::Config for Test {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -394,7 +394,7 @@ impl financial_primitives::BalanceAware for Balances {
 
 impl financial_pallet::Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type UnixTime = timestamp::Pallet<Test>;
+    type UnixTime = pallet_timestamp::Pallet<Test>;
     type PriceCount = ();
     type PricePeriod = ();
     type ReturnType = ();
@@ -413,7 +413,7 @@ impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type Whitelist = eq_whitelists::Pallet<Self>;
-    type UnixTime = timestamp::Pallet<Self>;
+    type UnixTime = pallet_timestamp::Pallet<Self>;
     type FinMetricsRecalcToggleOrigin = EnsureRoot<AccountId>;
     type MedianPriceTimeout = MedianPriceTimeout;
     type PriceTimeout = PriceTimeout;
@@ -435,7 +435,7 @@ impl Config for Test {
 
 pub type ModuleOracle = Pallet<Test>;
 
-pub type ModuleTimestamp = timestamp::Pallet<Test>;
+pub type ModuleTimestamp = pallet_timestamp::Pallet<Test>;
 pub type ModuleWhitelist = eq_whitelists::Pallet<Test>;
 pub type ModuleSystem = frame_system::Pallet<Test>;
 
