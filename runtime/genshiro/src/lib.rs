@@ -1590,23 +1590,7 @@ struct OldPoolInfo<AccountId, AssetId, Number, Balance> {
 
 pub struct CustomOnRuntimeUpgrade;
 
-impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
-    fn on_runtime_upgrade() -> Weight {
-        let vesting_account = VestingAccount::get();
-        let burn_amount = 134700188190863716;
-        let _ = EqBalances::withdraw(
-            &vesting_account,
-            eq_primitives::asset::GENS,
-            burn_amount,
-            true,
-            None,
-            WithdrawReasons::all(),
-            ExistenceRequirement::AllowDeath,
-        );
-
-        Weight::from_parts(1u64, 0)
-    }
-}
+impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {}
 
 pub struct AssetGenerator;
 
