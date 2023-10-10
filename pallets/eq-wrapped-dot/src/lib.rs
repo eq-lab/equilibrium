@@ -45,6 +45,7 @@ use eq_xcm::{
 use frame_support::{
     ensure,
     traits::{EnsureOrigin, ExistenceRequirement, Get, WithdrawReasons},
+    weights::Weight,
     BoundedVec, PalletId,
 };
 pub use pallet::*;
@@ -627,9 +628,16 @@ impl<T: Config> Pallet<T> {
         let bond_amount =
             balance_into_xcm(value, DOT_DECIMALS).ok_or(Error::<T>::XcmBalanceConversionError)?;
 
+        let transact_weight_base = StakingWeights::<T>::bond_extra();
+
+        let transact_weight = Weight::from_parts(
+            transact_weight_base.ref_time() * 10,
+            transact_weight_base.proof_size(),
+        );
+
         let xcm_message = T::RelayChainCallBuilder::finalize_call_into_xcm_message(
             T::RelayChainCallBuilder::staking_bond_extra(bond_amount),
-            StakingWeights::<T>::bond_extra(),
+            transact_weight,
         );
         let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingBondExtraFailed);
@@ -644,10 +652,22 @@ impl<T: Config> Pallet<T> {
         let unbond_amount =
             balance_into_xcm(value, DOT_DECIMALS).ok_or(Error::<T>::XcmBalanceConversionError)?;
 
+        // weight from polkadot runtime
+        let transact_weight_base =
+            StakingWeights::<T>::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS)
+                .saturating_add(StakingWeights::<T>::bond());
+
+        // empirical multipliers
+        let transact_weight = Weight::from_parts(
+            transact_weight_base.ref_time() * 37,
+            transact_weight_base.proof_size() * 15,
+        );
+
         let xcm_message = T::RelayChainCallBuilder::finalize_call_into_xcm_message(
             T::RelayChainCallBuilder::staking_unbond(unbond_amount),
-            StakingWeights::<T>::withdraw_unbonded_kill(SPECULATIVE_NUM_SPANS),
+            transact_weight,
         );
+
         let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingUnbondFailed);
 
@@ -662,7 +682,7 @@ impl<T: Config> Pallet<T> {
 
         let xcm_message = T::RelayChainCallBuilder::finalize_call_into_xcm_message(
             T::RelayChainCallBuilder::staking_withdraw_unbonded(NUM_SLASHING_SPANS),
-            StakingWeights::<T>::withdraw_unbonded_kill(NUM_SLASHING_SPANS),
+            StakingWeights::<T>::withdraw_unbonded_kill(NUM_SLASHING_SPANS).saturating_mul(10),
         );
         let result = send_xcm::<T::XcmRouter>(Parent.into(), xcm_message);
         ensure!(result.is_ok(), Error::<T>::XcmStakingWithdrawUnbondedFailed);

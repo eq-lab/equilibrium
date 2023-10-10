@@ -79,8 +79,8 @@ pub enum StakingCall<T: Config> {
     WithdrawUnbonded(u32),
 }
 
-/// Weights from polkadot runtime multiplied by 2
-/// https://github.com/paritytech/polkadot/blob/v0.9.42/runtime/polkadot/src/weights/pallet_staking.rs
+/// Weights from polkadot runtime
+/// https://github.com/paritytech/polkadot/blob/v0.9.43/runtime/polkadot/src/weights/pallet_staking.rs
 pub struct StakingWeights<T>(PhantomData<T>);
 impl<T: frame_system::Config> StakingWeights<T> {
     pub fn bond() -> Weight {
@@ -115,6 +115,13 @@ impl<T: frame_system::Config> StakingWeights<T> {
             .saturating_add(T::DbWeight::get().writes(12))
             .saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(s.into())))
             .saturating_add(Weight::from_parts(0, 4).saturating_mul(s.into()))
+    }
+
+    pub fn unbond() -> Weight {
+        Weight::from_parts(94_684_000, 0)
+            .saturating_add(Weight::from_parts(0, 8877))
+            .saturating_add(T::DbWeight::get().reads(12))
+            .saturating_add(T::DbWeight::get().writes(7))
     }
 }
 
@@ -220,6 +227,7 @@ where
                 require_weight_at_most: transact_weight,
                 call: call.encode().into(),
             },
+            RefundSurplus,
             DepositAsset {
                 assets: All.into(),
                 beneficiary: MultiLocation {
