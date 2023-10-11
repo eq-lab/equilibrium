@@ -38,6 +38,7 @@ cumulus-pallet-parachain-system = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 cumulus-primitives-timestamp = { workspace = true }
 cumulus-primitives-utility = { workspace = true }
+cumulus-primitives-aura = { workspace = true }
 cumulus-pallet-dmp-queue = { workspace = true }
 cumulus-pallet-xcmp-queue = { workspace = true }
 cumulus-pallet-session-benchmarking = { workspace = true }
@@ -242,7 +243,8 @@ std = [
   "eq-wrapped-dot/std",
   "eq-market-maker/std",
   "eq-staking/std",
-  "eq-balances-rpc-runtime-api/std"
+  "eq-balances-rpc-runtime-api/std",
+  "cumulus-primitives-aura/std"
 ]
 runtime-benchmarks = [
   # "hex-literal",

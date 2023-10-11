@@ -256,3 +256,8 @@ try-runtime = [
 	"eq-node-runtime/try-runtime",
 	"gens-node-runtime/try-runtime",
 ]
+
+experimental = [
+  "eq-node-runtime/experimental",
+  "gens-node-runtime/experimental",
+]

@@ -118,6 +118,7 @@ pub mod weights;
 pub const ONE_TOKEN: Balance = eq_utils::ONE_TOKEN as Balance;
 
 /// This runtime version.
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("Gens-parachain"),
     impl_name: create_runtime_str!("Gens-parachain"),
@@ -329,6 +330,8 @@ impl aura::Config for Runtime {
     type DisabledValidators = ();
     type MaxAuthorities = MaxAuthorities;
     type AllowMultipleBlocksPerSlot = ConstBool<false>;
+    #[cfg(feature = "experimental")]
+	type SlotDuration = aura::MinimumPeriodTimesTwo<Self>;
 }
 
 pub struct FilterPrices;
@@ -934,8 +937,6 @@ impl financial_pallet::Config for Runtime {
 pub struct FinancialPalletOnNewAsset;
 impl OnNewAsset for FinancialPalletOnNewAsset {
     fn on_new_asset(asset: eq_primitives::asset::Asset, prices: Vec<sp_runtime::FixedI64>) {
-        use frame_support::StorageMap;
-
         if !prices.is_empty() {
             let mut price_log = financial_primitives::capvec::CapVec::new(
                 <Runtime as financial_pallet::Config>::PriceCount::get(),
@@ -1212,6 +1213,13 @@ parameter_types! {
     pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
 
+pub type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
+    Runtime,
+    RELAY_CHAIN_SLOT_DURATION_MILLIS,
+    BLOCK_PROCESSING_VELOCITY,
+    UNINCLUDED_SEGMENT_CAPACITY,
+>;
+
 impl cumulus_pallet_parachain_system::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type SelfParaId = ParachainInfo;
@@ -1223,12 +1231,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type OnSystemEvent = ();
     type CheckAssociatedRelayNumber =
         cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
-    type ConsensusHook = cumulus_pallet_aura_ext::FixedVelocityConsensusHook<
-        Runtime,
-        RELAY_CHAIN_SLOT_DURATION_MILLIS,
-        BLOCK_PROCESSING_VELOCITY,
-        UNINCLUDED_SEGMENT_CAPACITY,
-    >;
+    type ConsensusHook = ConsensusHook;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -1796,7 +1799,6 @@ mod curve_utils {
         get_index_range, get_period_id_range, get_range_intersection, PriceLog,
     };
     use financial_primitives::capvec::CapVec;
-    use frame_support::StorageMap;
     use sp_arithmetic::FixedI64;
     use sp_runtime::traits::{Saturating, Zero};
 
@@ -2126,6 +2128,15 @@ impl_runtime_apis! {
     impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
         fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
             ParachainSystem::collect_collation_info(header)
+        }
+    }
+
+    impl cumulus_primitives_aura::AuraUnincludedSegmentApi<Block> for Runtime {
+        fn can_build_upon(
+            included_hash: <Block as BlockT>::Hash,
+            slot: cumulus_primitives_aura::Slot
+        ) -> bool {
+            ConsensusHook::can_build_upon(included_hash, slot)
         }
     }
 
