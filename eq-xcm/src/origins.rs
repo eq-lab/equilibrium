@@ -42,7 +42,7 @@ impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone> AccountIdConversion<Acc
         who.multi_location().into()
     }
 
-    fn reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
+    fn _reverse(who: AccountId) -> Result<MultiLocation, AccountId> {
         Ok(Self::multi_location(AccountType::Id32(who.into())).into())
     }
 }

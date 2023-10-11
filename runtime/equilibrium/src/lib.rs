@@ -20,7 +20,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "512"]
 #![forbid(unsafe_code)]
-// #![deny(warnings)]
+#![deny(warnings)]
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -59,7 +59,6 @@ use frame_support::traits::{
     Contains, ExistenceRequirement, InstanceFilter, Nothing, OnUnbalanced, UnixTime,
 };
 use frame_support::weights::WeightToFee;
-use frame_support::StorageMap;
 pub use frame_support::{
     construct_runtime, debug,
     dispatch::DispatchClass,
@@ -357,6 +356,8 @@ impl aura::Config for Runtime {
     type DisabledValidators = ();
     type MaxAuthorities = MaxAuthorities;
     type AllowMultipleBlocksPerSlot = ConstBool<false>;
+    #[cfg(feature = "experimental")]
+	type SlotDuration = pallet_aura::MinimumPeriodTimesTwo<Self>;
 }
 
 pub struct FilterPrices;
@@ -1366,7 +1367,6 @@ mod curve_utils {
         get_index_range, get_period_id_range, get_range_intersection, PriceLog,
     };
     use financial_primitives::capvec::CapVec;
-    use frame_support::StorageMap;
     use sp_arithmetic::FixedI64;
     use sp_runtime::traits::Saturating;
 

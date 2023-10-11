@@ -17,7 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-// #![deny(warnings)]
+#![deny(warnings)]
 
 use codec::{Decode, Encode};
 use eq_primitives::balance::EqCurrency;

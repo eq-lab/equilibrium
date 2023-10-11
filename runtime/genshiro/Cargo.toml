@@ -231,3 +231,4 @@ production = [
 logging = [
   "eq-utils/logging"
 ]
+experimental = [ "aura/experimental" ]
