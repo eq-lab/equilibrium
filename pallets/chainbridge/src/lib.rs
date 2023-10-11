@@ -33,7 +33,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 mod benchmarking;
 mod mock;
@@ -53,6 +53,7 @@ use frame_support::{
     traits::{Currency, EnsureOrigin, ExistenceRequirement, Get},
     Parameter,
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 use frame_system::{self as system, ensure_signed};
 use sp_core::U256;
 use sp_runtime::traits::{
@@ -66,8 +67,6 @@ pub use eq_primitives::chainbridge::*;
 
 /// Default number of votes required for a proposal to execute
 const DEFAULT_RELAYER_THRESHOLD: u32 = 1;
-/// Default proposal lifetime in blocks (6 sec duration): 10 days
-#[cfg(feature = "std")]
 const DEFAULT_PROPOSAL_LIFETIME: u32 = 144000;
 
 /// Helper function to concatenate a chain ID and some bytes to produce a resource ID.
@@ -241,7 +240,7 @@ pub mod pallet {
         #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn set_proposal_lifetime(
             origin: OriginFor<T>,
-            lifetime: T::BlockNumber,
+            lifetime: BlockNumberFor<T>,
         ) -> DispatchResultWithPostInfo {
             T::AdminOrigin::ensure_origin(origin)?;
             Self::set_lifetime(lifetime)
@@ -467,7 +466,7 @@ pub mod pallet {
         /// Fee for chain has changed. \[chain_id, fee\]
         FeeChanged(ChainId, T::Balance),
         /// Proposal lifetime has changed. \[lifetime\]
-        ProposalLifetimeChanged(T::BlockNumber),
+        ProposalLifetimeChanged(BlockNumberFor<T>),
         /// Chain now available for transfers. \[chain_id\]
         ChainWhitelisted(ChainId),
         /// Relayer added to set. \[who\]
@@ -585,7 +584,7 @@ pub mod pallet {
         ChainId,
         Blake2_128Concat,
         (DepositNonce, T::Proposal),
-        ProposalVotes<T::AccountId, T::BlockNumber>,
+        ProposalVotes<T::AccountId, BlockNumberFor<T>>,
     >;
 
     /// Utilized by the bridge software to map resource IDs to actual methods.
@@ -601,7 +600,7 @@ pub mod pallet {
     /// Time in blocks for relays voting
     #[pallet::storage]
     #[pallet::getter(fn proposal_lifetime)]
-    pub type ProposalLifetime<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+    pub type ProposalLifetime<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -611,7 +610,7 @@ pub mod pallet {
         pub relayers: Vec<T::AccountId>,
         pub threshold: u32,
         pub resources: Vec<(ResourceId, Vec<u8>)>,
-        pub proposal_lifetime: T::BlockNumber,
+        pub proposal_lifetime: BlockNumberFor<T>,
         pub min_nonces: Vec<(ChainId, DepositNonce)>,
     }
 
@@ -753,10 +752,10 @@ impl<T: Config> Pallet<T> {
         Ok(().into())
     }
 
-    pub fn set_lifetime(lifetime: T::BlockNumber) -> DispatchResultWithPostInfo {
+    pub fn set_lifetime(lifetime: BlockNumberFor<T>) -> DispatchResultWithPostInfo {
         use sp_runtime::traits::Zero;
         ensure!(
-            lifetime > T::BlockNumber::zero(),
+            lifetime > BlockNumberFor::<T>::zero(),
             Error::<T>::InvalidProposalLifetime
         );
         ProposalLifetime::<T>::put(lifetime);

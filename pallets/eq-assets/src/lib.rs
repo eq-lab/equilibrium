@@ -44,6 +44,7 @@ use frame_support::dispatch::DispatchResultWithPostInfo;
 use frame_support::traits::Get;
 pub use pallet::*;
 use sp_runtime::{traits::Zero, DispatchError, FixedI64, FixedPointNumber, Percent, Permill};
+use sp_std::prelude::*;
 use sp_std::vec::Vec;
 use xcm::latest::AssetId;
 

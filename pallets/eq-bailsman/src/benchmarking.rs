@@ -154,7 +154,7 @@ fn register_bailsmans<T: Config>(count: u32) -> Vec<T::AccountId> {
 }
 
 fn prepare_distribution_queue<T: Config>(count: u32) {
-    let block_number = T::BlockNumber::zero();
+    let block_number = BlockNumberFor::<T>::zero();
     for _ in 0..count {
         prepare_temp_balances::<T>();
         EqBailsman::<T>::on_initialize(block_number);
@@ -181,7 +181,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         let account_id = bailsmans[0].clone();
 
-        let block_number = T::BlockNumber::zero();
+        let block_number = BlockNumberFor::<T>::zero();
         let request =
             DistributionRequest {
                 bailsman: account_id.clone(),
@@ -238,7 +238,7 @@ benchmarks! {
         prepare_temp_balances::<T>();
         let _ = register_bailsmans::<T>(10);
 
-        let block_number = T::BlockNumber::zero();
+        let block_number = BlockNumberFor::<T>::zero();
     }:{
         EqBailsman::<T>::on_initialize(block_number);
     }
@@ -264,7 +264,7 @@ benchmarks! {
             let _ = crate::Pallet::<T>::redistribute(RawOrigin::Signed(caller.clone()).into(), account_id);
         }
 
-        let block_number = T::BlockNumber::zero();
+        let block_number = BlockNumberFor::<T>::zero();
     }:{
         EqBailsman::<T>::on_finalize(block_number);
     }

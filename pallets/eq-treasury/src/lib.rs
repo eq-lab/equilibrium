@@ -211,23 +211,16 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::genesis_config]
-    pub struct GenesisConfig {
-        pub empty: (),
-    }
-
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                empty: Default::default(),
-            }
-        }
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        pub empty: PhantomData<T>,
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
-            let extra_genesis_builder: fn(&Self) = |_: &GenesisConfig| {
+            let extra_genesis_builder: fn(&Self) = |_: &GenesisConfig<T>| {
                 EqPalletAccountInitializer::<T>::initialize(&Pallet::<T>::account_id());
             };
             extra_genesis_builder(self);

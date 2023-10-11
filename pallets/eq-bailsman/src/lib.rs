@@ -83,6 +83,7 @@ use frame_support::{
     PalletId, Parameter,
 };
 use frame_system as system;
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_application_crypto::RuntimeAppPublic;
 #[allow(unused_imports)]
 use sp_runtime::{
@@ -95,9 +96,9 @@ use sp_runtime::{
 use sp_std::convert::From;
 use sp_std::{default::Default, prelude::*};
 use system::offchain::{SendTransactionTypes, SubmitTransaction};
-pub use weights::WeightInfo;
 
 pub use pallet::*;
+pub use weights::WeightInfo;
 
 const DB_PREFIX: &[u8] = b"eq-bailsman/";
 
@@ -162,7 +163,7 @@ pub mod pallet {
         /// Used to execute batch operations for every `AuthorityId` key in keys storage
         type ValidatorOffchainBatcher: ValidatorOffchainBatcher<
             Self::AuthorityId,
-            Self::BlockNumber,
+            BlockNumberFor<Self>,
             Self::AccountId,
         >;
         /// Used to deal with Assets
@@ -197,7 +198,7 @@ pub mod pallet {
         #[pallet::weight(<T as pallet::Config>::WeightInfo::redistribute_unsigned(request.queue_len + T::QueueLengthWeightConstant::get()))]
         pub fn redistribute_unsigned(
             origin: OriginFor<T>,
-            request: DistributionRequest<T::AccountId, T::BlockNumber>,
+            request: DistributionRequest<T::AccountId, BlockNumberFor<T>>,
             _signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
         ) -> DispatchResultWithPostInfo {
             ensure_none(origin)?;
@@ -1072,7 +1073,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn check_unsigned_payload(
-        request: &DistributionRequest<T::AccountId, T::BlockNumber>,
+        request: &DistributionRequest<T::AccountId, BlockNumberFor<T>>,
         signature: &<T::AuthorityId as RuntimeAppPublic>::Signature,
     ) -> Result<(), InvalidTransaction> {
         const INVALID_VALIDATORS_LEN: u8 = 10;
@@ -1106,7 +1107,7 @@ impl<T: Config> Pallet<T> {
     fn check_bailsmen_for_single_auth(
         auth_idx: u32,
         auth_key: T::AuthorityId,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         val_len: u32,
     ) -> OffchainResult {
         let (curr_distr_id, queue) = DistributionQueue::<T>::get();
@@ -1165,7 +1166,7 @@ impl<T: Config> Pallet<T> {
     fn submit_redistribute_bailsman(
         auth_idx: u32,
         auth_key: &T::AuthorityId,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         val_len: u32,
         bailsman: T::AccountId,
         last_distr_id: DistributionId,

@@ -70,7 +70,7 @@ benchmarks_instance_pallet! {
         let caller = account("caller", 0, SEED);
         add_vesting_schedule::<I, T>(&caller)?;
         // At block zero, everything is vested.
-        System::<T>::set_block_number(T::BlockNumber::zero());
+        System::<T>::set_block_number(BlockNumberFor::<T>::zero());
         assert_eq!(
             Vesting::<T, I>::vesting_balance(&caller),
             Some(100u32.into()),
@@ -113,7 +113,7 @@ benchmarks_instance_pallet! {
         T::Currency::make_free_balance_be(&<T as pallet::Config<I>>::PalletId::get().into_account_truncating(), (1_000_000u32).into());
         add_vesting_schedule::<I, T>(&other)?;
         // At block zero, everything is vested.
-        System::<T>::set_block_number(T::BlockNumber::zero());
+        System::<T>::set_block_number(BlockNumberFor::<T>::zero());
         assert_eq!(
             Vesting::<T, I>::vesting_balance(&other),
             Some(100u32.into()),

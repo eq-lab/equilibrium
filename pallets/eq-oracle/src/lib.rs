@@ -75,9 +75,12 @@ use frame_support::{
     dispatch::DispatchResult,
     traits::{Get, UnixTime},
 };
-use frame_system::offchain::{
-    AppCrypto, CreateSignedTransaction, ForAll, SendUnsignedTransaction, SignedPayload, Signer,
-    SigningTypes,
+use frame_system::{
+    offchain::{
+        AppCrypto, CreateSignedTransaction, ForAll, SendUnsignedTransaction, SignedPayload, Signer,
+        SigningTypes,
+    },
+    pallet_prelude::BlockNumberFor,
 };
 use sp_arithmetic::{FixedI64, FixedPointNumber};
 use sp_core::crypto::KeyTypeId;
@@ -168,7 +171,7 @@ pub struct PricePayload<Public, BlockNumber> {
     block_number: BlockNumber,
 }
 
-impl<T: SigningTypes> SignedPayload<T> for PricePayload<T::Public, T::BlockNumber> {
+impl<T: SigningTypes> SignedPayload<T> for PricePayload<T::Public, BlockNumberFor<T>> {
     fn public(&self) -> T::Public {
         self.public.clone()
     }
@@ -421,7 +424,7 @@ pub mod pallet {
         type FinancialSystemTrait: FinancialSystemTrait<Asset = Asset, AccountId = Self::AccountId>;
         /// Time between recalculation assets financial data in ms
         #[pallet::constant]
-        type FinancialRecalcPeriodBlocks: Get<Self::BlockNumber>;
+        type FinancialRecalcPeriodBlocks: Get<BlockNumberFor<Self>>;
         /// For priority calculation of an unsigned transaction
         #[pallet::constant]
         type UnsignedPriority: Get<UnsignedPriorityPair>;
@@ -478,7 +481,7 @@ pub mod pallet {
         /// Adds new `DataPoint` from an unsigned transaction
         pub fn set_price_unsigned(
             origin: OriginFor<T>,
-            payload: PricePayload<T::Public, T::BlockNumber>,
+            payload: PricePayload<T::Public, BlockNumberFor<T>>,
             _signature: T::Signature,
         ) -> DispatchResultWithPostInfo {
             ensure_none(origin)?;
@@ -510,7 +513,7 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Starts an off-chain task for a given block number
-        fn offchain_worker(block_number: T::BlockNumber) {
+        fn offchain_worker(block_number: BlockNumberFor<T>) {
             // collect the public keys
             let publics =
                 <T::AuthorityId as AppCrypto<T::Public, T::Signature>>::RuntimeAppPublic::all()
@@ -640,7 +643,7 @@ pub mod pallet {
             };
 
             let block_timeout =
-                T::BlockNumber::unique_saturated_from(T::LpPriceBlockTimeout::get());
+                BlockNumberFor::<T>::unique_saturated_from(T::LpPriceBlockTimeout::get());
             let current_block = frame_system::Pallet::<T>::block_number();
             if (current_block % block_timeout).is_zero() {
                 let _ = update_lp_token_prices();
@@ -702,10 +705,7 @@ pub mod pallet {
         _,
         Identity,
         Asset,
-        PricePoint<
-            <T as frame_system::Config>::AccountId,
-            <T as frame_system::Config>::BlockNumber,
-        >,
+        PricePoint<<T as frame_system::Config>::AccountId, BlockNumberFor<T>>,
         OptionQuery,
     >;
 
@@ -721,30 +721,23 @@ pub mod pallet {
         StorageValue<_, bool, ValueQuery, DefaultForFinMetricsRecalcEnabled>;
 
     #[pallet::genesis_config]
-    pub struct GenesisConfig {
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
         pub prices: Vec<(u64, u64, u64)>,
         pub update_date: u64,
-    }
-
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                prices: Default::default(),
-                update_date: Default::default(),
-            }
-        }
+        pub empty: PhantomData<T>,
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig| {
+            let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig<T>| {
                 let default_price_point = PricePoint {
                     block_number: frame_system::Pallet::<T>::block_number(),
                     timestamp: 0,
                     last_fin_recalc_timestamp: 0,
                     price: FixedI64::saturating_from_integer(-1),
-                    data_points: Vec::<DataPoint<T::AccountId, T::BlockNumber>>::new(),
+                    data_points: Vec::<DataPoint<T::AccountId, BlockNumberFor<T>>>::new(),
                 };
                 // with chain spec
                 for asset in T::AssetGetter::get_assets() {
@@ -758,7 +751,7 @@ pub mod pallet {
                     }
                     let price: FixedI64 = FixedI64::saturating_from_rational(nom, denom);
                     <PricePoints<T>>::mutate(&asset_typed, |maybe_price_point| {
-                        let mut price_point: PricePoint<T::AccountId, T::BlockNumber> =
+                        let mut price_point: PricePoint<T::AccountId, BlockNumberFor<T>> =
                             Default::default();
                         price_point.timestamp = config.update_date;
                         price_point.price = price;
@@ -918,7 +911,7 @@ impl<T: Config> Pallet<T> {
 
     fn update_prices(
         source_type: price_source::SourceType,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         signer: &Signer<T, T::AuthorityId, ForAll>,
     ) {
         for (asset, price_result) in Self::get_prices(source_type) {
@@ -949,7 +942,7 @@ impl<T: Config> Pallet<T> {
     fn submit_tx_update_price(
         asset: Asset,
         price: FixedI64,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         signer: &Signer<T, T::AuthorityId, ForAll>,
     ) {
         if asset == asset::DOT {
@@ -1045,7 +1038,7 @@ impl<T: Config> Pallet<T> {
         who: T::AccountId,
         asset: Asset,
         price: FixedI64,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
     ) -> DispatchResult {
         //log::info!("Who: {:?}", &who);
         eq_ensure!(
@@ -1205,7 +1198,9 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Calculate a median over **sorted** price points
-    fn calc_median_price(data_points: &Vec<DataPoint<T::AccountId, T::BlockNumber>>) -> FixedI64 {
+    fn calc_median_price(
+        data_points: &Vec<DataPoint<T::AccountId, BlockNumberFor<T>>>,
+    ) -> FixedI64 {
         let len = data_points.len();
         let new_price = if len % 2 == 0 {
             (data_points[len / 2 - 1].price + data_points[len / 2].price)

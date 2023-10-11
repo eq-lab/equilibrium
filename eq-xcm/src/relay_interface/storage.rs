@@ -23,7 +23,7 @@ use cumulus_primitives_core::{
 };
 use frame_support::storage::unhashed;
 use hex_literal::hex;
-use sp_runtime::traits::HashFor;
+use sp_runtime::traits::HashingFor;
 use sp_state_machine::{Backend, TrieBackendBuilder};
 use sp_std::prelude::*;
 use sp_trie::{HashDBT, StorageProof, EMPTY_PREFIX};
@@ -102,7 +102,7 @@ pub fn create_relay_backend() -> Result<impl Backend<BlakeTwo256>, RelayChainSto
             RelayChainStorageError::NoStateProof
         })?;
 
-    let relay_db = relay_state_proof.into_memory_db::<HashFor<relay_chain::Block>>();
+    let relay_db = relay_state_proof.into_memory_db::<HashingFor<relay_chain::Block>>();
     if !relay_db.contains(&relay_parent_storage_root, EMPTY_PREFIX) {
         log::error!(target: LOG_TARGET, "Relay state root mismatch",);
         return Err(RelayChainStorageError::RootMismatch);

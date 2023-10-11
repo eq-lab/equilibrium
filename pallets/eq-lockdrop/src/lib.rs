@@ -17,8 +17,9 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
+use codec::{Decode, Encode};
 use eq_primitives::balance::EqCurrency;
 use eq_primitives::{
     asset,
@@ -26,12 +27,12 @@ use eq_primitives::{
     TransferReason, Vesting,
 };
 use eq_utils::{eq_ensure, ok_or_error};
-use frame_support::codec::{Decode, Encode};
 use frame_support::{
     dispatch::DispatchResultWithPostInfo,
     traits::{ExistenceRequirement, Get, UnixTime},
 };
 use frame_system::offchain::SubmitTransaction;
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_application_crypto::RuntimeAppPublic;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{DispatchError, RuntimeDebug};
@@ -73,6 +74,7 @@ pub mod pallet {
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*, PalletId};
     use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
     use sp_application_crypto::RuntimeAppPublic;
+    use sp_std::vec::Vec;
 
     use crate::{OperationRequest, WeightInfo};
 
@@ -98,7 +100,7 @@ pub mod pallet {
         /// Used to execute batch operations for every `AuthorityId` key in keys storage
         type ValidatorOffchainBatcher: ValidatorOffchainBatcher<
             Self::AuthorityId,
-            Self::BlockNumber,
+            BlockNumberFor<Self>,
             Self::AccountId,
         >;
         /// Used for calculation unsigned transaction priority
@@ -168,7 +170,7 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         // Runs every block import
-        fn offchain_worker(block: T::BlockNumber) {
+        fn offchain_worker(block: BlockNumberFor<T>) {
             // SMAR-593::5
             if !Self::is_lock_over() {
                 return;
@@ -239,7 +241,7 @@ pub mod pallet {
             DispatchClass::Operational))]
         pub fn unlock(
             origin: OriginFor<T>,
-            request: OperationRequest<T::AccountId, T::BlockNumber>,
+            request: OperationRequest<T::AccountId, BlockNumberFor<T>>,
             // since signature verification is done in `validate_unsigned`
             // we can skip doing it here again.
             _signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
@@ -557,7 +559,7 @@ impl<T: Config> Pallet<T> {
     fn unlocks_for_single_auth(
         authority_index: u32,
         key: T::AuthorityId,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         validators_len: u32,
     ) -> OffchainResult<()> {
         if Self::is_lock_over() {
@@ -568,7 +570,7 @@ impl<T: Config> Pallet<T> {
                 .filter(|(index, _)| (*index as u32) % validators_len == authority_index)
                 .take(offchain_unlocks.unwrap_or_else(|| u64::MAX) as usize)
             {
-                let unlock_data = OperationRequest::<T::AccountId, T::BlockNumber> {
+                let unlock_data = OperationRequest::<T::AccountId, BlockNumberFor<T>> {
                     account: who.clone(),
                     authority_index,
                     validators_len,

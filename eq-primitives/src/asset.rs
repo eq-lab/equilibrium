@@ -20,7 +20,6 @@ use crate::balance_number::EqFixedU128;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::Parameter;
 use impl_trait_for_tuples::impl_for_tuples;
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{FixedI64, FixedPointNumber, Percent, Permill};
 use sp_std::{cmp::Ordering, convert::TryInto, fmt::Debug, str::FromStr, vec::Vec};
@@ -81,8 +80,9 @@ impl AssetData<Asset> {
     }
 }
 
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Debug, Eq, scale_info::TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(
+    Encode, Decode, Clone, Copy, PartialEq, Debug, Eq, scale_info::TypeInfo, Serialize, Deserialize,
+)]
 pub enum AmmPool {
     Curve(equilibrium_curve_amm::PoolId),
     Yield(crate::xdot_pool::PoolId),
@@ -110,8 +110,9 @@ impl Default for AssetXcmData {
     }
 }
 
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Debug, Eq, scale_info::TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(
+    Encode, Decode, Clone, Copy, PartialEq, Debug, Eq, scale_info::TypeInfo, Serialize, Deserialize,
+)]
 pub enum AssetType {
     /// Main asset
     Native,
@@ -222,9 +223,19 @@ impl<Asset: Parameter + Ord + Copy> AssetData<Asset> {
 }
 
 #[derive(
-    Copy, Clone, Eq, PartialEq, Decode, Encode, Hash, Default, MaxEncodedLen, scale_info::TypeInfo,
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Decode,
+    Encode,
+    Hash,
+    Default,
+    MaxEncodedLen,
+    scale_info::TypeInfo,
+    Serialize,
+    Deserialize,
 )]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Asset(pub AssetIdInnerType);
 
 impl Asset {

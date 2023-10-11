@@ -94,11 +94,11 @@ benchmarks! {
         eq_rate::pallet::Pallet::<T>::set_now_millis_offset(RawOrigin::Root.into(), move_time).unwrap();
         System::<T>::set_block_number(1u32.into());
 
-        let request = OperationRequest::<T::AccountId, T::BlockNumber> {
+        let request = OperationRequest::<T::AccountId, BlockNumberFor<T>> {
             account: user,
             authority_index: 0,
             validators_len: 1,
-            block_num: T::BlockNumber::default(),
+            block_num: BlockNumberFor::<T>::default(),
         };
         let key = <T as eq_rate::Config>::AuthorityId::generate_pair(None);
         let signature = key.sign(&request.encode()).unwrap();
@@ -193,11 +193,11 @@ benchmarks! {
         eq_rate::pallet::Pallet::<T>::set_now_millis_offset(RawOrigin::Root.into(), move_time).unwrap();
         System::<T>::set_block_number(1u32.into());
 
-        let request = OperationRequest::<T::AccountId, T::BlockNumber> {
+        let request = OperationRequest::<T::AccountId, BlockNumberFor<T>> {
             account: user,
             authority_index: 0,
             validators_len: 1,
-            block_num: T::BlockNumber::default(),
+            block_num: BlockNumberFor::<T>::default(),
         };
         let validator = <T as eq_rate::Config>::AuthorityId::generate_pair(None);
         eq_rate::Keys::<T>::set(vec![validator.clone()]);

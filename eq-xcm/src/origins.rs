@@ -51,7 +51,7 @@ impl<AccountId: From<[u8; 32]> + Into<[u8; 32]> + Clone>
     xcm_executor::traits::ConvertLocation<AccountId> for AccountIdConversion<AccountId>
 {
     fn convert_location(location: &MultiLocation) -> Option<AccountId> {
-        Self::account_id(location).ok()
+        Self::account_id(location.clone()).ok()
     }
 }
 

@@ -23,7 +23,7 @@ use eq_primitives::{
     xcm_origins::dot::PARACHAIN_STATEMINT,
 };
 use eq_xcm::ParaId;
-use polkadot_parachain_primitives::primitivesprimitives::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use sp_runtime::TransactionOutcome::*;
 use xcm::v3::{send_xcm, Junction, Junctions::Here, WildFungibility};
 
@@ -88,9 +88,9 @@ impl<T: Config> Pallet<T> {
             .into()
         };
 
-        use xcm_executor::traits::Convert as _;
-        let their_sovereign = T::LocationToAccountId::convert(destination.clone())
-            .map_err(|_| Error::<T>::XcmInvalidDestination)?;
+        use xcm_executor::traits::ConvertLocation as _;
+        let their_sovereign = T::LocationToAccountId::convert_location(&destination)
+            .ok_or(Error::<T>::XcmInvalidDestination)?;
 
         // wrap in transaction all methods that could cause side effects
         // rollback on any error, but save send_result to show proper error

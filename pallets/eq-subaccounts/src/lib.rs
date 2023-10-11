@@ -61,7 +61,7 @@ mod mock;
 mod tests;
 pub mod weights;
 
-use codec::Codec;
+use codec::{Codec, Decode, Encode};
 use core::convert::TryInto;
 use eq_primitives::{
     asset::Asset,
@@ -74,7 +74,6 @@ use eq_primitives::{
 use eq_utils::{eq_ensure, ok_or_error};
 use eq_whitelists::CheckWhitelisted;
 use frame_support::{
-    codec::{Decode, Encode},
     traits::{ExistenceRequirement, WithdrawReasons},
     weights::Weight,
     Parameter,

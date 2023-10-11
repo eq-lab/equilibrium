@@ -30,8 +30,8 @@ eq-balances = { path = "../eq-balances", default-features = false }
 eq-primitives = { path = "../../eq-primitives", default-features = false }
 
 [dev-dependencies]
-xcm = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "release-polkadot-v1.1.0", package = "staging-xcm-executor" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "release-polkadot-v1.1.0", package = "staging-xcm-executor" }
+xcm = { workspace = true }
+xcm-executor = { workspace = true }
 
 
 [dev-dependencies.sp-core]

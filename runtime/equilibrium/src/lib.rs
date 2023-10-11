@@ -18,9 +18,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 #![forbid(unsafe_code)]
-#![deny(warnings)]
+// #![deny(warnings)]
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -62,7 +62,7 @@ use frame_support::weights::WeightToFee;
 use frame_support::StorageMap;
 pub use frame_support::{
     construct_runtime, debug,
-    dispatch::{DispatchClass, DispatchError, DispatchResult},
+    dispatch::DispatchClass,
     match_types, parameter_types,
     traits::{
         ContainsPair, Imbalance, KeyOwnerProofSystem, Randomness, StorageMapShim, WithdrawReasons,
@@ -82,8 +82,8 @@ use sp_api::impl_runtime_apis;
 use sp_arithmetic::FixedPointNumber;
 use sp_arithmetic::PerThing;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
-use sp_core::ConstU32;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{ConstBool, ConstU32};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::{
     self, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, OpaqueKeys, Zero,
@@ -94,8 +94,8 @@ use sp_runtime::transaction_validity::{
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{create_runtime_str, generic, impl_opaque_keys, ApplyExtrinsicResult, FixedI128};
+use sp_runtime::{DispatchError, DispatchResult, Percent, SaturatedConversion};
 pub use sp_runtime::{FixedI64, Perbill, Permill};
-use sp_runtime::{Percent, SaturatedConversion};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -106,7 +106,7 @@ use system::EnsureRoot;
 // Polkadot imports
 use codec::Encode;
 use frame_support::pallet_prelude::Get;
-use polkadot_parachain_primitives::primitivesprimitives::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use polkadot_runtime_constants::weights::RocksDbWeight;
 use xcm::v3::{
@@ -329,13 +329,12 @@ impl system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
-    type Index = Index;
-    type BlockNumber = BlockNumber;
+    type Nonce = Nonce;
     type Hash = Hash;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
-    type Header = generic::Header<BlockNumber, BlakeTwo256>;
+    type Block = Block;
     type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = RocksDbWeight;
@@ -357,6 +356,7 @@ impl aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
     type MaxAuthorities = MaxAuthorities;
+    type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 pub struct FilterPrices;
@@ -1148,7 +1148,7 @@ where
         call: RuntimeCall,
         public: <Signature as traits::Verify>::Signer,
         account: AccountId,
-        nonce: Index,
+        nonce: Nonce,
     ) -> Option<(
         RuntimeCall,
         <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload,
@@ -1909,6 +1909,7 @@ impl Config for XcmConfig {
     type UniversalAliases = Nothing;
     type CallDispatcher = WithOriginFilter<Nothing>;
     type SafeCallFilter = Nothing;
+    type Aliasers = Nothing;
 }
 
 /// The means for routing XCM messages which are not for local execution into the right message
@@ -1950,6 +1951,8 @@ impl pallet_xcm::Config for Runtime {
     type SovereignAccountOf = LocationToAccountId;
     type MaxLockers = ConstU32<8>;
     type AdminOrigin = EnsureRootOrAllCouncil;
+    type MaxRemoteLockConsumers = ConstU32<0>;
+    type RemoteLockConsumerIdentifier = ();
     type WeightInfo = pallet_xcm::TestWeightInfo;
 }
 
@@ -2508,41 +2511,38 @@ impl eq_staking::Config for Runtime {
 }
 
 construct_runtime!(
-    pub enum Runtime where
-        Block = Block,
-        NodeBlock = common_runtime::opaque::Block,
-        UncheckedExtrinsic = UncheckedExtrinsic
+    pub enum Runtime
     {
-        System: system::{Pallet, Call, Config, Storage, Event<T>} = 0,
+        System: system::{Pallet, Call, Config<T>, Storage, Event<T>} = 0,
         ParachainSystem: cumulus_pallet_parachain_system::{
-            Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
+            Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
         } = 1,
         Utility: pallet_utility::{Pallet, Call, Event} = 2,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 4,
-        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 5,
+        ParachainInfo: parachain_info::{Pallet, Storage, Config<T>} = 5,
         EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>, Config<T>,} = 6,
 
         // Collator support. the order of these 4 are important and shall not change.
         Authorship: pallet_authorship::{Pallet, Storage} = 7,
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 8,
         Aura: aura::{Pallet, Config<T>} = 9,
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 10,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>} = 10,
 
         EqAssets: eq_assets::{Pallet, Call, Config<T>, Storage, Event} = 11, // Assets genesis must be built first
-        Oracle: eq_oracle::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned} = 12,
-        EqTreasury: eq_distribution::<Instance5>::{Pallet, Call, Storage, Config} = 13,
-        Treasury: eq_treasury::{Pallet, Call, Storage, Config, Event<T>} = 14,
+        Oracle: eq_oracle::{Pallet, Call, Storage, Event<T>, Config<T>, ValidateUnsigned} = 12,
+        EqTreasury: eq_distribution::<Instance5>::{Pallet, Call, Storage, Config<T>} = 13,
+        Treasury: eq_treasury::{Pallet, Call, Storage, Config<T>, Event<T>} = 14,
         EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 15,
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>} = 16,
-        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
+        // Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
         Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned} = 18,
         Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,} = 19,
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned} = 20,
-        Republic: eq_distribution::<Instance2>::{Pallet, Call, Storage, Config} = 21,
-        EqInvestors: eq_distribution::<Instance3>::{Pallet, Call, Storage, Config} = 22,
+        Republic: eq_distribution::<Instance2>::{Pallet, Call, Storage, Config<T>} = 21,
+        EqInvestors: eq_distribution::<Instance3>::{Pallet, Call, Storage, Config<T>} = 22,
 
-        EqLiquidityFarming: eq_distribution::<Instance4>::{Pallet, Call, Storage, Config} = 23,
+        EqLiquidityFarming: eq_distribution::<Instance4>::{Pallet, Call, Storage, Config<T>} = 23,
 
         Vesting: eq_vesting::<Instance1>::{Pallet, Call, Storage, Event<T, Instance1>, Config<T, Instance1>} = 24,
         Vesting2: eq_vesting::<Instance2>::{Pallet, Call, Storage, Event<T, Instance2>, Config<T, Instance2>} = 25,
@@ -2554,7 +2554,7 @@ construct_runtime!(
         EqBridge: eq_bridge::{Pallet, Call, Storage, Event<T>, Config<T>} = 31,
         EqMultisigSudo: eq_multisig_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 32,
         EqMarginCall: eq_margin_call::{Pallet, Call, Storage, Event<T>} = 33,
-        EqDex: eq_dex::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned} = 34,
+        EqDex: eq_dex::{Pallet, Call, Storage, Event<T>, Config<T>, ValidateUnsigned} = 34,
         EqLending: eq_lending::{Pallet, Call, Storage, Event<T>, Config<T>} = 35,
         EqLockdrop: eq_lockdrop::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>} = 36,
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 37,
@@ -2565,11 +2565,11 @@ construct_runtime!(
         CurveAmm: equilibrium_curve_amm::{Pallet, Call, Storage, Event<T>} = 42,
 
         // XCM helpers.
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Storage, Origin, Config} = 43,
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Storage, Origin, Config<T>} = 43,
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 44,
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 45,
 
-        EqWrappedDot: eq_wrapped_dot::{Pallet, Call, Storage, Config} = 46,
+        EqWrappedDot: eq_wrapped_dot::{Pallet, Call, Storage, Config<T>} = 46,
 
         // Governance
         Preimage: pallet_preimage = 60,
@@ -2732,8 +2732,8 @@ impl_runtime_apis! {
         }
     }
 
-    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
-        fn account_nonce(account: AccountId) -> Index {
+    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
+        fn account_nonce(account: AccountId) -> Nonce {
             System::account_nonce(account)
         }
     }
@@ -3077,33 +3077,9 @@ impl_runtime_apis! {
     }
 }
 
-struct CheckInherents;
-
-impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
-    fn check_inherents(
-        block: &Block,
-        relay_state_proof: &cumulus_pallet_parachain_system::RelayChainStateProof,
-    ) -> sp_inherents::CheckInherentsResult {
-        let relay_chain_slot = relay_state_proof
-            .read_slot()
-            .expect("Could not read the relay chain slot from the proof");
-
-        let inherent_data =
-            cumulus_primitives_timestamp::InherentDataProvider::from_relay_chain_slot_and_duration(
-                relay_chain_slot,
-                sp_std::time::Duration::from_secs(6),
-            )
-            .create_inherent_data()
-            .expect("Could not create the timestamp inherent data");
-
-        inherent_data.check_extrinsics(&block)
-    }
-}
-
 cumulus_pallet_parachain_system::register_validate_block! {
     Runtime = Runtime,
     BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
-    CheckInherents = CheckInherents,
 }
 
 #[cfg(test)]

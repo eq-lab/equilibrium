@@ -28,7 +28,6 @@ use eq_primitives::{
     price::PriceGetter,
     TransferReason,
 };
-use frame_system::pallet_prelude::{HeaderFor};
 use eq_utils::eq_ensure;
 use frame_support::{
     dispatch::DispatchResultWithPostInfo,
@@ -181,10 +180,10 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
-    #[derive(Default)]
+    #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
         #[serde(skip)]
-        pub empty: PhantomData<I>,
+        pub empty: PhantomData<(T, I)>,
     }
 
     #[pallet::genesis_build]

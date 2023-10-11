@@ -20,11 +20,12 @@
 
 use super::Config;
 use crate::Pallet;
+use codec::{Decode, Encode};
+use core::fmt::Debug;
 use eq_primitives::subaccount::{SubAccType, SubaccountsManager};
-use frame_support::codec::{Decode, Encode};
-use frame_support::dispatch::fmt::Debug;
 use frame_support::dispatch::DispatchInfo;
 use frame_support::traits::Contains;
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_runtime::traits::{DispatchInfoOf, Dispatchable, SignedExtension};
 use sp_runtime::transaction_validity::TransactionValidityError;
 use sp_std::marker::PhantomData;

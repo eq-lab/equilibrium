@@ -41,6 +41,8 @@ use frame_support::{
 use frame_system::{ensure_none, ensure_root, ensure_signed};
 #[cfg(feature = "std")]
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
+#[cfg(not(feature = "std"))]
+use serde::{Deserialize, Serialize};
 use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
 use sp_runtime::{
     traits::{CheckedAdd, CheckedSub, DispatchInfoOf, Saturating, SignedExtension},
@@ -94,7 +96,7 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type WeightInfo: WeightInfo;
         /// Used to schedule vesting part of a claim
-        type VestingSchedule: VestingSchedule<Self::AccountId, Moment = Self::BlockNumber>;
+        type VestingSchedule: VestingSchedule<Self::AccountId, Moment = BlockNumberFor<Self>>;
         /// The Prefix that is used in signed Ethereum messages for this network
         type Prefix: Get<&'static [u8]>;
         /// Origin that can move claims to another account
@@ -167,7 +169,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             who: EthereumAddress,
             value: BalanceOf<T>,
-            vesting_schedule: Option<(BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>,
+            vesting_schedule: Option<(BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>)>,
             statement: bool,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
@@ -495,7 +497,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn vesting)]
     pub type Vesting<T: Config> =
-        StorageMap<_, Identity, EthereumAddress, (BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>;
+        StorageMap<_, Identity, EthereumAddress, (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>)>;
 
     /// Pallet storage - stores Ethereum addresses from which additional statement
     /// singing is required
@@ -515,7 +517,7 @@ pub mod pallet {
         #[doc = " The block number is when the vesting should start."]
         pub vesting: Vec<(
             EthereumAddress,
-            (BalanceOf<T>, BalanceOf<T>, T::BlockNumber),
+            (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>),
         )>,
         pub claims: Vec<(EthereumAddress, BalanceOf<T>, Option<T::AccountId>, bool)>,
     }
@@ -541,7 +543,7 @@ pub mod pallet {
                         .collect::<Vec<_>>()
                 };
                 let data = &builder(self);
-                let data: &frame_support::sp_std::vec::Vec<(EthereumAddress, BalanceOf<T>)> = data;
+                let data: &sp_std::vec::Vec<(EthereumAddress, BalanceOf<T>)> = data;
                 data.iter().for_each(|(k, v)| {
                     <Claims<T> as frame_support::storage::StorageMap<
                         EthereumAddress,
@@ -565,15 +567,15 @@ pub mod pallet {
             }
             {
                 let data = &self.vesting;
-                let data: &frame_support::sp_std::vec::Vec<(
+                let data: &sp_std::vec::Vec<(
                     EthereumAddress,
-                    (BalanceOf<T>, BalanceOf<T>, T::BlockNumber),
+                    (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>),
                 )> = data;
                 data.iter().for_each(|(k, v)| {
                     <Vesting<T> as frame_support::storage::StorageMap<
                         EthereumAddress,
-                        (BalanceOf<T>, BalanceOf<T>, T::BlockNumber),
-                    >>::insert::<&EthereumAddress, &(BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>(
+                        (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>),
+                    >>::insert::<&EthereumAddress, &(BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>)>(
                         k, v,
                     );
                 });
@@ -587,7 +589,7 @@ pub mod pallet {
                         .collect::<Vec<_>>()
                 };
                 let data = &builder(self);
-                let data: &frame_support::sp_std::vec::Vec<(EthereumAddress, bool)> = data;
+                let data: &sp_std::vec::Vec<(EthereumAddress, bool)> = data;
                 data.iter().for_each(|(k, v)| {
                     <Signing<T> as frame_support::storage::StorageMap<EthereumAddress, bool>>
                         ::insert::<& EthereumAddress, &bool>(k, v);
@@ -602,7 +604,7 @@ pub mod pallet {
                         .collect::<Vec<_>>()
                 };
                 let data = &builder(self);
-                let data: &frame_support::sp_std::vec::Vec<(T::AccountId, EthereumAddress)> = data;
+                let data: &sp_std::vec::Vec<(T::AccountId, EthereumAddress)> = data;
                 data.iter().for_each(|(k, v)| {
                     <Preclaims<T> as frame_support::storage::StorageMap<
                         T::AccountId,
@@ -631,6 +633,7 @@ pub mod pallet {
     Hash,
     scale_info::TypeInfo,
 )]
+#[cfg_attr(not(feature = "std"), derive(Serialize, Deserialize))]
 pub struct EthereumAddress([u8; 20]);
 
 impl EthereumAddress {
@@ -638,7 +641,6 @@ impl EthereumAddress {
         Self([0; 20])
     }
 }
-
 #[cfg(feature = "std")]
 impl Serialize for EthereumAddress {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -649,7 +651,6 @@ impl Serialize for EthereumAddress {
         serializer.serialize_str(&format!("0x{}", hex))
     }
 }
-
 #[cfg(feature = "std")]
 impl<'de> Deserialize<'de> for EthereumAddress {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

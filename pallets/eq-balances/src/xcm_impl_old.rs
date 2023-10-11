@@ -157,9 +157,9 @@ impl<T: Config> Pallet<T> {
                         beneficiary: beneficiary.clone(),
                     },
                 ]);
-                use xcm_executor::traits::Convert as _;
-                let their_sovereign = T::LocationToAccountId::convert(destination.clone())
-                    .map_err(|_| Error::<T>::XcmInvalidDestination)?;
+                use xcm_executor::traits::ConvertLocation as _;
+                let their_sovereign = T::LocationToAccountId::convert_location(&destination)
+                    .ok_or(Error::<T>::XcmInvalidDestination)?;
 
                 // Initialize their_sovereign account as pallet to prevent ED deleting
                 let destination_info = frame_system::Pallet::<T>::account(&their_sovereign);
@@ -374,10 +374,10 @@ impl<T: Config> Pallet<T> {
         let mut to_withdraw = Vec::with_capacity(1);
 
         let destination = if self_reserved {
-            use xcm_executor::traits::Convert as _;
+            use xcm_executor::traits::ConvertLocation as _;
 
-            let destination = T::LocationToAccountId::convert(destination)
-                .map_err(|_| Error::<T>::XcmInvalidDestination)?;
+            let destination = T::LocationToAccountId::convert_location(&destination)
+                .ok_or(Error::<T>::XcmInvalidDestination)?;
 
             // Initialize destination account as pallet to prevent treasury buyout
             let destination_info = frame_system::Pallet::<T>::account(&destination);
@@ -458,10 +458,10 @@ impl<T: Config> Pallet<T> {
             balance_from_xcm(xcm_fee_amount, fee_decimals).ok_or(ArithmeticError::Overflow)?;
 
         let (to_transfer, to_withdraw) = if tx_self_reserved {
-            use xcm_executor::traits::Convert as _;
+            use xcm_executor::traits::ConvertLocation as _;
 
-            let destination = T::LocationToAccountId::convert(destination)
-                .map_err(|_| Error::<T>::XcmInvalidDestination)?;
+            let destination = T::LocationToAccountId::convert_location(&destination)
+                .ok_or(Error::<T>::XcmInvalidDestination)?;
 
             // Initialize destination account as pallet to prevent treasury buyout
             let destination_info = frame_system::Pallet::<T>::account(&destination);

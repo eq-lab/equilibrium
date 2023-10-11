@@ -20,7 +20,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 #![forbid(unsafe_code)]
-#![deny(warnings)]
+// #![deny(warnings)]
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -48,7 +48,7 @@ use frame_support::traits::UnixTime;
 use frame_support::traits::{ExistenceRequirement, WithdrawReasons};
 pub use frame_support::{
     construct_runtime, debug,
-    dispatch::{DispatchClass, DispatchError, DispatchResult},
+    dispatch::DispatchClass,
     match_types, parameter_types,
     traits::{
         Contains, Everything, Imbalance, KeyOwnerProofSystem, Nothing, Randomness, StorageMapShim,
@@ -62,14 +62,14 @@ pub use frame_support::{
 use frame_system as system;
 use frame_system::limits::{BlockLength, BlockWeights};
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
-use polkadot_parachain_primitives::primitivesprimitives::primitives::Sibling;
+use polkadot_parachain_primitives::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use polkadot_runtime_constants::weights::RocksDbWeight;
 use sp_api::impl_runtime_apis;
 use sp_arithmetic::{FixedI64, FixedPointNumber, PerThing, Percent};
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
-use sp_core::ConstU32;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{ConstBool, ConstU32};
 use sp_runtime::traits::{
     self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, OpaqueKeys,
 };
@@ -80,7 +80,8 @@ use sp_runtime::transaction_validity::{
 pub use sp_runtime::BuildStorage;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys, ApplyExtrinsicResult, FixedI128, Perquintill,
+    create_runtime_str, generic, impl_opaque_keys, ApplyExtrinsicResult, DispatchError,
+    DispatchResult, FixedI128, Perquintill,
 };
 pub use sp_runtime::{Perbill, Permill};
 use sp_std::{
@@ -300,13 +301,12 @@ impl system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
-    type Index = Index;
-    type BlockNumber = BlockNumber;
+    type Nonce = Nonce;
     type Hash = Hash;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
-    type Header = generic::Header<BlockNumber, BlakeTwo256>;
+    type Block = Block;
     type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = RocksDbWeight;
@@ -328,6 +328,7 @@ impl aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
     type MaxAuthorities = MaxAuthorities;
+    type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 pub struct FilterPrices;
@@ -1118,7 +1119,7 @@ where
         call: RuntimeCall,
         public: <Signature as traits::Verify>::Signer,
         account: AccountId,
-        nonce: Index,
+        nonce: Nonce,
     ) -> Option<(
         RuntimeCall,
         <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload,
@@ -1350,6 +1351,7 @@ impl Config for XcmConfig {
     type UniversalAliases = Nothing;
     type CallDispatcher = WithOriginFilter<Nothing>;
     type SafeCallFilter = Nothing;
+    type Aliasers = Nothing;
 }
 
 /// The means for routing XCM messages which are not for local execution into the right message
@@ -1388,6 +1390,8 @@ impl pallet_xcm::Config for Runtime {
     type TrustedLockers = Nothing;
     type SovereignAccountOf = LocationToAccountId;
     type MaxLockers = ConstU32<8>;
+    type MaxRemoteLockConsumers = ConstU32<0>;
+    type RemoteLockConsumerIdentifier = ();
     type WeightInfo = pallet_xcm::TestWeightInfo;
 }
 
@@ -1412,7 +1416,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
     pub const MaxCandidates: u32 = 1000;
-    pub const MinCandidates: u32 = 5;
+    pub const MinEligibleCollators: u32 = 5;
     pub const SessionLength: BlockNumber = 6 * HOURS;
     pub const MaxInvulnerables: u32 = 100;
 }
@@ -1426,7 +1430,7 @@ impl pallet_collator_selection::Config for Runtime {
     type UpdateOrigin = CollatorSelectionUpdateOrigin;
     type PotId = PotId;
     type MaxCandidates = MaxCandidates;
-    type MinCandidates = MinCandidates;
+    type MinEligibleCollators = MinEligibleCollators;
     type MaxInvulnerables = MaxInvulnerables;
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
@@ -1474,18 +1478,15 @@ use eq_primitives::{
 use sp_std::prelude::Vec;
 
 construct_runtime!(
-    pub enum Runtime where
-        Block = Block,
-        NodeBlock = common_runtime::opaque::Block,
-        UncheckedExtrinsic = UncheckedExtrinsic
+    pub enum Runtime
     {
-        System: system::{Pallet, Call, Config, Storage, Event<T>},
+        System: system::{Pallet, Call, Config<T>, Storage, Event<T>},
         ParachainSystem: cumulus_pallet_parachain_system::{
-            Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
+            Pallet, Call, Config<T>, Storage, Inherent, Event<T>, ValidateUnsigned,
         },
         Utility: pallet_utility::{Pallet, Call, Event},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        ParachainInfo: parachain_info::{Pallet, Storage, Config},
+        ParachainInfo: parachain_info::{Pallet, Storage, Config<T>},
         EqSessionManager: eq_session_manager::{Pallet, Call, Storage, Event<T>, Config<T>,},
 
         // Collator support. the order of these 4 are important and shall not change.
@@ -1493,18 +1494,18 @@ construct_runtime!(
         CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
         Aura: aura::{Pallet, Config<T>},
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config},
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config<T>},
 
         EqAssets: eq_assets::{Pallet, Call, Config<T>, Storage, Event}, // Assets genesis must be built first
-        Oracle: eq_oracle::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned},
-        EqTreasury: eq_distribution::<Instance5>::{Pallet, Call, Storage, Config},
-        Treasury: eq_treasury::{Pallet, Call, Storage, Config, Event<T>},
+        Oracle: eq_oracle::{Pallet, Call, Storage, Event<T>, Config<T>, ValidateUnsigned},
+        EqTreasury: eq_distribution::<Instance5>::{Pallet, Call, Storage, Config<T>},
+        Treasury: eq_treasury::{Pallet, Call, Storage, Config<T>, Event<T>},
         EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         // ..... //
         EqRate: eq_rate::{Pallet, Storage, Call, ValidateUnsigned},
 
         TransactionPayment: transaction_payment::{Pallet, Storage, Event<T>},
-        Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        // Sudo: sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Bailsman: eq_bailsman::{Pallet, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
         Whitelists: eq_whitelists::{Pallet, Call, Storage, Event<T>, Config<T>,},
 
@@ -1516,14 +1517,14 @@ construct_runtime!(
         EqBridge: eq_bridge::{Pallet, Call, Storage, Event<T>, Config<T>},
         EqMultisigSudo: eq_multisig_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
         EqMarginCall: eq_margin_call::{Pallet, Call, Storage, Event<T>},
-        EqDex: eq_dex::{Pallet, Call, Storage, Event<T>, Config, ValidateUnsigned},
+        EqDex: eq_dex::{Pallet, Call, Storage, Event<T>, Config<T>, ValidateUnsigned},
         EqLending: eq_lending::{Pallet, Call, Storage, Event<T>, Config<T>},
         Migration: eq_migration::{Pallet, Call, Storage, Event<T>},
         CurveAmm: equilibrium_curve_amm::{Pallet, Call, Storage, Event<T>},
-        GensBinary: gens_binary_opt::{Pallet, Call, Config, Storage, Event<T>},
+        GensBinary: gens_binary_opt::{Pallet, Call, Config<T>, Storage, Event<T>},
 
         // XCM helpers.
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Storage, Origin, Config},
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Storage, Origin, Config<T>},
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
     }
@@ -1795,10 +1796,9 @@ mod curve_utils {
         get_index_range, get_period_id_range, get_range_intersection, PriceLog,
     };
     use financial_primitives::capvec::CapVec;
-    use frame_benchmarking::Zero;
     use frame_support::StorageMap;
     use sp_arithmetic::FixedI64;
-    use sp_runtime::traits::Saturating;
+    use sp_runtime::traits::{Saturating, Zero};
 
     pub struct AssetChecker;
 
@@ -2062,8 +2062,8 @@ impl_runtime_apis! {
         }
     }
 
-    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
-        fn account_nonce(account: AccountId) -> Index {
+    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
+        fn account_nonce(account: AccountId) -> Nonce {
             System::account_nonce(account)
         }
     }
@@ -2337,33 +2337,9 @@ impl_runtime_apis! {
     }
 }
 
-struct CheckInherents;
-
-impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
-    fn check_inherents(
-        block: &Block,
-        relay_state_proof: &cumulus_pallet_parachain_system::RelayChainStateProof,
-    ) -> sp_inherents::CheckInherentsResult {
-        let relay_chain_slot = relay_state_proof
-            .read_slot()
-            .expect("Could not read the relay chain slot from the proof");
-
-        let inherent_data =
-            cumulus_primitives_timestamp::InherentDataProvider::from_relay_chain_slot_and_duration(
-                relay_chain_slot,
-                sp_std::time::Duration::from_secs(6),
-            )
-            .create_inherent_data()
-            .expect("Could not create the timestamp inherent data");
-
-        inherent_data.check_extrinsics(&block)
-    }
-}
-
 cumulus_pallet_parachain_system::register_validate_block! {
     Runtime = Runtime,
     BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
-    CheckInherents = CheckInherents,
 }
 
 #[cfg(test)]

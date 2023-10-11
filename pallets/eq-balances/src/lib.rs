@@ -35,6 +35,7 @@
 #![deny(warnings)]
 
 use codec::Codec;
+use codec::{Decode, Encode};
 pub use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
 use eq_primitives::{
     asset::{Asset, AssetGetter, DOT, GLMR, XDOT, XDOT2, XDOT3},
@@ -57,8 +58,6 @@ use eq_utils::{
     XcmBalance,
 };
 use frame_support::{
-    codec::{Decode, Encode},
-    dispatch::DispatchError,
     ensure,
     storage::PrefixIterator,
     traits::{
@@ -67,13 +66,14 @@ use frame_support::{
     },
     transactional, PalletId,
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 pub use pallet::*;
 #[allow(unused_imports)]
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, Convert, Saturating, Zero},
-    ArithmeticError, DispatchResult, FixedPointNumber, TransactionOutcome,
+    ArithmeticError, DispatchError, DispatchResult, FixedPointNumber, TransactionOutcome,
 };
 use sp_std::{
     collections::btree_map::BTreeMap,
@@ -175,7 +175,7 @@ pub mod pallet {
             Option<(Asset, XcmBalance)>,
         >;
         /// Used to convert MultiLocation to AccountId for reserving assets
-        type LocationToAccountId: xcm_executor::traits::Convert<MultiLocation, Self::AccountId>;
+        type LocationToAccountId: xcm_executor::traits::ConvertLocation<Self::AccountId>;
         /// Used to reanchoring asset with Ancestry
         type UniversalLocation: Get<InteriorMultiLocation>;
         /// Weight information for extrinsics in this pallet
@@ -844,7 +844,7 @@ impl<T: Config> BalanceRemover<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
-    type Moment = T::BlockNumber;
+    type Moment = BlockNumberFor<T>;
     type MaxLocks = MaxLocks;
     fn total_balance(who: &T::AccountId, asset: Asset) -> T::Balance {
         let balance = Self::get_balance(&who, &asset);
@@ -1301,7 +1301,7 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
         values: (T::Balance, T::Balance),
     ) -> Result<(), (DispatchError, Option<T::AccountId>)> {
         if assets.0 == assets.1 {
-            frame_support::log::error!(
+            log::error!(
                 "{}:{}. Exchange same assets. Who: {:?}, amounts: {:?}, asset {:?}.",
                 file!(),
                 line!(),

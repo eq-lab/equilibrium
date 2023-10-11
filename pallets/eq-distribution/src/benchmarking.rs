@@ -109,7 +109,7 @@ benchmarks_instance! {
         let target = account("target", 0, SEED);
         let locked: BalanceOf::<T, I> = TRANSFER.into();
         let per_block: BalanceOf::<T, I> = (TRANSFER / 100).into();
-        let starting_block: T::BlockNumber = BLOCK.into();
+        let starting_block: BlockNumberFor<T> = BLOCK.into();
         let schedule = (locked, per_block, starting_block);
     }: _(RawOrigin::Root, target, schedule)
     verify {

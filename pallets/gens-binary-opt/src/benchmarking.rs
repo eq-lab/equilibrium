@@ -76,7 +76,7 @@ benchmarks! {
         // worst case scenario: there are no winners
         deposit_call::<T>(caller.clone(), deposit_amount, false);
         time_move::<T>(FIVE_SECONDS);
-        pallet::Pallet::<T>::on_initialize(T::BlockNumber::zero());
+        pallet::Pallet::<T>::on_initialize(BlockNumberFor::<T>::zero());
     }: _(
         RawOrigin::Signed(caller),
         BINARY_ID.into()
@@ -119,7 +119,7 @@ benchmarks! {
         deposit_call::<T>(caller.clone(), deposit_amount, true);
         time_move::<T>(FIVE_SECONDS);
 
-        let block_number = T::BlockNumber::zero();
+        let block_number = BlockNumberFor::<T>::zero();
     }:{
         pallet::Pallet::<T>::on_initialize(block_number);
     }
@@ -135,7 +135,7 @@ benchmarks! {
         let deposit_amount =  (2 * ONE_TOKEN).into();
         deposit_call::<T>(caller.clone(), deposit_amount, true);
         time_move::<T>(FIVE_SECONDS);
-        pallet::Pallet::<T>::on_initialize(T::BlockNumber::zero());
+        pallet::Pallet::<T>::on_initialize(BlockNumberFor::<T>::zero());
     }: _(
         RawOrigin::Signed(caller),
         BINARY_ID.into()
@@ -147,7 +147,7 @@ benchmarks! {
         let deposit_amount =  (2 * ONE_TOKEN).into();
         deposit_call::<T>(caller.clone(), deposit_amount, true);
         time_move::<T>(FIVE_SECONDS);
-        pallet::Pallet::<T>::on_initialize(T::BlockNumber::zero());
+        pallet::Pallet::<T>::on_initialize(BlockNumberFor::<T>::zero());
         let another_caller: T::AccountId = whitelisted_caller();
     }: _(
         RawOrigin::Signed(another_caller),

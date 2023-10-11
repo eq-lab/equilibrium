@@ -26,15 +26,14 @@
 mod mock;
 mod tests;
 
+use codec::Codec;
 use eq_primitives::{
     asset::Asset, balance::BalanceGetter, Aggregates, AggregatesAssetRemover, SignedBalance,
     TotalAggregates, UserGroup,
 };
 #[allow(unused_imports)]
 use frame_support::debug; // This usage is required by a macro
-use frame_support::{
-    codec::Codec, pallet_prelude::DispatchResult, traits::OnKilledAccount, Parameter,
-};
+use frame_support::{pallet_prelude::DispatchResult, traits::OnKilledAccount, Parameter};
 use sp_runtime::{
     traits::{
         AtLeast32BitUnsigned, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Zero,

@@ -65,6 +65,7 @@ use core::convert::TryInto;
 use eq_primitives::OrderSide::{Buy, Sell};
 use eq_primitives::OrderType::{Limit, Market};
 use frame_support::traits::UnixTime;
+use frame_system::pallet_prelude::BlockNumberFor;
 pub use pallet::*;
 use sp_arithmetic::traits::{CheckedSub, Zero};
 use sp_runtime::traits::CheckedDiv;
@@ -170,47 +171,21 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, Asset, u32, ValueQuery>;
 
     #[pallet::genesis_config]
-    pub struct GenesisConfig {
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
         pub chunk_corridors: Vec<(Asset, u32)>,
-    }
-
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                chunk_corridors: Default::default(),
-            }
-        }
+        pub empty: PhantomData<T>,
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig| {
+            let extra_genesis_builder: fn(&Self) = |config: &GenesisConfig<T>| {
                 for &(asset, chunk_corridor) in config.chunk_corridors.iter() {
                     <ChunkCorridorByAsset<T>>::insert(asset, chunk_corridor);
                 }
             };
             extra_genesis_builder(self);
-        }
-    }
-
-    #[cfg(feature = "std")]
-    impl GenesisConfig {
-        /// Direct implementation of `GenesisBuild::build_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as BuildGenesisConfig>::build_storage(self)
-        }
-
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage<T: Config>(
-            &self,
-            storage: &mut sp_runtime::Storage,
-        ) -> Result<(), String> {
-            <Self as BuildGenesisConfig>::assimilate_storage(self, storage)
         }
     }
 
@@ -237,7 +212,7 @@ pub mod pallet {
         /// Used to execute batch operations for every `AuthorityId` key in keys storage
         type ValidatorOffchainBatcher: ValidatorOffchainBatcher<
             Self::AuthorityId,
-            Self::BlockNumber,
+            BlockNumberFor<Self>,
             Self::AccountId,
         >;
     }
@@ -265,7 +240,7 @@ pub mod pallet {
                           DispatchClass::Operational))]
         pub fn delete_order(
             origin: OriginFor<T>,
-            request: OperationRequestDexDeleteOrder<T::BlockNumber, T::AccountId, T::Balance>,
+            request: OperationRequestDexDeleteOrder<BlockNumberFor<T>, T::AccountId, T::Balance>,
             _signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
         ) -> DispatchResultWithPostInfo {
             ensure_none(origin)?;
@@ -328,7 +303,7 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Starts the off-chain task for given block number
-        fn offchain_worker(block_number: T::BlockNumber) {
+        fn offchain_worker(block_number: BlockNumberFor<T>) {
             // Only send messages if we are a potential validator
             if !sp_io::offchain::is_validator() {
                 log::trace!(
@@ -485,7 +460,7 @@ mod offchain {
     pub(super) fn delete_unfit_orders<T: Config>(
         authority_index: u32,
         authority_key: T::AuthorityId,
-        block: T::BlockNumber,
+        block: BlockNumberFor<T>,
         validators_len: u32,
     ) -> OffchainResult<()> {
         let mut orders_data = get_orders_out_of_price_corridor_or_dex_disabled::<T>();
@@ -632,11 +607,11 @@ impl<T: Config> Pallet<T> {
         buyout: Option<T::Balance>,
         authority_index: u32,
         authority_key: T::AuthorityId,
-        block: T::BlockNumber,
+        block: BlockNumberFor<T>,
         validators_len: u32,
         reason: DeleteOrderReason,
     ) -> OffchainResult<()> {
-        let request = OperationRequestDexDeleteOrder::<T::BlockNumber, T::AccountId, T::Balance> {
+        let request = OperationRequestDexDeleteOrder::<BlockNumberFor<T>, T::AccountId, T::Balance> {
             asset,
             order_id,
             price,

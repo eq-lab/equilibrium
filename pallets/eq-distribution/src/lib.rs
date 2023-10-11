@@ -78,7 +78,7 @@ pub mod pallet {
         /// Gets vesting account (for vesting transfers).
         type VestingAccountId: Get<Self::AccountId>;
         /// Used to schedule vesting part of a claim.
-        type VestingSchedule: VestingSchedule<Self::AccountId, Moment = Self::BlockNumber>;
+        type VestingSchedule: VestingSchedule<Self::AccountId, Moment = BlockNumberFor<Self>>;
         /// Used to deal with Native Asset
         type AssetGetter: AssetGetter;
         /// Used for currency-related operations and calculations
@@ -145,7 +145,7 @@ pub mod pallet {
         pub fn vested_transfer(
             origin: OriginFor<T>,
             target: T::AccountId,
-            schedule: (BalanceOf<T, I>, BalanceOf<T, I>, T::BlockNumber),
+            schedule: (BalanceOf<T, I>, BalanceOf<T, I>, BlockNumberFor<T>),
         ) -> DispatchResultWithPostInfo {
             <EnsureManagerOrManagementOrigin<T, I>>::ensure_origin(origin)?;
 
@@ -198,22 +198,15 @@ pub mod pallet {
 
     // empty genesis, only for adding ref to module's AccountId
     #[pallet::genesis_config]
-    pub struct GenesisConfig {
-        pub empty: (),
-    }
-
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                empty: Default::default(),
-            }
-        }
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
+        pub empty: PhantomData<(T, I)>,
     }
 
     #[pallet::genesis_build]
     impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
         fn build(&self) {
-            let extra_genesis_builder: fn(&Self) = |_: &GenesisConfig| {
+            let extra_genesis_builder: fn(&Self) = |_: &GenesisConfig<T, I>| {
                 use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
                 EqPalletAccountInitializer::<T>::initialize(
                     &T::PalletId::get().into_account_truncating(),

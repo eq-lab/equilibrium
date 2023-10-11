@@ -187,7 +187,7 @@ fn generate_bailsman<T: Config>(index: u32) {
 
 /// Sign request for offchain calls
 fn sign_request<T: crate::Config>(
-    request: &OperationRequest<T::AccountId, T::BlockNumber>,
+    request: &OperationRequest<T::AccountId, BlockNumberFor<T>>,
 ) -> <T::AuthorityId as RuntimeAppPublic>::Signature {
     let validator = <T as crate::Config>::AuthorityId::generate_pair(None);
     crate::Keys::<T>::set(vec![validator.clone()]);
@@ -202,10 +202,10 @@ benchmarks! {
 
         let borrower = generate_borrower_with_debt::<T>(0);
 
-        let request = OperationRequest::<T::AccountId, T::BlockNumber> {
+        let request = OperationRequest::<T::AccountId, BlockNumberFor<T>> {
             authority_index: 0,
             validators_len: 1,
-            block_num: T::BlockNumber::default(),
+            block_num: BlockNumberFor::<T>::default(),
             account: Some(borrower),
             higher_priority: false
         };
@@ -254,10 +254,10 @@ benchmarks! {
             None
         ); //0.05 NATIVE
 
-        let request = OperationRequest::<T::AccountId, T::BlockNumber> {
+        let request = OperationRequest::<T::AccountId, BlockNumberFor<T>> {
             authority_index: 0,
             validators_len: 1,
-            block_num: T::BlockNumber::default(),
+            block_num: BlockNumberFor::<T>::default(),
             account: Some(account_to_delete),
             higher_priority: false
         };

@@ -292,14 +292,14 @@ benchmarks! {
         prepare_withdraw_queue::<T>(c);
         prepare_staking_rebalance::<T>();
 
-        let block_number = T::BlockNumber::zero();
+        let block_number = BlockNumberFor::<T>::zero();
     }:{
         pallet::Pallet::<T>::on_initialize(block_number);
     }
 
     on_finalize{
         init::<T>();
-        let block_number = T::BlockNumber::zero();
+        let block_number = BlockNumberFor::<T>::zero();
     }:{
         pallet::Pallet::<T>::on_finalize(block_number);
     }

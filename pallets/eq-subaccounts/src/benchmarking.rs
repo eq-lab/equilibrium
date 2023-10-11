@@ -96,7 +96,7 @@ fn prepare_temp_balances<T: Config>() {
 }
 
 fn prepare_distribution_queue<T: Config>(count: u32) {
-    let block_number = T::BlockNumber::zero();
+    let block_number = BlockNumberFor::<T>::zero();
     for _ in 0..count {
         prepare_temp_balances::<T>();
         eq_bailsman::pallet::Pallet::<T>::on_initialize(block_number);

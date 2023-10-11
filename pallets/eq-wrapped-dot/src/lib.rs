@@ -267,31 +267,24 @@ pub mod pallet {
     /// Periodicity of on-initialize functions: clear withdraw queue and rebalance transferable balance
     #[pallet::storage]
     #[pallet::getter(fn routine_periodicity)]
-    pub type StakingRoutinePeriodicity<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+    pub type StakingRoutinePeriodicity<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
     // empty genesis, only for adding ref to module's AccountId
     #[pallet::genesis_config]
-    pub struct GenesisConfig {
-        pub empty: (),
-    }
-
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                empty: Default::default(),
-            }
-        }
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        pub empty: PhantomData<T>,
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
             EqPalletAccountInitializer::<T>::initialize(
                 &T::PalletId::get().into_account_truncating(),
             );
 
-            StakingRoutinePeriodicity::<T>::put(T::BlockNumber::one());
+            StakingRoutinePeriodicity::<T>::put(BlockNumberFor::<T>::one());
         }
     }
 

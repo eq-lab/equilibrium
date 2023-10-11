@@ -38,6 +38,7 @@ use eq_utils::{eq_ensure, ok_or_error};
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_support::traits::{Currency, ExistenceRequirement, Get, VestingSchedule};
 use frame_support::PalletId;
+use frame_system::pallet_prelude::BlockNumberFor;
 use frame_system::{ensure_root, ensure_signed};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{
@@ -126,7 +127,7 @@ pub mod pallet {
         /// The currency adapter trait
         type Currency: Currency<Self::AccountId>;
         /// Convert the block number into a balance
-        type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self, I>>;
+        type BlockNumberToBalance: Convert<BlockNumberFor<Self>, BalanceOf<Self, I>>;
         /// The minimum amount transferred to call `vested_transfer`
         #[pallet::constant]
         type MinVestedTransfer: Get<BalanceOf<Self, I>>;
@@ -183,7 +184,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             source: <T::Lookup as StaticLookup>::Source,
             target: <T::Lookup as StaticLookup>::Source,
-            schedule: VestingInfo<BalanceOf<T, I>, T::BlockNumber>,
+            schedule: VestingInfo<BalanceOf<T, I>, BlockNumberFor<T>>,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
@@ -281,8 +282,12 @@ pub mod pallet {
     /// Pallet storage: information regarding the vesting of a given account
     #[pallet::storage]
     #[pallet::getter(fn vesting)]
-    pub type Vesting<T: Config<I>, I: 'static = ()> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, VestingInfo<BalanceOf<T, I>, T::BlockNumber>>;
+    pub type Vesting<T: Config<I>, I: 'static = ()> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        VestingInfo<BalanceOf<T, I>, BlockNumberFor<T>>,
+    >;
 
     /// Pallet storage: information about already vested balances for given account
     #[pallet::storage]
@@ -296,11 +301,10 @@ pub mod pallet {
             T::AccountId,
             BalanceOf<T, I>,
             BalanceOf<T, I>,
-            T::BlockNumber,
+            BlockNumberFor<T>,
         )>,
     }
 
-    #[cfg(feature = "std")]
     impl<T: Config<I>, I: 'static> Default for GenesisConfig<T, I> {
         fn default() -> Self {
             Self {
@@ -310,7 +314,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
+    impl<T: Config<I>, I: 'static> BuildGenesisConfig for GenesisConfig<T, I> {
         fn build(&self) {
             use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
             EqPalletAccountInitializer::<T>::initialize(
@@ -387,7 +391,7 @@ impl<T: Config<I>, I: 'static> VestingSchedule<T::AccountId> for Pallet<T, I>
 where
     BalanceOf<T, I>: MaybeSerializeDeserialize + Debug,
 {
-    type Moment = T::BlockNumber;
+    type Moment = BlockNumberFor<T>;
     type Currency = T::Currency;
 
     /// Vesting amount rest if user called vest now.
@@ -415,7 +419,7 @@ where
         who: &T::AccountId,
         locked: BalanceOf<T, I>,
         per_block: BalanceOf<T, I>,
-        starting_block: T::BlockNumber,
+        starting_block: BlockNumberFor<T>,
     ) -> DispatchResult {
         if locked.is_zero() {
             return Ok(());
@@ -453,7 +457,7 @@ where
         _who: &T::AccountId,
         _locked: BalanceOf<T, I>,
         _per_block: BalanceOf<T, I>,
-        _starting_block: T::BlockNumber,
+        _starting_block: BlockNumberFor<T>,
     ) -> DispatchResult {
         unimplemented!("fn remove_vesting_schedule");
     }

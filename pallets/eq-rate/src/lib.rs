@@ -36,7 +36,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 mod mock;
 mod tests;
@@ -51,6 +51,7 @@ use eq_utils::fixed::{fixedi128_from_balance, fixedi128_from_i64f64};
 use financial_pallet::FinancialMetrics;
 pub use weights::WeightInfo;
 
+use codec::{Decode, Encode};
 use eq_primitives::asset::{Asset, AssetType, EQD};
 use eq_primitives::balance::ration;
 use eq_primitives::UserGroup;
@@ -69,8 +70,6 @@ use eq_utils::{
 };
 use frame_support::traits::ExistenceRequirement;
 use frame_support::{
-    codec::{Decode, Encode},
-    dispatch::DispatchError,
     traits::{Get, OnKilledAccount, OnNewAccount, OneSessionHandler, UnixTime},
     Parameter,
 };
@@ -85,11 +84,12 @@ use sp_runtime::{
         InvalidTransaction, TransactionPriority, TransactionSource, TransactionValidity,
         ValidTransaction,
     },
-    ArithmeticError, DispatchResult, FixedI128, FixedPointNumber, RuntimeDebug,
+    ArithmeticError, DispatchError, DispatchResult, FixedI128, FixedPointNumber, RuntimeDebug,
 };
 use sp_std::convert::{TryFrom, TryInto};
 use sp_std::prelude::*;
 use system::offchain::{SendTransactionTypes, SubmitTransaction};
+use system::pallet_prelude::BlockNumberFor;
 use system::{ensure_none, ensure_root, ensure_signed};
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"rate");
@@ -318,7 +318,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::reinit())]
         pub fn reinit(
             origin: OriginFor<T>,
-            request: OperationRequest<T::AccountId, T::BlockNumber>,
+            request: OperationRequest<T::AccountId, BlockNumberFor<T>>,
             // since signature verification is done in `validate_unsigned`
             // we can skip doing it here again.
             _signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
@@ -368,7 +368,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn delete_account(
             origin: OriginFor<T>,
-            request: OperationRequest<T::AccountId, T::BlockNumber>,
+            request: OperationRequest<T::AccountId, BlockNumberFor<T>>,
             // since signature verification is done in `validate_unsigned`
             // we can skip doing it here again.
             _signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
@@ -399,7 +399,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn deposit(
             origin: OriginFor<T>,
-            request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, T::BlockNumber>,
+            request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, BlockNumberFor<T>>,
             // since signature verification is done in `validate_unsigned`
             // we can skip doing it here again.
             _signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
@@ -439,7 +439,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::delete_account())]
         pub fn withdraw(
             origin: OriginFor<T>,
-            request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, T::BlockNumber>,
+            request: BalanceRemovalRequest<T::AccountId, Asset, T::Balance, BlockNumberFor<T>>,
             // since signature verification is done in `validate_unsigned`
             // we can skip doing it here again.
             _signature: <T::AuthorityId as RuntimeAppPublic>::Signature,
@@ -554,7 +554,7 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Runs after every block.
-        fn offchain_worker(now: T::BlockNumber) {
+        fn offchain_worker(now: BlockNumberFor<T>) {
             let worker_allowed = <AutoReinitEnabled<T>>::get();
 
             // Only send messages if we are a potential validator.
@@ -842,7 +842,7 @@ impl<T: Config> Pallet<T> {
     fn check_accounts_for_single_auth(
         authority_index: u32,
         key: T::AuthorityId,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         validators_len: u32,
     ) -> OffchainResult<()> {
         // calc fee for acc % len = index
@@ -923,14 +923,14 @@ impl<T: Config> Pallet<T> {
     fn submit_balance_removal_unsigned(
         authority_index: u32,
         key: &T::AuthorityId,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         validators_len: u32,
         account_id: &T::AccountId,
         asset: Asset,
         balance: SignedBalance<<T as Config>::Balance>,
         higher_priority: bool,
     ) -> OffchainResult<()> {
-        let request = BalanceRemovalRequest::<T::AccountId, Asset, T::Balance, T::BlockNumber> {
+        let request = BalanceRemovalRequest::<T::AccountId, Asset, T::Balance, BlockNumberFor<T>> {
             account: account_id.clone(),
             asset: asset,
             amount: balance.abs(),
@@ -970,12 +970,12 @@ impl<T: Config> Pallet<T> {
     fn submit_delete_account_unsigned(
         authority_index: u32,
         key: &T::AuthorityId,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         validators_len: u32,
         account_id: &T::AccountId,
         higher_priority: bool,
     ) -> OffchainResult<()> {
-        let call_data = OperationRequest::<T::AccountId, T::BlockNumber> {
+        let call_data = OperationRequest::<T::AccountId, BlockNumberFor<T>> {
             account: Some(account_id.clone()),
             authority_index,
             validators_len,
@@ -1023,12 +1023,12 @@ impl<T: Config> Pallet<T> {
     fn submit_reinit_unsigned(
         authority_index: u32,
         key: &T::AuthorityId,
-        block_number: T::BlockNumber,
+        block_number: BlockNumberFor<T>,
         validators_len: u32,
         account_id: &T::AccountId,
         higher_priority: bool,
     ) -> OffchainResult<()> {
-        let reinit_data = OperationRequest::<T::AccountId, T::BlockNumber> {
+        let reinit_data = OperationRequest::<T::AccountId, BlockNumberFor<T>> {
             account: Some(account_id.clone()),
             authority_index,
             validators_len,
@@ -1507,7 +1507,7 @@ impl<T: Config> UnixTime for Pallet<T> {
     }
 }
 
-impl<T: Config> ValidatorOffchainBatcher<T::AuthorityId, T::BlockNumber, T::AccountId>
+impl<T: Config> ValidatorOffchainBatcher<T::AuthorityId, BlockNumberFor<T>, T::AccountId>
     for Pallet<T>
 {
     fn authority_keys() -> Vec<T::AuthorityId> {

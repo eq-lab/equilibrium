@@ -161,34 +161,15 @@ pub mod pallet {
 
     /* ------------------ GENESIS ------------------------- */
     #[pallet::genesis_config]
-    pub struct GenesisConfig {}
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {}
-        }
-    }
-    #[cfg(feature = "std")]
-    impl GenesisConfig {
-        /// Direct implementation of `GenesisBuild::build_storage`.
-        /// Kept in order not to break dependency.
-        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as BuildGenesisConfig>::build_storage(self)
-        }
-
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage<T: Config>(
-            &self,
-            storage: &mut sp_runtime::Storage,
-        ) -> Result<(), String> {
-            <Self as BuildGenesisConfig>::assimilate_storage(self, storage)
-        }
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        empty: PhantomData<T>,
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> BuildGenesisConfig for GenesisConfig {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            let extra_genesis_builder: fn(&Self) = |_config: &GenesisConfig| {};
+            let extra_genesis_builder: fn(&Self) = |_config: &GenesisConfig<T>| {};
             extra_genesis_builder(self);
         }
     }

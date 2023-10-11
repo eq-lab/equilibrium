@@ -209,7 +209,7 @@ benchmarks! {
         );
 
         let buyout: <T as eq_rate::Config>::Balance = BUDGET.try_into().map_err(|_|"balance conversion error").unwrap();
-        let request = OperationRequestDexDeleteOrder::<T::BlockNumber, T::AccountId, <T as eq_rate::Config>::Balance> {
+        let request = OperationRequestDexDeleteOrder::<BlockNumberFor<T>, T::AccountId, <T as eq_rate::Config>::Balance> {
             asset,
             order_id,
             price,
@@ -217,7 +217,7 @@ benchmarks! {
             buyout: Some(buyout),
             authority_index: 0,
             validators_len: 1,
-            block_num: T::BlockNumber::default(),
+            block_num: BlockNumberFor::<T>::default(),
             reason: DeleteOrderReason::OutOfCorridor,
         };
         //assert!(request.should_operate_in_block()); TODO: !!!!
@@ -356,7 +356,7 @@ benchmarks! {
         );
 
         let buyout: <T as eq_rate::Config>::Balance = BUDGET.try_into().map_err(|_|"balance conversion error").unwrap();
-        let request = OperationRequestDexDeleteOrder::<T::BlockNumber, T::AccountId, <T as eq_rate::Config>::Balance> {
+        let request = OperationRequestDexDeleteOrder::<BlockNumberFor<T>, T::AccountId, <T as eq_rate::Config>::Balance> {
             asset,
             order_id,
             price,
@@ -364,7 +364,7 @@ benchmarks! {
             buyout: Some(buyout),
             authority_index: 0,
             validators_len: 1,
-            block_num: T::BlockNumber::default(),
+            block_num: BlockNumberFor::<T>::default(),
             reason: DeleteOrderReason::Cancel
         };
 

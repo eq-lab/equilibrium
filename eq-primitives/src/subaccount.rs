@@ -17,14 +17,24 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use codec::{Decode, Encode};
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{DispatchError, RuntimeDebug};
 
 /// Types of subaccounts. Every master account can have only one subaccount of
 /// each type
-#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, Hash, scale_info::TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(
+    Encode,
+    Decode,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    RuntimeDebug,
+    Hash,
+    scale_info::TypeInfo,
+    Serialize,
+    Deserialize,
+)]
 #[repr(u8)]
 pub enum SubAccType {
     /// Subaccount for with balances used to register and operate as a bailsman

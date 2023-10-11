@@ -23,7 +23,6 @@ use balance::Balance;
 use balance_number::EqFixedU128;
 use codec::{Decode, Encode, FullCodec};
 use frame_support::dispatch::{DispatchResult, DispatchResultWithPostInfo};
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member},
@@ -493,8 +492,9 @@ impl sp_runtime::traits::Convert<u32, Balance> for BlockNumberToBalance {
     }
 }
 
-#[derive(Decode, Encode, Copy, Clone, Debug, PartialEq, scale_info::TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(
+    Decode, Encode, Copy, Clone, Debug, PartialEq, scale_info::TypeInfo, Serialize, Deserialize,
+)]
 /// Determines the xcm executing mode on parachain:\
 /// - `Bridge` will call bridge transfer on receiving, disallow to send xcm for users\
 /// - `Xcm` normal executing on receiving, will call EqCurrecny methods, allow to send xcm for users\

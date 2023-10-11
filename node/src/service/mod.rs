@@ -44,7 +44,7 @@ use crate::chain_spec::IdentifyVariant;
 pub use common_runtime::{
     self,
     opaque::{Block, Header},
-    AccountId, Balance, BlockNumber, Hash, Index,
+    AccountId, Balance, BlockNumber, Hash, Nonce,
 };
 use sc_client_api::Backend;
 use sc_consensus::{
@@ -87,7 +87,7 @@ pub trait RuntimeApiCollection:
     + sp_block_builder::BlockBuilder<Block>
     + cumulus_primitives_core::CollectCollationInfo<Block>
     + sp_consensus_aura::AuraApi<Block, <<AuraId as AppCrypto>::Pair as Pair>::Public>
-    + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>
+    + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
     + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
     + equilibrium_curve_amm_rpc::EquilibriumCurveAmmRuntimeApi<Block, Balance>
     + eq_xdot_pool_rpc::EqXdotPoolRuntimeApi<Block, Balance>
@@ -104,7 +104,7 @@ impl<Api> RuntimeApiCollection for Api where
         + sp_block_builder::BlockBuilder<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
         + sp_consensus_aura::AuraApi<Block, <<AuraId as AppCrypto>::Pair as Pair>::Public>
-        + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>
+        + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
         + equilibrium_curve_amm_rpc::EquilibriumCurveAmmRuntimeApi<Block, Balance>
         + eq_xdot_pool_rpc::EqXdotPoolRuntimeApi<Block, Balance>
