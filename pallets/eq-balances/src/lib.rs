@@ -507,13 +507,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             Self::ensure_transfers_enabled(&XDOT, T::Balance::default())?;
 
-            let new_who = if let Some(new_who) = mb_who {
-                new_who
-            } else {
-                ensure_signed(origin)?
-            };
+            let caller = ensure_signed(origin)?;
+            let who = if let Some(who) = mb_who { who } else { caller };
 
-            Self::do_swap_xdot(&new_who, &xdot_assets)?;
+            Self::do_swap_xdot(&who, &xdot_assets)?;
 
             Ok(().into())
         }
