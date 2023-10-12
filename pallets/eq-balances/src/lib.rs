@@ -508,7 +508,7 @@ pub mod pallet {
             Self::ensure_transfers_enabled(&XDOT, T::Balance::default())?;
 
             let caller = ensure_signed(origin)?;
-            let who = if let Some(who) = mb_who { who } else { caller };
+            let who = mb_who.unwrap_or(caller);
 
             Self::do_swap_xdot(&who, &xdot_assets)?;
 
