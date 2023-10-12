@@ -171,8 +171,11 @@ impl SubaccountsManager<AccountId> for SubaccountsManagerMock {
         true
     }
 
-    fn get_subaccount_id(_who: &AccountId, _subacc_type: &SubAccType) -> Option<AccountId> {
-        Some(9999_u64)
+    fn get_subaccount_id(_who: &AccountId, subacc_type: &SubAccType) -> Option<AccountId> {
+        match subacc_type {
+            SubAccType::Borrower => Some(9999_u64),
+            _ => None,
+        }
     }
 
     fn is_subaccount(_who: &AccountId, _subacc_id: &AccountId) -> bool {

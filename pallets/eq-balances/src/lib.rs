@@ -505,45 +505,8 @@ pub mod pallet {
             xdot_assets: Vec<XDotAsset>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_xdot_swap_allowed(&xdot_assets)?;
 
-            let balances = Self::iterate_account_balances(&who);
-
-            for xdot_asset in xdot_assets {
-                let asset = match xdot_asset {
-                    XDotAsset::XDOT => XDOT,
-                    XDotAsset::XDOT2 => XDOT2,
-                    XDotAsset::XDOT3 => XDOT3,
-                };
-
-                let signed_balance = balances.get(&asset);
-
-                match signed_balance {
-                    Some(SignedBalance::Positive(balance)) => {
-                        Self::ensure_transfers_enabled(&asset, *balance)?;
-
-                        Self::withdraw(
-                            &who,
-                            asset,
-                            *balance,
-                            false,
-                            Some(WithdrawReason::XDotSwap),
-                            WithdrawReasons::empty(),
-                            ExistenceRequirement::KeepAlive,
-                        )?;
-
-                        Self::deposit_creating(
-                            &who,
-                            DOT,
-                            *balance,
-                            false,
-                            Some(DepositReason::XDotSwap),
-                        )?;
-                    }
-                    Some(SignedBalance::Negative(_)) => {}
-                    None => {}
-                }
-            }
+            Self::do_swap_xdot(&who, &xdot_assets)?;
 
             Ok(().into())
         }
@@ -1824,6 +1787,77 @@ impl<T: Config> Pallet<T> {
             }
             _ => existential_deposit_usd,
         }
+    }
+
+    fn do_swap_xdot(who: &T::AccountId, xdot_assets: &Vec<XDotAsset>) -> DispatchResult {
+        Self::ensure_xdot_swap_allowed(&xdot_assets)?;
+
+        let mut accounts_balances: Vec<_> = SubAccType::iterator()
+            .filter_map(|t| T::SubaccountsManager::get_subaccount_id(who, &t))
+            .map(|a| (a.clone(), Self::iterate_account_balances(&a)))
+            .collect();
+
+        accounts_balances.push((who.clone(), Self::iterate_account_balances(&who)));
+
+        for xdot_asset in xdot_assets {
+            let asset = match xdot_asset {
+                XDotAsset::XDOT => XDOT,
+                XDotAsset::XDOT2 => XDOT2,
+                XDotAsset::XDOT3 => XDOT3,
+            };
+
+            for (account, balances) in &accounts_balances {
+                let signed_balance = balances.get(&asset);
+
+                match signed_balance {
+                    Some(SignedBalance::Positive(balance)) => {
+                        Self::ensure_transfers_enabled(&asset, *balance)?;
+
+                        Self::withdraw(
+                            account,
+                            asset,
+                            *balance,
+                            false,
+                            Some(WithdrawReason::XDotSwap),
+                            WithdrawReasons::empty(),
+                            ExistenceRequirement::KeepAlive,
+                        )?;
+
+                        Self::deposit_creating(
+                            account,
+                            DOT,
+                            *balance,
+                            false,
+                            Some(DepositReason::XDotSwap),
+                        )?;
+                    }
+                    Some(SignedBalance::Negative(balance)) => {
+                        Self::ensure_transfers_enabled(&asset, *balance)?;
+
+                        Self::deposit_creating(
+                            account,
+                            asset,
+                            *balance,
+                            false,
+                            Some(DepositReason::XDotSwap),
+                        )?;
+
+                        Self::withdraw(
+                            account,
+                            DOT,
+                            *balance,
+                            false,
+                            Some(WithdrawReason::XDotSwap),
+                            WithdrawReasons::empty(),
+                            ExistenceRequirement::KeepAlive,
+                        )?;
+                    }
+                    None => {}
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 

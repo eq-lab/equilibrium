@@ -20,7 +20,8 @@
 
 use super::*;
 use crate::mock::{
-    new_test_ext, BalancesModuleId, ModuleBalances, OracleMock, RuntimeOrigin, SlashMock, Test,
+    new_test_ext, BalancesModuleId, ModuleBalances, OracleMock, RuntimeOrigin, SlashMock,
+    SubaccountsManagerMock, Test,
 };
 use crate::mock::{Balance, TimeMock, FAIL_ACC};
 use eq_primitives::asset::*;
@@ -1880,30 +1881,48 @@ fn allow_xdots_swap() {
 fn swap_xdot() {
     new_test_ext().execute_with(|| {
         let account: u64 = 1;
+        let borrower_sub_account =
+            SubaccountsManagerMock::create_subaccount_inner(&account, &SubAccType::Borrower)
+                .unwrap();
 
-        assert_ok!(ModuleBalances::deposit_creating(
+        // deposit main account
+        ModuleBalances::make_free_balance_be(
             &account,
-            asset::XDOT,
-            40 * ONE_TOKEN,
-            true,
-            None
-        ));
-
-        assert_ok!(ModuleBalances::deposit_creating(
+            XDOT,
+            SignedBalance::Positive(40 * ONE_TOKEN),
+        );
+        ModuleBalances::make_free_balance_be(
             &account,
             XDOT2,
-            100 * ONE_TOKEN,
-            true,
-            None
-        ));
-
-        assert_ok!(ModuleBalances::deposit_creating(
+            SignedBalance::Positive(100 * ONE_TOKEN),
+        );
+        ModuleBalances::make_free_balance_be(
             &account,
             XDOT3,
-            215 * ONE_TOKEN,
-            true,
-            None
-        ));
+            SignedBalance::Positive(215 * ONE_TOKEN),
+        );
+
+        // create debt for subaccount
+        ModuleBalances::make_free_balance_be(
+            &borrower_sub_account,
+            DOT,
+            SignedBalance::Positive((781 + 782 + 783) * ONE_TOKEN),
+        );
+        ModuleBalances::make_free_balance_be(
+            &borrower_sub_account,
+            XDOT,
+            SignedBalance::Negative(781 * ONE_TOKEN),
+        );
+        ModuleBalances::make_free_balance_be(
+            &borrower_sub_account,
+            XDOT2,
+            SignedBalance::Negative(782 * ONE_TOKEN),
+        );
+        ModuleBalances::make_free_balance_be(
+            &borrower_sub_account,
+            XDOT3,
+            SignedBalance::Negative(783 * ONE_TOKEN),
+        );
 
         assert_ok!(ModuleBalances::allow_xdots_swap(
             RawOrigin::Root.into(),
@@ -1915,15 +1934,31 @@ fn swap_xdot() {
             Error::<Test>::XDotSwapNotAllowed
         );
 
+        // main account XDOT balances before swap
+        assert_balance!(&account, 40 * ONE_TOKEN, 0, XDOT);
         assert_balance!(&account, 100 * ONE_TOKEN, 0, XDOT2);
+        assert_balance!(&account, 215 * ONE_TOKEN, 0, XDOT3);
+
+        // subaccount XDOT balances before swap
+        assert_balance!(&borrower_sub_account, 0, 781 * ONE_TOKEN, XDOT);
+        assert_balance!(&borrower_sub_account, 0, 782 * ONE_TOKEN, XDOT2);
+        assert_balance!(&borrower_sub_account, 0, 783 * ONE_TOKEN, XDOT3);
 
         assert_ok!(ModuleBalances::swap_xdot(
             Some(account).into(),
             vec![XDotAsset::XDOT, XDotAsset::XDOT3]
         ));
 
+        // main account XDOT balances after swap
         assert_balance!(&account, 0, 0, XDOT);
+        assert_balance!(&account, 100 * ONE_TOKEN, 0, XDOT2);
         assert_balance!(&account, 0, 0, XDOT3);
         assert_balance!(&account, 255 * ONE_TOKEN, 0, DOT);
+
+        // subaccount XDOT balances after swap
+        assert_balance!(&borrower_sub_account, 0, 0, XDOT);
+        assert_balance!(&borrower_sub_account, 0, 782 * ONE_TOKEN, XDOT2);
+        assert_balance!(&borrower_sub_account, 0, 0, XDOT3);
+        assert_balance!(&borrower_sub_account, (782) * ONE_TOKEN, 0, DOT);
     });
 }
