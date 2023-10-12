@@ -504,6 +504,8 @@ pub mod pallet {
             origin: OriginFor<T>,
             xdot_assets: Vec<XDotAsset>,
         ) -> DispatchResultWithPostInfo {
+            Self::ensure_transfers_enabled(&XDOT, T::Balance::default())?;
+
             let who = ensure_signed(origin)?;
 
             Self::do_swap_xdot(&who, &xdot_assets)?;
@@ -1811,8 +1813,6 @@ impl<T: Config> Pallet<T> {
 
                 match signed_balance {
                     Some(SignedBalance::Positive(balance)) => {
-                        Self::ensure_transfers_enabled(&asset, *balance)?;
-
                         Self::withdraw(
                             account,
                             asset,
@@ -1832,8 +1832,6 @@ impl<T: Config> Pallet<T> {
                         )?;
                     }
                     Some(SignedBalance::Negative(balance)) => {
-                        Self::ensure_transfers_enabled(&asset, *balance)?;
-
                         Self::deposit_creating(
                             account,
                             asset,
