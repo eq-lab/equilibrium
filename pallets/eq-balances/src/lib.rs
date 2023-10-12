@@ -502,13 +502,18 @@ pub mod pallet {
         #[transactional]
         pub fn swap_xdot(
             origin: OriginFor<T>,
+            mb_who: Option<T::AccountId>,
             xdot_assets: Vec<XDotAsset>,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_transfers_enabled(&XDOT, T::Balance::default())?;
 
-            let who = ensure_signed(origin)?;
+            let new_who = if let Some(new_who) = mb_who {
+                new_who
+            } else {
+                ensure_signed(origin)?
+            };
 
-            Self::do_swap_xdot(&who, &xdot_assets)?;
+            Self::do_swap_xdot(&new_who, &xdot_assets)?;
 
             Ok(().into())
         }
