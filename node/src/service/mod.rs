@@ -569,6 +569,8 @@ where
             );
 
             let params = BasicAuraParams {
+                // TODO: impl sp-inherents::CreateInherentDataProviders (or just provide function, that implement this)
+                // to use custom_client_side::create_at
                 create_inherent_data_providers: move |_, ()| async move { Ok(()) },
                 block_import,
                 para_client: client,
