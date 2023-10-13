@@ -607,8 +607,8 @@ pub enum DepositReason {
     AssetRemoval,
     /// Mint while staking
     Staking,
-    /// Swap XDOT to DOT
-    XDotSwap,
+    /// Swap Crowdloan DOT to DOT
+    CrowdloanDotSwap,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Decode, Encode, scale_info::TypeInfo)]
@@ -625,8 +625,8 @@ pub enum WithdrawReason {
     AssetRemoval,
     /// Burn while staking DOT
     Staking,
-    /// Swap XDOT to DOT
-    XDotSwap,
+    /// Swap Crowdloan DOT to DOT
+    CrowdloanDotSwap,
 }
 
 #[derive(

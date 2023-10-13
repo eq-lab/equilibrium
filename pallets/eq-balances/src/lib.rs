@@ -37,7 +37,7 @@
 use codec::Codec;
 pub use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
 use eq_primitives::{
-    asset::{Asset, AssetGetter, DOT, GLMR, XDOT, XDOT2, XDOT3},
+    asset::{Asset, AssetGetter, CDOT613, CDOT714, CDOT815, DOT, GLMR, XDOT, XDOT2, XDOT3},
     balance::{
         AccountData, BalanceChecker, BalanceGetter, BalanceRemover, DebtCollateralDiscounted,
         DepositReason, EqCurrency, LockGetter, WithdrawReason, XcmDestination,
@@ -486,13 +486,13 @@ pub mod pallet {
 
         #[pallet::call_index(15)]
         #[pallet::weight(T::DbWeight::get().writes(1))]
-        pub fn allow_xdots_swap(
+        pub fn allow_crowdloan_swap(
             origin: OriginFor<T>,
-            xdot_assets: Vec<XDotAsset>,
+            assets: Vec<CrowdloanDotAsset>,
         ) -> DispatchResultWithPostInfo {
             T::ToggleTransferOrigin::ensure_origin(origin)?;
 
-            AllowedXdotsSwap::<T>::put(xdot_assets);
+            AllowedCrowdloanDotsSwap::<T>::put(assets);
 
             Ok(().into())
         }
@@ -500,17 +500,17 @@ pub mod pallet {
         #[pallet::call_index(16)]
         #[pallet::weight(T::DbWeight::get().reads_writes(1, 2))]
         #[transactional]
-        pub fn swap_xdot(
+        pub fn swap_crowdloan_dots(
             origin: OriginFor<T>,
             mb_who: Option<T::AccountId>,
-            xdot_assets: Vec<XDotAsset>,
+            assets: Vec<CrowdloanDotAsset>,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_transfers_enabled(&XDOT, T::Balance::default())?;
 
             let caller = ensure_signed(origin)?;
             let who = mb_who.unwrap_or(caller);
 
-            Self::do_swap_xdot(&who, &xdot_assets)?;
+            Self::do_swap_crowdloan_dot(&who, &assets)?;
 
             Ok(().into())
         }
@@ -620,8 +620,8 @@ pub mod pallet {
         XcmTransfersLimitExceeded,
         /// Balance is less than locked amount
         Locked,
-        /// XDOT swap is not allowed
-        XDotSwapNotAllowed,
+        /// Crowdloan DOT swap is not allowed
+        CrowdloanDotSwapNotAllowed,
     }
 
     /// Reserved balances
@@ -663,9 +663,14 @@ pub mod pallet {
     #[pallet::storage]
     pub type DailyXcmLimit<T: Config> = StorageValue<_, T::Balance, OptionQuery>;
 
-    /// Stores limit value
+    /// Stores Crowdloan DOTs allowed to swap
     #[pallet::storage]
-    pub type AllowedXdotsSwap<T: Config> = StorageValue<_, Vec<XDotAsset>, ValueQuery>;
+    pub type AllowedCrowdloanDotsSwap<T: Config> =
+        StorageValue<_, Vec<CrowdloanDotAsset>, ValueQuery>;
+
+    /// Stores swapped cDOT amounts
+    #[pallet::storage]
+    pub type SwappedCDotAmounts<T: Config> = StorageValue<_, VecMap<Asset, T::Balance>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -1700,14 +1705,14 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn ensure_xdot_swap_allowed(xdot_assets: &Vec<XDotAsset>) -> DispatchResult {
-        let allowed = AllowedXdotsSwap::<T>::get();
+    fn ensure_crowdloan_dot_swap_allowed(assets: &Vec<CrowdloanDotAsset>) -> DispatchResult {
+        let allowed = AllowedCrowdloanDotsSwap::<T>::get();
 
         eq_ensure!(
-            xdot_assets.iter().all(|a| allowed.contains(a)),
-            Error::<T>::XDotSwapNotAllowed,
+            assets.iter().all(|a| allowed.contains(a)),
+            Error::<T>::CrowdloanDotSwapNotAllowed,
             target: "eq_balances",
-            "{}:{}. Swap is not allowed for the specified XDOT asset.",
+            "{}:{}. Swap is not allowed for the specified Crowdloan DOT asset.",
             file!(),
             line!(),
         );
@@ -1793,34 +1798,44 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn do_swap_xdot(who: &T::AccountId, xdot_assets: &Vec<XDotAsset>) -> DispatchResult {
-        Self::ensure_xdot_swap_allowed(&xdot_assets)?;
+    fn do_swap_crowdloan_dot(
+        who: &T::AccountId,
+        swap_assets: &Vec<CrowdloanDotAsset>,
+    ) -> DispatchResult {
+        Self::ensure_crowdloan_dot_swap_allowed(&swap_assets)?;
 
         let mut accounts_balances: Vec<_> = SubAccType::iterator()
             .filter_map(|t| T::SubaccountsManager::get_subaccount_id(who, &t))
             .map(|a| (a.clone(), Self::iterate_account_balances(&a)))
             .collect();
+        let mut cdot_account_balances: VecMap<Asset, T::Balance> = VecMap::new();
 
         accounts_balances.push((who.clone(), Self::iterate_account_balances(&who)));
 
-        for xdot_asset in xdot_assets {
-            let asset = match xdot_asset {
-                XDotAsset::XDOT => XDOT,
-                XDotAsset::XDOT2 => XDOT2,
-                XDotAsset::XDOT3 => XDOT3,
+        for swap_asset in swap_assets {
+            let asset = match swap_asset {
+                // CrowdloanDotAsset => (is_cdot, Asset)
+                CrowdloanDotAsset::XDOT => (false, XDOT),
+                CrowdloanDotAsset::XDOT2 => (false, XDOT2),
+                CrowdloanDotAsset::XDOT3 => (false, XDOT3),
+                CrowdloanDotAsset::CDOT613 => (true, CDOT613),
+                CrowdloanDotAsset::CDOT714 => (true, CDOT714),
+                CrowdloanDotAsset::CDOT815 => (true, CDOT815),
             };
 
-            for (account, balances) in &accounts_balances {
-                let signed_balance = balances.get(&asset);
+            let mut cdot_total_balance: T::Balance = T::Balance::zero();
 
-                match signed_balance {
+            for (account, balances) in &accounts_balances {
+                let signed_balance = balances.get(&asset.1);
+
+                let cdot_balance = match signed_balance {
                     Some(SignedBalance::Positive(balance)) => {
                         Self::withdraw(
                             account,
-                            asset,
+                            asset.1,
                             *balance,
                             false,
-                            Some(WithdrawReason::XDotSwap),
+                            Some(WithdrawReason::CrowdloanDotSwap),
                             WithdrawReasons::empty(),
                             ExistenceRequirement::KeepAlive,
                         )?;
@@ -1830,16 +1845,18 @@ impl<T: Config> Pallet<T> {
                             DOT,
                             *balance,
                             false,
-                            Some(DepositReason::XDotSwap),
+                            Some(DepositReason::CrowdloanDotSwap),
                         )?;
+
+                        asset.0.then(|| *balance).unwrap_or(T::Balance::zero())
                     }
                     Some(SignedBalance::Negative(balance)) => {
                         Self::deposit_creating(
                             account,
-                            asset,
+                            asset.1,
                             *balance,
                             false,
-                            Some(DepositReason::XDotSwap),
+                            Some(DepositReason::CrowdloanDotSwap),
                         )?;
 
                         Self::withdraw(
@@ -1847,14 +1864,42 @@ impl<T: Config> Pallet<T> {
                             DOT,
                             *balance,
                             false,
-                            Some(WithdrawReason::XDotSwap),
+                            Some(WithdrawReason::CrowdloanDotSwap),
                             WithdrawReasons::empty(),
                             ExistenceRequirement::KeepAlive,
                         )?;
+
+                        asset.0.then(|| *balance).unwrap_or(T::Balance::zero())
                     }
-                    None => {}
-                }
+                    None => T::Balance::zero(),
+                };
+
+                cdot_total_balance = cdot_total_balance
+                    .checked_add(&cdot_balance)
+                    .ok_or(ArithmeticError::Overflow)?;
             }
+
+            if asset.0 {
+                cdot_account_balances.insert(asset.1, cdot_total_balance);
+            }
+        }
+
+        if !cdot_account_balances.is_empty() {
+            let mut swapped_cdot_amounts = SwappedCDotAmounts::<T>::get();
+
+            for (asset, balance) in cdot_account_balances {
+                let mut swapped_balance = swapped_cdot_amounts
+                    .get(&asset)
+                    .map(|a| *a)
+                    .unwrap_or_default();
+                swapped_balance = swapped_balance
+                    .checked_add(&balance)
+                    .ok_or(ArithmeticError::Overflow)?;
+
+                swapped_cdot_amounts.insert(asset, swapped_balance);
+            }
+
+            SwappedCDotAmounts::<T>::put(swapped_cdot_amounts);
         }
 
         Ok(())
@@ -1876,8 +1921,11 @@ pub struct XcmDestinationResolved {
 }
 
 #[derive(Decode, Encode, Clone, Debug, PartialEq, scale_info::TypeInfo)]
-pub enum XDotAsset {
+pub enum CrowdloanDotAsset {
     XDOT,
     XDOT2,
     XDOT3,
+    CDOT613,
+    CDOT714,
+    CDOT815,
 }
