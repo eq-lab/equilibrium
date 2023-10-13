@@ -29,9 +29,8 @@ use cumulus_client_consensus_common::{
 };
 use cumulus_client_consensus_proposer::Proposer;
 use cumulus_client_service::{
-    build_network, prepare_node_config, start_relay_chain_tasks,
-    BuildNetworkParams, CollatorSybilResistance, DARecoveryProfile,
-    StartRelayChainTasksParams,
+    build_network, prepare_node_config, start_relay_chain_tasks, BuildNetworkParams,
+    CollatorSybilResistance, DARecoveryProfile, StartRelayChainTasksParams,
 };
 use cumulus_primitives_core::relay_chain::{Hash as PHash, PersistedValidationData};
 use eq_xcm::ParaId;
@@ -569,9 +568,45 @@ where
             );
 
             let params = BasicAuraParams {
-                // TODO: impl sp-inherents::CreateInherentDataProviders (or just provide function, that implement this)
-                // to use custom_client_side::create_at
                 create_inherent_data_providers: move |_, ()| async move { Ok(()) },
+                // create_inherent_data_providers:
+                //     move |_, (relay_parent, validation_data)| {
+                //         let relay_chain_interface = relay_chain_interface.clone();
+                //         async move {
+                //             let parachain_inherent = crate::custom_client_side::create_at(
+                //                 relay_parent,
+                //                 &relay_chain_interface,
+                //                 &validation_data,
+                //                 para_id,
+                //                 [
+                //                     // Active staking era
+                //                     known_keys::STAKING_CURRENT_ERA.to_vec(),
+                //                     // Sovereign account ledger storage
+                //                     known_keys::staking_ledger_maybe_derivative(
+                //                         para_id.into_account_truncating(),
+                //                         None,
+                //                     ),
+                //                 ],
+                //             )
+                //             .await;
+                //             let timestamp =
+                //                 sp_timestamp::InherentDataProvider::from_system_time();
+
+                //             let slot =
+                //             sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                //                 *timestamp,
+                //                 slot_duration,
+                //             );
+
+                //             let parachain_inherent =
+                //                 parachain_inherent.ok_or_else(|| {
+                //                     Box::<dyn std::error::Error + Send + Sync>::from(
+                //                         "Failed to create parachain inherent",
+                //                     )
+                //                 })?;
+                //             Ok((slot, timestamp, parachain_inherent))
+                //         }
+                //     },
                 block_import,
                 para_client: client,
                 relay_client: relay_chain_interface,
@@ -588,6 +623,9 @@ where
                 authoring_duration: Duration::from_millis(500),
             };
 
+            // TODO: impl sp-inherents::CreateInherentDataProviders (or just provide function, that implement this)
+            // to use custom_client_side::create_at
+            // look at basic_aura::run - where the create_inherent_data_providers signature is using
             let fut =
                 basic_aura::run::<Block, <AuraId as AppCrypto>::Pair, _, _, _, _, _, _, _>(params);
             task_manager
