@@ -31,7 +31,7 @@ use eq_node_runtime::{
     AuraConfig, BailsmanConfig, ClaimsConfig, CouncilConfig, CouncilMembershipConfig,
     DemocracyConfig, EqAssetsConfig, EqBalancesConfig, EqDexConfig, EqInvestorsConfig,
     EqLiquidityFarmingConfig, EqMultisigSudoConfig, EqTreasuryConfig, FinancialConfig, FixedI64,
-    GenesisConfig, OracleConfig, ParachainInfoConfig, PolkadotXcmConfig, RepublicConfig,
+    OracleConfig, ParachainInfoConfig, PolkadotXcmConfig, RepublicConfig, RuntimeGenesisConfig,
     SessionConfig, SubaccountsConfig, SystemConfig, TechnicalCommitteeConfig,
     TechnicalCommitteeMembershipConfig, Vesting2Config, VestingConfig, WhitelistsConfig,
     WASM_BINARY,
@@ -44,7 +44,7 @@ fn session_keys(aura: AuraId, eq_rate: EqRateId) -> SessionKeys {
 
 pub const EQUILIBRIUM_PARACHAIN_ID: u32 = 2011;
 
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
 
 pub fn development_config() -> ChainSpec {
     ChainSpec::from_genesis(
@@ -140,11 +140,12 @@ fn testnet_genesis(
     endowed_accounts: Vec<AccountId>,
     _enable_println: bool,
     id: ParaId,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
     const DEFAULT_BALANCE: u128 = 1 << 50;
-    GenesisConfig {
+    RuntimeGenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY.unwrap().to_vec(),
+            ..Default::default()
         },
         eq_assets: EqAssetsConfig {
             // Eq, FixedI128::zero()
@@ -511,10 +512,10 @@ fn testnet_genesis(
         whitelists: WhitelistsConfig {
             whitelist: whitelisted_accounts,
         },
-        republic: RepublicConfig { empty: () },
-        eq_investors: EqInvestorsConfig { empty: () },
-        eq_liquidity_farming: EqLiquidityFarmingConfig { empty: () },
-        eq_treasury: EqTreasuryConfig { empty: () },
+        republic: RepublicConfig { empty: PhantomData },
+        eq_investors: EqInvestorsConfig { empty: PhantomData },
+        eq_liquidity_farming: EqLiquidityFarmingConfig { empty: PhantomData },
+        eq_treasury: EqTreasuryConfig { empty: PhantomData },
         vesting: VestingConfig::default(),
         vesting_2: Vesting2Config::default(),
         aura: AuraConfig {
@@ -574,12 +575,17 @@ fn testnet_genesis(
                 (asset::BUSD, 5),
                 (asset::USDC, 5),
             ],
+            empty: PhantomData,
         },
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        parachain_info: ParachainInfoConfig { parachain_id: id },
+        parachain_info: ParachainInfoConfig {
+            parachain_id: id,
+            ..Default::default()
+        },
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(SAFE_XCM_VERSION),
+            ..Default::default()
         },
         claims: ClaimsConfig {
             vesting: vec![],
@@ -588,6 +594,7 @@ fn testnet_genesis(
         oracle: OracleConfig {
             update_date: 0,
             prices: vec![],
+            empty: PhantomData,
         },
         bailsman: BailsmanConfig { bailsmen: vec![] },
         eq_lending: Default::default(),

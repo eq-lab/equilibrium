@@ -17,9 +17,12 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![allow(unused_imports)]
-use super::{FullBackend, FullClient};
+use super::{ParachainBackend, ParachainClient};
 use common_runtime::{opaque::*, BlockNumber, Hash};
-use sc_client_api::{Backend, KeysIter, PairsIter};
+use sc_client_api::{
+    execution_extensions::ExecutionExtensions, Backend, CallExecutor, ExecutorProvider, KeysIter,
+    PairsIter,
+};
 use sp_api::NumberFor;
 use sp_consensus::BlockStatus;
 use sp_runtime::{
@@ -33,33 +36,12 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub enum Client {
     #[cfg(feature = "with-eq-runtime")]
-    Equilibrium(Arc<FullClient<eq_node_runtime::RuntimeApi, super::EquilibriumRuntimeExecutor>>),
+    Equilibrium(Arc<ParachainClient<eq_node_runtime::RuntimeApi>>),
     #[cfg(feature = "with-gens-runtime")]
-    Genshiro(Arc<FullClient<gens_node_runtime::RuntimeApi, super::GenshiroRuntimeExecutor>>),
+    Genshiro(Arc<ParachainClient<gens_node_runtime::RuntimeApi>>),
 }
 
-#[cfg(feature = "with-eq-runtime")]
-impl From<Arc<FullClient<eq_node_runtime::RuntimeApi, super::EquilibriumRuntimeExecutor>>>
-    for Client
-{
-    fn from(
-        client: Arc<FullClient<eq_node_runtime::RuntimeApi, super::EquilibriumRuntimeExecutor>>,
-    ) -> Self {
-        Self::Equilibrium(client)
-    }
-}
-
-#[cfg(feature = "with-gens-runtime")]
-impl From<Arc<FullClient<gens_node_runtime::RuntimeApi, super::GenshiroRuntimeExecutor>>>
-    for Client
-{
-    fn from(
-        client: Arc<FullClient<gens_node_runtime::RuntimeApi, super::GenshiroRuntimeExecutor>>,
-    ) -> Self {
-        Self::Genshiro(client)
-    }
-}
-
+#[macro_export]
 macro_rules! match_client {
     ($self:ident, $method:ident($($param:ident),*)) => {
         match *$self {
@@ -68,6 +50,28 @@ macro_rules! match_client {
             #[cfg(feature = "with-gens-runtime")]
             Self::Genshiro(ref client) => client.$method($($param),*),
         }
+    };
+    ($self:ident, $field:ident) => {{
+        match *$self {
+            #[cfg(feature = "with-eq-runtime")]
+            Self::Equilibrium(ref client) => client.$field,
+            #[cfg(feature = "with-gens-runtime")]
+            Self::Genshiro(ref client) => client.$field
+        }
+    }};
+}
+
+#[cfg(feature = "with-eq-runtime")]
+impl From<Arc<ParachainClient<eq_node_runtime::RuntimeApi>>> for Client {
+    fn from(client: Arc<ParachainClient<eq_node_runtime::RuntimeApi>>) -> Self {
+        Self::Equilibrium(client)
+    }
+}
+
+#[cfg(feature = "with-gens-runtime")]
+impl From<Arc<ParachainClient<gens_node_runtime::RuntimeApi>>> for Client {
+    fn from(client: Arc<ParachainClient<gens_node_runtime::RuntimeApi>>) -> Self {
+        Self::Genshiro(client)
     }
 }
 
@@ -121,7 +125,7 @@ impl sc_client_api::BlockBackend<Block> for Client {
     }
 }
 
-impl sc_client_api::StorageProvider<Block, FullBackend> for Client {
+impl sc_client_api::StorageProvider<Block, ParachainBackend> for Client {
     fn storage(&self, hash: Hash, key: &StorageKey) -> sp_blockchain::Result<Option<StorageData>> {
         match_client!(self, storage(hash, key))
     }
@@ -131,8 +135,9 @@ impl sc_client_api::StorageProvider<Block, FullBackend> for Client {
         hash: Hash,
         prefix: Option<&StorageKey>,
         start_key: Option<&StorageKey>,
-    ) -> sp_blockchain::Result<KeysIter<<FullBackend as sc_client_api::Backend<Block>>::State, Block>>
-    {
+    ) -> sp_blockchain::Result<
+        KeysIter<<ParachainBackend as sc_client_api::Backend<Block>>::State, Block>,
+    > {
         match_client!(self, storage_keys(hash, prefix, start_key))
     }
 
@@ -149,7 +154,7 @@ impl sc_client_api::StorageProvider<Block, FullBackend> for Client {
         hash: Hash,
         prefix: Option<&StorageKey>,
         start_key: Option<&StorageKey>,
-    ) -> sp_blockchain::Result<PairsIter<<FullBackend as Backend<Block>>::State, Block>> {
+    ) -> sp_blockchain::Result<PairsIter<<ParachainBackend as Backend<Block>>::State, Block>> {
         match_client!(self, storage_pairs(hash, prefix, start_key))
     }
 
@@ -168,7 +173,7 @@ impl sc_client_api::StorageProvider<Block, FullBackend> for Client {
         child_info: ChildInfo,
         prefix: Option<&StorageKey>,
         start_key: Option<&StorageKey>,
-    ) -> sp_blockchain::Result<KeysIter<<FullBackend as Backend<Block>>::State, Block>> {
+    ) -> sp_blockchain::Result<KeysIter<<ParachainBackend as Backend<Block>>::State, Block>> {
         match_client!(
             self,
             child_storage_keys(hash, child_info, prefix, start_key)

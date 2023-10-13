@@ -725,6 +725,7 @@ pub mod pallet {
     pub struct GenesisConfig<T: Config> {
         pub prices: Vec<(u64, u64, u64)>,
         pub update_date: u64,
+        #[serde(skip)]
         pub empty: PhantomData<T>,
     }
 

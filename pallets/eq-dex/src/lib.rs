@@ -174,6 +174,7 @@ pub mod pallet {
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         pub chunk_corridors: Vec<(Asset, u32)>,
+        #[serde(skip)]
         pub empty: PhantomData<T>,
     }
 

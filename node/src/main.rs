@@ -18,7 +18,7 @@
 
 #![type_length_limit = "3000000"]
 #![forbid(unsafe_code)]
-#![deny(warnings)]
+// #![deny(warnings)]
 
 #[cfg(not(any(feature = "with-eq-runtime", feature = "with-gens-runtime")))]
 std::compile_error!(

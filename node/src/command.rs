@@ -21,20 +21,66 @@ use crate::{
     cli::{Cli, RelayChainCli, Subcommand},
     service,
 };
-use codec::Encode;
-use cumulus_client_cli::generate_genesis_block;
 use eq_xcm::ParaId;
 #[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
 use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
-    NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
+    NetworkParams, Result, SharedParams, SubstrateCli,
 };
 use sc_service::config::{BasePath, PrometheusConfig};
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
+use sp_runtime::traits::AccountIdConversion;
 use std::{io::Write, net::SocketAddr, path::PathBuf};
+
+/// Helper enum that is used for better distinction of different parachain/runtime configuration
+/// (it is based/calculated on ChainSpec's ID attribute)
+#[derive(Debug, PartialEq)]
+enum Runtime {
+    Equilibrium,
+    Genshiro,
+}
+
+trait RuntimeResolver {
+    fn runtime(&self) -> Runtime;
+}
+
+impl RuntimeResolver for dyn ChainSpec {
+    fn runtime(&self) -> Runtime {
+        runtime(self.id())
+    }
+}
+
+/// Implementation, that can resolve [`Runtime`] from any json configuration file
+impl RuntimeResolver for PathBuf {
+    fn runtime(&self) -> Runtime {
+        #[derive(Debug, serde::Deserialize)]
+        struct EmptyChainSpecWithId {
+            id: String,
+        }
+
+        let file = std::fs::File::open(self).expect("Failed to open file");
+        let reader = std::io::BufReader::new(file);
+        let chain_spec: EmptyChainSpecWithId = serde_json::from_reader(reader)
+            .expect("Failed to read 'json' file with ChainSpec configuration");
+
+        runtime(&chain_spec.id)
+    }
+}
+
+fn runtime(id: &str) -> Runtime {
+    if id.starts_with("eq") {
+        Runtime::Equilibrium
+    } else if id.starts_with("gens") {
+        Runtime::Genshiro
+    } else {
+        panic!(
+            "No specific runtime was recognized for ChainSpec's id: '{}'",
+            id
+        );
+    }
+}
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
@@ -102,20 +148,6 @@ impl SubstrateCli for Cli {
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
         load_spec(id)
     }
-
-    fn native_runtime_version(spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        #[cfg(feature = "with-eq-runtime")]
-        if spec.is_equilibrium() {
-            return &eq_node_runtime::VERSION;
-        }
-
-        #[cfg(feature = "with-gens-runtime")]
-        if spec.is_genshiro() {
-            return &gens_node_runtime::VERSION;
-        }
-
-        panic!("invalid chain spec");
-    }
 }
 
 impl SubstrateCli for RelayChainCli {
@@ -153,10 +185,6 @@ impl SubstrateCli for RelayChainCli {
         polkadot_cli::Cli::from_iter([RelayChainCli::executable_name().to_string()].iter())
             .load_spec(id)
     }
-
-    fn native_runtime_version(chain_spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        polkadot_cli::Cli::native_runtime_version(chain_spec)
-    }
 }
 
 fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<Vec<u8>> {
@@ -166,6 +194,38 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
         .top
         .remove(sp_core::storage::well_known_keys::CODE)
         .ok_or_else(|| "Could not find wasm file in genesis state!".into())
+}
+
+macro_rules! construct_run {
+	(|$components:ident, $cli:ident, $cmd:ident, $config:ident|) => {{
+		let runner = $cli.create_runner($cmd)?;
+		match runner.config().chain_spec.runtime() {
+            #[cfg(feature = "with-eq-runtime")]
+			Runtime::Equilibrium => {
+				runner.sync_run(|$config| {
+					let $components = crate::service::new_partial::<eq_node_runtime::RuntimeApi, _>(
+						&$config,
+						crate::service::aura_build_import_queue::<_, AuraId>,
+					)?;
+                    $cmd.run(&*$config.chain_spec, &*$components.client)
+				})
+			},
+            #[cfg(feature = "with-gens-runtime")]
+			Runtime::Genshiro => {
+				runner.sync_run(|$config| {
+					let $components = crate::service::new_partial::<gens_node_runtime::RuntimeApi, _>(
+						&$config,
+						crate::service::aura_build_import_queue::<_, AuraId>,
+					)?;
+                    $cmd.run(&*$config.chain_spec, &*$components.client)
+				})
+			},
+            #[allow(unreachable_patterns)]
+            _ => {
+                panic!("Either \"with-eq-runtime\" or \"with-gens-runtime\" must be enabled for eq-node.");
+            }
+        }
+    }}
 }
 
 /// Parse and run command line arguments
@@ -233,30 +293,7 @@ pub fn run() -> sc_cli::Result<()> {
                 Ok((cmd.run(client, backend, None), task_manager))
             })
         }
-        Some(Subcommand::ExportGenesisState(params)) => {
-            let mut builder = sc_cli::LoggerBuilder::new("");
-            builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
-            let _ = builder.init();
-
-            let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
-            let state_version = Cli::native_runtime_version(&spec).state_version();
-
-            let block: crate::service::Block = generate_genesis_block(&*spec, state_version)?;
-            let raw_header = block.header().encode();
-            let output_buf = if params.raw {
-                raw_header
-            } else {
-                format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
-            };
-
-            if let Some(output) = &params.output {
-                std::fs::write(output, output_buf)?;
-            } else {
-                std::io::stdout().write_all(&output_buf)?;
-            }
-
-            Ok(())
-        }
+        Some(Subcommand::ExportGenesisState(cmd)) => construct_run!(|components, cli, cmd, config|),
         Some(Subcommand::ExportGenesisWasm(params)) => {
             let mut builder = sc_cli::LoggerBuilder::new("");
             builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
@@ -304,23 +341,25 @@ pub fn run() -> sc_cli::Result<()> {
                 BenchmarkCmd::Block(cmd) => match &runner.config().chain_spec {
                     #[cfg(feature = "with-eq-runtime")]
                     spec if spec.is_equilibrium() => runner.sync_run(|mut config| {
-                        let params =
-                            service::new_partial::<
-                                eq_node_runtime::RuntimeApi,
-                                service::EquilibriumRuntimeExecutor,
-                                _,
-                            >(&mut config, service::build_import_queue)?;
+                        let params = service::new_partial::<
+                            eq_node_runtime::RuntimeApi,
+                            service::EquilibriumRuntimeExecutor,
+                            _,
+                        >(
+                            &mut config, service::aura_build_import_queue
+                        )?;
 
                         cmd.run(params.client)
                     }),
                     #[cfg(feature = "with-gens-runtime")]
                     spec if spec.is_genshiro() => runner.sync_run(|mut config| {
-                        let params =
-                            service::new_partial::<
-                                gens_node_runtime::RuntimeApi,
-                                service::GenshiroRuntimeExecutor,
-                                _,
-                            >(&mut config, service::build_import_queue)?;
+                        let params = service::new_partial::<
+                            gens_node_runtime::RuntimeApi,
+                            service::GenshiroRuntimeExecutor,
+                            _,
+                        >(
+                            &mut config, service::aura_build_import_queue
+                        )?;
 
                         cmd.run(params.client)
                     }),
@@ -409,15 +448,6 @@ pub fn run() -> sc_cli::Result<()> {
                         &id,
                     );
 
-                let state_version =
-                    RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
-
-                let block: crate::service::Block =
-                    generate_genesis_block(&*config.chain_spec, state_version)
-                        .map_err(|e| format!("{:?}", e))?;
-
-                let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
-
                 let tokio_handle = config.tokio_handle.clone();
                 let polkadot_config =
                     SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, tokio_handle)
@@ -425,7 +455,6 @@ pub fn run() -> sc_cli::Result<()> {
 
                 info!("Parachain id: {:?}", id);
                 info!("Parachain Account: {}", parachain_account);
-                info!("Parachain genesis state: {}", genesis_state);
                 info!(
                     "Is collating: {}",
                     if config.role.is_authority() {
@@ -437,22 +466,24 @@ pub fn run() -> sc_cli::Result<()> {
 
                 match &config.chain_spec {
                     #[cfg(feature = "with-eq-runtime")]
-                    spec if spec.is_equilibrium() => {
-                        service::start_node::<
-                            eq_node_runtime::RuntimeApi,
-                            service::EquilibriumRuntimeExecutor,
-                        >(
-                            config, polkadot_config, collator_options, id, hwbench
-                        )
-                        .await
-                        .map(|r| r.0)
-                        .map_err(Into::into)
-                    }
+                    spec if spec.is_equilibrium() => service::start_node::<
+                        eq_node_runtime::RuntimeApi,
+                        parachains_common::AuraId,
+                    >(
+                        config,
+                        polkadot_config,
+                        collator_options,
+                        id,
+                        hwbench,
+                    )
+                    .await
+                    .map(|r| r.0)
+                    .map_err(Into::into),
                     #[cfg(feature = "with-gens-runtime")]
                     spec if spec.is_genshiro() => {
                         service::start_node::<
                             gens_node_runtime::RuntimeApi,
-                            service::GenshiroRuntimeExecutor,
+                            parachains_common::AuraId,
                         >(
                             config, polkadot_config, collator_options, id, hwbench
                         )
@@ -472,12 +503,8 @@ impl DefaultConfigurationValues for RelayChainCli {
         30334
     }
 
-    fn rpc_ws_listen_port() -> u16 {
+    fn rpc_listen_port() -> u16 {
         9945
-    }
-
-    fn rpc_http_listen_port() -> u16 {
-        9934
     }
 
     fn prometheus_listen_port() -> u16 {
@@ -508,16 +535,8 @@ impl CliConfiguration<Self> for RelayChainCli {
             .or_else(|_| Ok(self.base_path.clone().map(Into::into)))
     }
 
-    fn rpc_http(&self, default_listen_port: u16) -> Result<Option<SocketAddr>> {
-        self.base.base.rpc_http(default_listen_port)
-    }
-
-    fn rpc_ipc(&self) -> Result<Option<String>> {
-        self.base.base.rpc_ipc()
-    }
-
-    fn rpc_ws(&self, default_listen_port: u16) -> Result<Option<SocketAddr>> {
-        self.base.base.rpc_ws(default_listen_port)
+    fn rpc_addr(&self, default_listen_port: u16) -> Result<Option<SocketAddr>> {
+        self.base.base.rpc_addr(default_listen_port)
     }
 
     fn prometheus_config(
@@ -565,8 +584,8 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.rpc_methods()
     }
 
-    fn rpc_ws_max_connections(&self) -> Result<Option<usize>> {
-        self.base.base.rpc_ws_max_connections()
+    fn rpc_max_connections(&self) -> Result<u32> {
+        self.base.base.rpc_max_connections()
     }
 
     fn rpc_cors(&self, is_dev: bool) -> Result<Option<Vec<String>>> {

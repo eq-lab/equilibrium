@@ -358,7 +358,7 @@ impl aura::Config for Runtime {
     type MaxAuthorities = MaxAuthorities;
     type AllowMultipleBlocksPerSlot = ConstBool<false>;
     #[cfg(feature = "experimental")]
-	type SlotDuration = aura::MinimumPeriodTimesTwo<Self>;
+    type SlotDuration = aura::MinimumPeriodTimesTwo<Self>;
 }
 
 pub struct FilterPrices;

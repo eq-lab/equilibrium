@@ -29,9 +29,9 @@ use gens_node_runtime::{
     },
     opaque::SessionKeys,
     AuraConfig, BailsmanConfig, CollatorSelectionConfig, EqAssetsConfig, EqBalancesConfig,
-    EqDexConfig, EqMultisigSudoConfig, EqTreasury, EqTreasuryConfig, FinancialConfig,
-    GenesisConfig, OracleConfig, ParachainInfoConfig, PolkadotXcmConfig, SessionConfig,
-    SubaccountsConfig, SystemConfig, VestingConfig, WhitelistsConfig, WASM_BINARY,
+    EqDexConfig, EqMultisigSudoConfig, EqTreasury, EqTreasuryConfig, FinancialConfig, OracleConfig,
+    ParachainInfoConfig, PolkadotXcmConfig, RuntimeGenesisConfig, SessionConfig, SubaccountsConfig,
+    SystemConfig, VestingConfig, WhitelistsConfig, WASM_BINARY,
 };
 use sp_runtime::Percent;
 
@@ -41,7 +41,7 @@ fn session_keys(aura: AuraId, eq_rate: EqRateId) -> SessionKeys {
 
 pub const GENSHIRO_PARACHAIN_ID: u32 = 2024;
 
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig, Extensions>;
 
 pub fn development_config() -> ChainSpec {
     // let wasm_binary = WASM_BINARY;
@@ -139,7 +139,7 @@ fn testnet_genesis(
     endowed_accounts: Vec<AccountId>,
     _enable_println: bool,
     id: ParaId,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
     let mut balances: Vec<(_, _, _)> = endowed_accounts
         .iter()
         .cloned()
@@ -147,9 +147,10 @@ fn testnet_genesis(
         .collect();
 
     balances.push((EqTreasury::account_id(), 1u64 << 50, asset::GENS.get_id()));
-    GenesisConfig {
+    RuntimeGenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY.unwrap().to_vec(),
+            ..Default::default()
         },
         eq_assets: EqAssetsConfig {
             _runtime: PhantomData,
@@ -620,10 +621,11 @@ fn testnet_genesis(
         oracle: OracleConfig {
             update_date: 0,
             prices: vec![],
+            empty: PhantomData,
         },
         bailsman: BailsmanConfig { bailsmen: vec![] },
 
-        eq_treasury: EqTreasuryConfig { empty: () },
+        eq_treasury: EqTreasuryConfig { empty: PhantomData },
 
         vesting: VestingConfig::default(),
 
@@ -684,13 +686,17 @@ fn testnet_genesis(
                 (asset::BUSD, 5),
                 (asset::USDC, 5),
             ],
+            empty: PhantomData,
         },
 
         aura_ext: Default::default(),
 
         parachain_system: Default::default(),
 
-        parachain_info: ParachainInfoConfig { parachain_id: id },
+        parachain_info: ParachainInfoConfig {
+            parachain_id: id,
+            ..Default::default()
+        },
 
         collator_selection: CollatorSelectionConfig {
             invulnerables: initial_authorities
@@ -704,6 +710,7 @@ fn testnet_genesis(
 
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(SAFE_XCM_VERSION),
+            ..Default::default()
         },
 
         eq_lending: Default::default(),
