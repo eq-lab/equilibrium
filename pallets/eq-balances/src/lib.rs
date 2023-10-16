@@ -668,10 +668,6 @@ pub mod pallet {
     pub type AllowedCrowdloanDotsSwap<T: Config> =
         StorageValue<_, Vec<CrowdloanDotAsset>, ValueQuery>;
 
-    /// Stores swapped cDOT amounts
-    #[pallet::storage]
-    pub type SwappedCDotAmounts<T: Config> = StorageValue<_, VecMap<Asset, T::Balance>, ValueQuery>;
-
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         pub balances: Vec<(T::AccountId, Vec<(T::Balance, u64)>)>,
@@ -1808,31 +1804,28 @@ impl<T: Config> Pallet<T> {
             .filter_map(|t| T::SubaccountsManager::get_subaccount_id(who, &t))
             .map(|a| (a.clone(), Self::iterate_account_balances(&a)))
             .collect();
-        let mut cdot_account_balances: VecMap<Asset, T::Balance> = VecMap::new();
 
         accounts_balances.push((who.clone(), Self::iterate_account_balances(&who)));
 
         for swap_asset in swap_assets {
             let asset = match swap_asset {
                 // CrowdloanDotAsset => (is_cdot, Asset)
-                CrowdloanDotAsset::XDOT => (false, XDOT),
-                CrowdloanDotAsset::XDOT2 => (false, XDOT2),
-                CrowdloanDotAsset::XDOT3 => (false, XDOT3),
-                CrowdloanDotAsset::CDOT613 => (true, CDOT613),
-                CrowdloanDotAsset::CDOT714 => (true, CDOT714),
-                CrowdloanDotAsset::CDOT815 => (true, CDOT815),
+                CrowdloanDotAsset::XDOT => XDOT,
+                CrowdloanDotAsset::XDOT2 => XDOT2,
+                CrowdloanDotAsset::XDOT3 => XDOT3,
+                CrowdloanDotAsset::CDOT613 => CDOT613,
+                CrowdloanDotAsset::CDOT714 => CDOT714,
+                CrowdloanDotAsset::CDOT815 => CDOT815,
             };
 
-            let mut cdot_total_balance: T::Balance = T::Balance::zero();
-
             for (account, balances) in &accounts_balances {
-                let signed_balance = balances.get(&asset.1);
+                let signed_balance = balances.get(&asset);
 
-                let cdot_balance = match signed_balance {
+                match signed_balance {
                     Some(SignedBalance::Positive(balance)) => {
                         Self::withdraw(
                             account,
-                            asset.1,
+                            asset,
                             *balance,
                             false,
                             Some(WithdrawReason::CrowdloanDotSwap),
@@ -1847,13 +1840,11 @@ impl<T: Config> Pallet<T> {
                             false,
                             Some(DepositReason::CrowdloanDotSwap),
                         )?;
-
-                        asset.0.then(|| *balance).unwrap_or(T::Balance::zero())
                     }
                     Some(SignedBalance::Negative(balance)) => {
                         Self::deposit_creating(
                             account,
-                            asset.1,
+                            asset,
                             *balance,
                             false,
                             Some(DepositReason::CrowdloanDotSwap),
@@ -1868,38 +1859,10 @@ impl<T: Config> Pallet<T> {
                             WithdrawReasons::empty(),
                             ExistenceRequirement::KeepAlive,
                         )?;
-
-                        asset.0.then(|| *balance).unwrap_or(T::Balance::zero())
                     }
-                    None => T::Balance::zero(),
+                    None => {}
                 };
-
-                cdot_total_balance = cdot_total_balance
-                    .checked_add(&cdot_balance)
-                    .ok_or(ArithmeticError::Overflow)?;
             }
-
-            if asset.0 {
-                cdot_account_balances.insert(asset.1, cdot_total_balance);
-            }
-        }
-
-        if !cdot_account_balances.is_empty() {
-            let mut swapped_cdot_amounts = SwappedCDotAmounts::<T>::get();
-
-            for (asset, balance) in cdot_account_balances {
-                let mut swapped_balance = swapped_cdot_amounts
-                    .get(&asset)
-                    .map(|a| *a)
-                    .unwrap_or_default();
-                swapped_balance = swapped_balance
-                    .checked_add(&balance)
-                    .ok_or(ArithmeticError::Overflow)?;
-
-                swapped_cdot_amounts.insert(asset, swapped_balance);
-            }
-
-            SwappedCDotAmounts::<T>::put(swapped_cdot_amounts);
         }
 
         Ok(())
