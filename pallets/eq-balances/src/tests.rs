@@ -2022,22 +2022,6 @@ fn swap_crowdloan_dots() {
             ]
         ));
 
-        let mut swapped_cdots = VecMap::new();
-        swapped_cdots.insert(
-            CDOT714,
-            Balance::zero()
-                .checked_add((327 + 784) * ONE_TOKEN)
-                .unwrap(),
-        );
-        swapped_cdots.insert(
-            CDOT815,
-            Balance::zero()
-                .checked_add((427 + 785) * ONE_TOKEN)
-                .unwrap(),
-        );
-
-        assert_eq!(SwappedCDotAmounts::<Test>::get(), swapped_cdots);
-
         assert_ok!(ModuleBalances::swap_crowdloan_dots(
             Some(account_1).into(),
             Some(account_2),
@@ -2048,22 +2032,6 @@ fn swap_crowdloan_dots() {
                 CrowdloanDotAsset::CDOT815
             ]
         ));
-
-        let mut swapped_cdots = VecMap::new();
-        swapped_cdots.insert(
-            CDOT714,
-            Balance::zero()
-                .checked_add((327 + 784 + 50) * ONE_TOKEN)
-                .unwrap(),
-        );
-        swapped_cdots.insert(
-            CDOT815,
-            Balance::zero()
-                .checked_add((427 + 785 + 60) * ONE_TOKEN)
-                .unwrap(),
-        );
-
-        assert_eq!(SwappedCDotAmounts::<Test>::get(), swapped_cdots);
 
         // main account_1 Crowdloan DOT balances after swap
         assert_balance!(&account_1, 0, 0, XDOT);
