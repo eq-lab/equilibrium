@@ -2811,6 +2811,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "eq-crowdloan-dots"
+version = "0.1.0"
+dependencies = [
+ "eq-assets",
+ "eq-balances",
+ "eq-primitives",
+ "eq-utils",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "eq-dex"
 version = "0.1.0"
 dependencies = [
@@ -3179,6 +3198,7 @@ dependencies = [
  "eq-balances-rpc-runtime-api",
  "eq-bridge",
  "eq-claim",
+ "eq-crowdloan-dots",
  "eq-dex",
  "eq-distribution",
  "eq-lending",

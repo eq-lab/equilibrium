@@ -2509,6 +2509,15 @@ impl eq_staking::Config for Runtime {
     type WeightInfo = ();
 }
 
+impl eq_crowdloan_dots::Config for Runtime {
+    type ToggleTransferOrigin = EnsureRootOrHalfTechnicalCommittee;
+    type Balance = Balance;
+    type EqCurrency = EqBalances;
+    type BalanceGetter = EqBalances;
+    type SubaccountsManager = Subaccounts;
+    type IsTransfersEnabled = EqBalances;
+}
+
 construct_runtime!(
     pub enum Runtime where
         Block = Block,
@@ -2584,7 +2593,8 @@ construct_runtime!(
 
         Democracy: pallet_democracy = 66,
 
-        EqStaking: eq_staking::{Pallet, Call, Event<T>, Storage } = 67
+        EqStaking: eq_staking::{Pallet, Call, Event<T>, Storage } = 67,
+        EqCrowdLoanDots: eq_crowdloan_dots::{Pallet, Call, Storage } = 68,
     }
 );
 
