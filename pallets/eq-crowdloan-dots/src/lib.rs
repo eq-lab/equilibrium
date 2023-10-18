@@ -185,11 +185,9 @@ impl<T: Config> Pallet<T> {
                 CrowdloanDotAsset::CDOT815 => CDOT815,
             };
 
-            let (main_account, _) = accounts_balances.last().unwrap();
-
-            let lending_amount = T::LendingPoolManager::remove_deposit(&main_account, &asset)?;
+            let lending_amount = T::LendingPoolManager::remove_deposit(who, &asset)?;
             if !lending_amount.is_zero() {
-                T::LendingPoolManager::add_deposit(&main_account, &DOT, &lending_amount)?;
+                T::LendingPoolManager::add_deposit(who, &DOT, &lending_amount)?;
             }
 
             for (account, balances) in &accounts_balances {
