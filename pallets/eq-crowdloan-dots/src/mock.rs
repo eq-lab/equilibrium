@@ -34,15 +34,16 @@ use frame_system as system;
 use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
-use sp_runtime::{DispatchError, FixedI64, Percent, Permill};
+use sp_runtime::{DispatchError, FixedI64, FixedPointNumber, Percent, Permill};
 use system::EnsureRoot;
 
 pub(crate) type AccountId = u64;
 pub(crate) type Balance = eq_primitives::balance::Balance;
 pub(crate) type OracleMock = eq_primitives::price::mock::OracleMock<AccountId>;
 
-pub type ModuleCrowdloanDots = Pallet<Test>;
 pub type ModuleBalances = eq_balances::Pallet<Test>;
+pub type ModuleLending = eq_lending::Pallet<Test>;
+pub type ModuleCrowdloanDots = Pallet<Test>;
 type DummyValidatorId = u64;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -53,6 +54,7 @@ parameter_types! {
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
+    pub const LendingModuleId: PalletId = PalletId(*b"eq/lendr");
 }
 
 frame_support::construct_runtime!(
@@ -65,6 +67,7 @@ frame_support::construct_runtime!(
         EqAssets: eq_assets::{Pallet, Call, Storage, Event},
         EqBalances: eq_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         EqCrowdLoanDots: eq_crowdloan_dots::{Pallet, Call, Storage},
+        EqLending: eq_lending::{Pallet, Call, Storage, Event<T>, Config<T>}
     }
 );
 
@@ -257,12 +260,33 @@ impl eq_crowdloan_dots::Config for Test {
     type Balance = Balance;
     type EqCurrency = EqBalances;
     type BalanceGetter = EqBalances;
-
     type SubaccountsManager = SubaccountsManagerMock;
     type IsTransfersEnabled = EqBalances;
+    type LendingPoolManager = ModuleLending;
+}
+
+impl eq_lending::Config for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
+    type BalanceGetter = ModuleBalances;
+    type Aggregates = AggregatesMock;
+    type AssetGetter = eq_assets::Pallet<Test>;
+    type PriceGetter = OracleMock;
+    type SubaccountsManager = SubaccountsManagerMock;
+    type ModuleId = LendingModuleId;
+    type EqCurrency = ModuleBalances;
+    type BailsmanManager = BailsmanManagerMock;
+    type UnixTime = TimeZeroDurationMock;
+    type WeightInfo = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
+    OracleMock::init(vec![
+        (asset::EQ, FixedI64::saturating_from_integer(1)),
+        (asset::XDOT, FixedI64::saturating_from_integer(1)),
+        (asset::CDOT613, FixedI64::saturating_from_integer(1)),
+    ]);
+
     let mut storage = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
@@ -389,7 +413,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     .unwrap();
 
     eq_balances::GenesisConfig::<Test> {
-        balances: vec![(1, vec![(1_000_000_000_000 as u128, asset::EQ.get_id())])],
+        balances: vec![(1, vec![(ONE_TOKEN, asset::EQ.get_id())])],
         is_transfers_enabled: true,
         is_xcm_enabled: Some(eq_primitives::XcmMode::Xcm(false)),
     }

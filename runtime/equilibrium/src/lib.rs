@@ -2516,6 +2516,7 @@ impl eq_crowdloan_dots::Config for Runtime {
     type BalanceGetter = EqBalances;
     type SubaccountsManager = Subaccounts;
     type IsTransfersEnabled = EqBalances;
+    type LendingPoolManager = EqLending;
 }
 
 construct_runtime!(

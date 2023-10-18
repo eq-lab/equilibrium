@@ -296,7 +296,7 @@ pub mod pallet {
         #[pallet::constant]
         type LendingModuleId: Get<PalletId>;
         /// For notifying LendingPoool about new rewards
-        type LendingPoolManager: LendingPoolManager<Self::Balance>;
+        type LendingPoolManager: LendingPoolManager<Self::Balance, Self::AccountId>;
         /// Used to clear Lenders storage while asset removal
         type LendingAssetRemoval: LendingAssetRemoval<Self::AccountId>;
         /// Weight information for extrinsics in this pallet.

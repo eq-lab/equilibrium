@@ -28,25 +28,18 @@ mod mock;
 mod tests;
 
 use codec::{Decode, Encode};
-use eq_primitives::{
-    asset::{Asset, CDOT613, CDOT714, CDOT815, DOT, XDOT, XDOT2, XDOT3},
-    balance::{BalanceGetter, DepositReason, EqCurrency, WithdrawReason},
-    str_asset,
-    subaccount::{SubAccType, SubaccountsManager},
-    IsTransfersEnabled, SignedBalance,
-};
+use eq_primitives::asset::{Asset, CDOT613, CDOT714, CDOT815, DOT, XDOT, XDOT2, XDOT3};
+use eq_primitives::balance::{BalanceGetter, DepositReason, EqCurrency, WithdrawReason};
+use eq_primitives::subaccount::{SubAccType, SubaccountsManager};
+use eq_primitives::{str_asset, IsTransfersEnabled, LendingPoolManager, SignedBalance};
 use eq_utils::eq_ensure;
-use frame_support::{
-    pallet_prelude::DispatchResult,
-    traits::{ExistenceRequirement, WithdrawReasons},
-    transactional,
-};
-use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_std::{
-    convert::{TryFrom, TryInto},
-    fmt::Debug,
-    vec::Vec,
-};
+use frame_support::pallet_prelude::DispatchResult;
+use frame_support::traits::{ExistenceRequirement, WithdrawReasons};
+use frame_support::transactional;
+use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
+use sp_std::convert::{TryFrom, TryInto};
+use sp_std::fmt::Debug;
+use sp_std::vec::Vec;
 
 pub use pallet::*;
 
@@ -81,6 +74,8 @@ pub mod pallet {
         type SubaccountsManager: SubaccountsManager<Self::AccountId>;
         /// Checks if transaction disabled flag is off
         type IsTransfersEnabled: eq_primitives::IsTransfersEnabled;
+        /// To swap crowdloan DOTs in the lending pool
+        type LendingPoolManager: LendingPoolManager<Self::Balance, Self::AccountId>;
     }
 
     /// Stores Crowdloan DOTs allowed to swap
@@ -182,7 +177,6 @@ impl<T: Config> Pallet<T> {
 
         for swap_asset in swap_assets {
             let asset = match swap_asset {
-                // CrowdloanDotAsset => (is_cdot, Asset)
                 CrowdloanDotAsset::XDOT => XDOT,
                 CrowdloanDotAsset::XDOT2 => XDOT2,
                 CrowdloanDotAsset::XDOT3 => XDOT3,
@@ -190,6 +184,13 @@ impl<T: Config> Pallet<T> {
                 CrowdloanDotAsset::CDOT714 => CDOT714,
                 CrowdloanDotAsset::CDOT815 => CDOT815,
             };
+
+            let (main_account, _) = accounts_balances.last().unwrap();
+
+            let lending_amount = T::LendingPoolManager::remove_deposit(&main_account, &asset)?;
+            if !lending_amount.is_zero() {
+                T::LendingPoolManager::add_deposit(&main_account, &DOT, &lending_amount)?;
+            }
 
             for (account, balances) in &accounts_balances {
                 let signed_balance = balances.get(&asset);

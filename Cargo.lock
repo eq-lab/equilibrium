@@ -2816,6 +2816,7 @@ version = "0.1.0"
 dependencies = [
  "eq-assets",
  "eq-balances",
+ "eq-lending",
  "eq-primitives",
  "eq-utils",
  "frame-support",

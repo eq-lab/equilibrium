@@ -23,7 +23,7 @@ use codec::{Codec, Decode, Encode, MaxEncodedLen};
 use eq_primitives::{
     asset,
     asset::{Asset, AssetGetter, AssetType},
-    balance::{BalanceChecker, BalanceGetter, EqCurrency},
+    balance::{BalanceChecker, BalanceGetter, DepositReason, EqCurrency, WithdrawReason},
     balance_number::EqFixedU128,
     subaccount::SubaccountsManager,
     Aggregates, BailsmanManager, PriceGetter, SignedBalance, UserGroup,
@@ -32,9 +32,10 @@ use eq_primitives::{
 use frame_support::debug;
 use frame_support::{
     ensure,
-    traits::{Get, UnixTime, WithdrawReasons},
+    traits::{ExistenceRequirement, Get, UnixTime, WithdrawReasons},
     PalletId,
 };
+use sp_arithmetic::{traits::CheckedSub, ArithmeticError};
 use sp_runtime::{
     traits::{AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, Zero},
     DispatchError, DispatchResult, FixedPointNumber, FixedPointOperand,
@@ -339,6 +340,71 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    fn do_remove_deposit(who: &T::AccountId, asset: &Asset) -> Result<T::Balance, DispatchError> {
+        let lender = Lenders::<T>::get(who, asset);
+
+        if let Some(mut lender) = lender {
+            Self::try_payout(who, &mut lender, *asset)?;
+
+            let lenders_aggregate = LendersAggregates::<T>::get(asset)
+                .checked_sub(&lender.value)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            Lenders::<T>::remove(who, asset);
+            LendersAggregates::<T>::insert(asset, lenders_aggregate);
+
+            T::EqCurrency::withdraw(
+                &T::ModuleId::get().into_account_truncating(),
+                *asset,
+                lender.value,
+                false,
+                Some(WithdrawReason::AssetRemoval),
+                WithdrawReasons::empty(),
+                ExistenceRequirement::KeepAlive,
+            )?;
+
+            Ok(lender.value)
+        } else {
+            Ok(T::Balance::zero())
+        }
+    }
+
+    fn do_add_deposit(who: &T::AccountId, asset: &Asset, amount: &T::Balance) -> DispatchResult {
+        let asset_data = T::AssetGetter::get_asset_data(asset)?;
+
+        ensure!(
+            asset_data.asset_type == AssetType::Physical,
+            Error::<T>::WrongAssetType
+        );
+
+        let mut lender = Lenders::<T>::get(who, asset)
+            .unwrap_or_else(|| LenderData::default_per_asset::<T>(*asset));
+
+        Self::try_payout(who, &mut lender, *asset)?;
+
+        lender.value = lender
+            .value
+            .checked_add(amount)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let lenders_aggregate = LendersAggregates::<T>::get(asset)
+            .checked_add(amount)
+            .ok_or(Error::<T>::Overflow)?;
+
+        T::EqCurrency::deposit_creating(
+            &T::ModuleId::get().into_account_truncating(),
+            *asset,
+            *amount,
+            false,
+            Some(DepositReason::AssetRemoval),
+        )?;
+
+        Lenders::<T>::insert(who, asset, lender);
+        LendersAggregates::<T>::insert(asset, lenders_aggregate);
+
+        Ok(())
+    }
+
     fn do_add_reward(asset: Asset, reward: T::Balance) -> DispatchResult {
         if reward.is_zero() {
             return Ok(());
@@ -561,9 +627,17 @@ impl<T: Config> BalanceChecker<T::Balance, T::AccountId, T::BalanceGetter, T::Su
     }
 }
 
-impl<T: Config> eq_primitives::LendingPoolManager<T::Balance> for Pallet<T> {
+impl<T: Config> eq_primitives::LendingPoolManager<T::Balance, T::AccountId> for Pallet<T> {
     fn add_reward(asset: Asset, reward: T::Balance) -> DispatchResult {
         Self::do_add_reward(asset, reward)
+    }
+
+    fn add_deposit(account: &T::AccountId, asset: &Asset, amount: &T::Balance) -> DispatchResult {
+        Self::do_add_deposit(account, asset, amount)
+    }
+
+    fn remove_deposit(account: &T::AccountId, asset: &Asset) -> Result<T::Balance, DispatchError> {
+        Self::do_remove_deposit(account, asset)
     }
 }
 
