@@ -358,7 +358,7 @@ impl<T: Config> Pallet<T> {
                 *asset,
                 lender.value,
                 false,
-                Some(WithdrawReason::AssetRemoval),
+                Some(WithdrawReason::CrowdloanDotSwap),
                 WithdrawReasons::empty(),
                 ExistenceRequirement::KeepAlive,
             )?;
@@ -396,7 +396,7 @@ impl<T: Config> Pallet<T> {
             *asset,
             *amount,
             false,
-            Some(DepositReason::AssetRemoval),
+            Some(DepositReason::CrowdloanDotSwap),
         )?;
 
         Lenders::<T>::insert(who, asset, lender);

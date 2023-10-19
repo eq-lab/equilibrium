@@ -256,7 +256,7 @@ impl eq_balances::Config for Test {
 }
 
 impl eq_crowdloan_dots::Config for Test {
-    type ToggleTransferOrigin = EnsureRoot<AccountId>;
+    type AllowCrowdloanOrigin = EnsureRoot<AccountId>;
     type Balance = Balance;
     type EqCurrency = EqBalances;
     type BalanceGetter = EqBalances;

@@ -65,7 +65,7 @@ pub mod pallet {
             + TryFrom<eq_primitives::balance::Balance>
             + Into<eq_primitives::balance::Balance>;
         /// Origin for enable and disable transfers
-        type ToggleTransferOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+        type AllowCrowdloanOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Used for balance operations
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
         /// Gets users balances
@@ -99,7 +99,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             assets: Vec<CrowdloanDotAsset>,
         ) -> DispatchResultWithPostInfo {
-            T::ToggleTransferOrigin::ensure_origin(origin)?;
+            T::AllowCrowdloanOrigin::ensure_origin(origin)?;
 
             AllowedCrowdloanDotsSwap::<T>::put(assets);
 

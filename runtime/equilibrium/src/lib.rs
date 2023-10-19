@@ -2510,7 +2510,7 @@ impl eq_staking::Config for Runtime {
 }
 
 impl eq_crowdloan_dots::Config for Runtime {
-    type ToggleTransferOrigin = EnsureRootOrHalfTechnicalCommittee;
+    type AllowCrowdloanOrigin = EnsureRootOrHalfTechnicalCommittee;
     type Balance = Balance;
     type EqCurrency = EqBalances;
     type BalanceGetter = EqBalances;
