@@ -216,6 +216,14 @@ impl PriceSource for JsonPriceSource {
                 continue;
             }
 
+            if asset == eq_primitives::asset::STDOT {
+                continue;
+            }
+
+            if asset == eq_primitives::asset::TDOT {
+                continue;
+            }
+
             // If specified, do not fetch non available currencies
             let price = if let Some(asset_settings) = &maybe_asset_settings {
                 if asset_settings.len() == 0 {

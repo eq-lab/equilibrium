@@ -173,6 +173,7 @@ pub const PHA: Asset = Asset(7366753); //::from_bytes(b"pha"); 0x706861
 pub const VDOT: Asset = Asset(1986293620); //::from_bytes(b"vdot"); 0x76646F74
 pub const LDOT: Asset = Asset(1818521460); //::from_bytes(b"ldot"); 0x6C646F74
 pub const SDOT: Asset = Asset(1935961972); //::from_bytes(b"sdot"); 0x73646F74
+pub const TDOT: Asset = Asset(1952739188); //::from_bytes(b"tdot"); 0x74646f74
 
 // Kusama relay-chain
 pub const KSM: Asset = Asset(7041901); //::from_bytes(b"ksm"); 0x6B736D

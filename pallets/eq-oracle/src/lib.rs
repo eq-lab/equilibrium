@@ -980,7 +980,6 @@ impl<T: Config> Pallet<T> {
                 );
             }
 
-            // TODO remove after YIELD !!!
             if T::AssetGetter::exists(asset::XDOT) {
                 signer.send_unsigned_transaction(
                     |account| PricePayload {
@@ -1029,6 +1028,18 @@ impl<T: Config> Pallet<T> {
                         |payload, signature| Call::set_price_unsigned { payload, signature },
                     );
                 }
+            }
+
+            if T::AssetGetter::exists(asset::TDOT) {
+                signer.send_unsigned_transaction(
+                    |account| PricePayload {
+                        public: account.public.clone(),
+                        asset: asset::TDOT,
+                        price: price,
+                        block_number,
+                    },
+                    |payload, signature| Call::set_price_unsigned { payload, signature },
+                );
             }
         }
 
