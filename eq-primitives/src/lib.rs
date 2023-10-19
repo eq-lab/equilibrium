@@ -27,6 +27,7 @@ use frame_support::{
 };
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_arithmetic::traits::Zero;
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member},
     transaction_validity::TransactionPriority,
@@ -251,15 +252,30 @@ pub trait EqBuyout<AccountId, Balance> {
         amount_buyout: Balance,
     ) -> Result<bool, DispatchError>;
 }
-pub trait LendingPoolManager<Balance> {
+pub trait LendingPoolManager<Balance, AccountId> {
     /// Adds new rewards in lending pool
     fn add_reward(asset: Asset, reward: Balance) -> DispatchResult;
+
+    fn add_deposit(account: &AccountId, asset: &Asset, amount: &Balance) -> DispatchResult;
+
+    fn remove_deposit(account: &AccountId, asset: &Asset) -> Result<Balance, DispatchError>;
 }
 
 /// Empty implementation for using in unit tests
-impl<Balance> LendingPoolManager<Balance> for () {
+impl<Balance, AccountId> LendingPoolManager<Balance, AccountId> for ()
+where
+    Balance: Zero,
+{
     fn add_reward(_: Asset, _: Balance) -> DispatchResult {
         Ok(())
+    }
+
+    fn add_deposit(_account: &AccountId, _asset: &Asset, _amount: &Balance) -> DispatchResult {
+        Ok(())
+    }
+
+    fn remove_deposit(_account: &AccountId, _asset: &Asset) -> Result<Balance, DispatchError> {
+        Ok(Balance::zero())
     }
 }
 

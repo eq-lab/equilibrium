@@ -1,0 +1,100 @@
+[package]
+name = "eq-crowdloan-dots"
+authors = ["equilibrium"]
+edition = "2018"
+version = "0.1.0"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+	"derive",
+] }
+scale-info = { version = "2.1.1", default-features = false, features = [
+	"derive",
+] }
+log = { version = "0.4.17", default-features = false }
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.42"
+
+[dependencies.frame_system]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.42"
+package = "frame-system"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.42"
+
+[dependencies.sp-runtime]
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.42"
+default-features = false
+
+[dependencies.eq-primitives]
+default-features = false
+package = "eq-primitives"
+path = "../../eq-primitives"
+version = "0.1.0"
+
+[dependencies.eq-utils]
+default-features = false
+package = "eq-utils"
+path = "../../eq-utils"
+version = "0.1.0"
+
+[dependencies.eq-assets]
+default-features = false
+package = "eq-assets"
+path = "../eq-assets"
+version = "0.1.0"
+
+[dependencies.eq-balances]
+default-features = false
+package = "eq-balances"
+path = "../eq-balances"
+version = "0.1.0"
+
+[dev-dependencies.eq-lending]
+default-features = false
+package = "eq-lending"
+path = "../eq-lending"
+version = "0.1.0"
+
+[dev-dependencies.sp-core]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.42"
+
+[dev-dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.42"
+
+[dev-dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate"
+branch = "polkadot-v0.9.42"
+
+[features]
+default = ["std"]
+std = [
+	"log/std",
+	"codec/std",
+	"frame-support/std",
+	"scale-info/std",
+	"sp-runtime/std",
+	"sp-core/std",
+	"sp-std/std",
+	"eq-primitives/std",
+	"eq-utils/std",
+	"eq-assets/std",
+	"eq-balances/std",
+	"eq-lending/std",
+]
+production = []
+runtime-benchmarks = []
+try-runtime = ["frame-support/try-runtime"]

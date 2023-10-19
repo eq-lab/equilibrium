@@ -8,25 +8,32 @@ version = "3.0.0"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
+  "derive",
+  "max-encoded-len",
+] }
 hex-literal = { version = "0.3.1", optional = false }
-serde = {version = "1.0.123", features = ["derive"], optional = true}
-serde_json = {git = "https://github.com/nikvolf/json", default-features = false, features = ["alloc"]}
+serde = { version = "1.0.123", features = ["derive"], optional = true }
+serde_json = { git = "https://github.com/nikvolf/json", default-features = false, features = [
+  "alloc",
+] }
 static_assertions = "1.1.0"
 smallvec = "1.6.1"
 log = { version = "0.4.17", default-features = false }
 # Cumulus dependencies
-cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-primitives-timestamp = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-cumulus-pallet-session-benchmarking = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false, version = "3.0.0" }
-pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-parachain-info = { git = "https://github.com/paritytech/cumulus", branch="polkadot-v0.9.42", default-features = false }
-scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+cumulus-primitives-timestamp = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+cumulus-primitives-utility = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+cumulus-pallet-session-benchmarking = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false, version = "3.0.0" }
+pallet-collator-selection = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.42", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = [
+  "derive",
+] }
 
 # Polkadot dependencies
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.42" }
@@ -336,13 +343,18 @@ path = "../../pallets/eq-assets"
 version = "0.1.0"
 
 [dependencies.eq-multisig-sudo]
-default-features=false
+default-features = false
 path = "../../pallets/eq-multisig-sudo"
 version = "0.1.0"
 
 [dependencies.eq-margin-call]
-default-features=false
+default-features = false
 path = "../../pallets/eq-margin-call"
+version = "0.1.0"
+
+[dependencies.eq-crowdloan-dots]
+default-features = false
+path = "../../pallets/eq-crowdloan-dots"
 version = "0.1.0"
 
 # [dependencies.eq-curve-distribution]
@@ -428,9 +440,9 @@ hex-literal = "0.3.1"
 [features]
 default = ["std"]
 try-runtime = [
-	"frame-executive/try-runtime",
-	"frame-system/try-runtime",
-	"frame-try-runtime",
+  "frame-executive/try-runtime",
+  "frame-system/try-runtime",
+  "frame-try-runtime",
   "eq-session-manager/try-runtime",
   "eq-assets/try-runtime",
   "eq-oracle/try-runtime",
@@ -455,7 +467,8 @@ try-runtime = [
   "eq-xdot-pool/try-runtime",
   "eq-migration/try-runtime",
   "eq-wrapped-dot/try-runtime",
-  "eq-staking/try-runtime"
+  "eq-staking/try-runtime",
+  "eq-crowdloan-dots/try-runtime",
 ]
 std = [
   "common-runtime/std",
@@ -491,6 +504,7 @@ std = [
   "eq-primitives/std",
   "eq-balances/std",
   "eq-bridge/std",
+  "eq-crowdloan-dots/std",
   "eq-assets/std",
   "eq-whitelists/std",
   "eq-bailsman/std",
@@ -545,7 +559,7 @@ std = [
   "eq-wrapped-dot/std",
   "eq-market-maker/std",
   "eq-staking/std",
-  "eq-balances-rpc-runtime-api/std"
+  "eq-balances-rpc-runtime-api/std",
 ]
 runtime-benchmarks = [
   # "hex-literal",
@@ -564,12 +578,13 @@ runtime-benchmarks = [
   "eq-oracle/runtime-benchmarks",
   "eq-whitelists/runtime-benchmarks",
   "eq-treasury/runtime-benchmarks",
-  "eq-session-manager/runtime-benchmarks", # "eq-session-manager-benchmarking",
+  "eq-session-manager/runtime-benchmarks",                  # "eq-session-manager-benchmarking",
   "eq-bridge/runtime-benchmarks",
   "eq-rate/runtime-benchmarks",
   "eq-dex/runtime-benchmarks",
   "eq-lockdrop/runtime-benchmarks",
   "eq-assets/runtime-benchmarks",
+  "eq-crowdloan-dots/runtime-benchmarks",
   "eq-margin-call/runtime-benchmarks",
   "eq-multisig-sudo/runtime-benchmarks",
   "pallet-xcm/runtime-benchmarks",
@@ -584,11 +599,12 @@ runtime-benchmarks = [
   "equilibrium-curve-amm/runtime-benchmarks",
   "eq-lending/runtime-benchmarks",
   "eq-wrapped-dot/runtime-benchmarks",
-  "eq-staking/runtime-benchmarks"
+  "eq-staking/runtime-benchmarks",
 ]
 production = [
   "common-runtime/production",
   "eq-balances/production",
+  "eq-crowdloan-dots/production",
   "eq-vesting/production",
   "eq-claim/production",
   "eq-rate/production",
@@ -596,8 +612,6 @@ production = [
   "eq-margin-call/production",
   "eq-subaccounts/production",
   "eq-primitives/production",
-  "eq-staking/production"
+  "eq-staking/production",
 ]
-logging = [
-  "eq-utils/logging"
-]
+logging = ["eq-utils/logging"]

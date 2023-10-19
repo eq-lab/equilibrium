@@ -37,7 +37,7 @@
 use codec::Codec;
 pub use eq_primitives::imbalances::{NegativeImbalance, PositiveImbalance};
 use eq_primitives::{
-    asset::{Asset, AssetGetter, CDOT613, CDOT714, CDOT815, DOT, GLMR, XDOT, XDOT2, XDOT3},
+    asset::{Asset, AssetGetter, GLMR},
     balance::{
         AccountData, BalanceChecker, BalanceGetter, BalanceRemover, DebtCollateralDiscounted,
         DepositReason, EqCurrency, LockGetter, WithdrawReason, XcmDestination,
@@ -57,7 +57,6 @@ use eq_utils::{
     XcmBalance,
 };
 use frame_support::{
-    codec::{Decode, Encode},
     dispatch::DispatchError,
     ensure,
     storage::PrefixIterator,
@@ -65,7 +64,7 @@ use frame_support::{
         BalanceStatus, ExistenceRequirement, Get, Imbalance, LockIdentifier, StoredMap, UnixTime,
         WithdrawReasons,
     },
-    transactional, PalletId,
+    PalletId,
 };
 pub use pallet::*;
 #[allow(unused_imports)]
@@ -132,8 +131,7 @@ pub mod pallet {
             + MaybeSerializeDeserialize
             + Debug
             + TryFrom<eq_primitives::balance::Balance>
-            + Into<eq_primitives::balance::Balance>
-            + FixedPointOperand;
+            + Into<eq_primitives::balance::Balance>;
         /// Minimum account balance in usd. Accounts with deposit less than
         /// Min(`ExistentialDeposit`,`ExistentialDepositBasic`) must be killed
         #[pallet::constant]
@@ -483,37 +481,6 @@ pub mod pallet {
 
             Ok(().into())
         }
-
-        #[pallet::call_index(15)]
-        #[pallet::weight(T::DbWeight::get().writes(1))]
-        pub fn allow_crowdloan_swap(
-            origin: OriginFor<T>,
-            assets: Vec<CrowdloanDotAsset>,
-        ) -> DispatchResultWithPostInfo {
-            T::ToggleTransferOrigin::ensure_origin(origin)?;
-
-            AllowedCrowdloanDotsSwap::<T>::put(assets);
-
-            Ok(().into())
-        }
-
-        #[pallet::call_index(16)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(1, 2))]
-        #[transactional]
-        pub fn swap_crowdloan_dots(
-            origin: OriginFor<T>,
-            mb_who: Option<T::AccountId>,
-            assets: Vec<CrowdloanDotAsset>,
-        ) -> DispatchResultWithPostInfo {
-            Self::ensure_transfers_enabled(&XDOT, T::Balance::default())?;
-
-            let caller = ensure_signed(origin)?;
-            let who = mb_who.unwrap_or(caller);
-
-            Self::do_swap_crowdloan_dot(&who, &assets)?;
-
-            Ok(().into())
-        }
     }
 
     #[pallet::hooks]
@@ -620,8 +587,6 @@ pub mod pallet {
         XcmTransfersLimitExceeded,
         /// Balance is less than locked amount
         Locked,
-        /// Crowdloan DOT swap is not allowed
-        CrowdloanDotSwapNotAllowed,
     }
 
     /// Reserved balances
@@ -662,11 +627,6 @@ pub mod pallet {
     /// Stores limit value
     #[pallet::storage]
     pub type DailyXcmLimit<T: Config> = StorageValue<_, T::Balance, OptionQuery>;
-
-    /// Stores Crowdloan DOTs allowed to swap
-    #[pallet::storage]
-    pub type AllowedCrowdloanDotsSwap<T: Config> =
-        StorageValue<_, Vec<CrowdloanDotAsset>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -1701,21 +1661,6 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn ensure_crowdloan_dot_swap_allowed(assets: &Vec<CrowdloanDotAsset>) -> DispatchResult {
-        let allowed = AllowedCrowdloanDotsSwap::<T>::get();
-
-        eq_ensure!(
-            assets.iter().all(|a| allowed.contains(a)),
-            Error::<T>::CrowdloanDotSwapNotAllowed,
-            target: "eq_balances",
-            "{}:{}. Swap is not allowed for the specified Crowdloan DOT asset.",
-            file!(),
-            line!(),
-        );
-
-        Ok(())
-    }
-
     fn unreserve_all(who: &T::AccountId) {
         Reserved::<T>::iter_prefix(&who).for_each(|(asset, reserved)| {
             Self::unreserve(who, asset, reserved);
@@ -1793,80 +1738,6 @@ impl<T: Config> Pallet<T> {
             _ => existential_deposit_usd,
         }
     }
-
-    fn do_swap_crowdloan_dot(
-        who: &T::AccountId,
-        swap_assets: &Vec<CrowdloanDotAsset>,
-    ) -> DispatchResult {
-        Self::ensure_crowdloan_dot_swap_allowed(&swap_assets)?;
-
-        let mut accounts_balances: Vec<_> = SubAccType::iterator()
-            .filter_map(|t| T::SubaccountsManager::get_subaccount_id(who, &t))
-            .map(|a| (a.clone(), Self::iterate_account_balances(&a)))
-            .collect();
-
-        accounts_balances.push((who.clone(), Self::iterate_account_balances(&who)));
-
-        for swap_asset in swap_assets {
-            let asset = match swap_asset {
-                // CrowdloanDotAsset => (is_cdot, Asset)
-                CrowdloanDotAsset::XDOT => XDOT,
-                CrowdloanDotAsset::XDOT2 => XDOT2,
-                CrowdloanDotAsset::XDOT3 => XDOT3,
-                CrowdloanDotAsset::CDOT613 => CDOT613,
-                CrowdloanDotAsset::CDOT714 => CDOT714,
-                CrowdloanDotAsset::CDOT815 => CDOT815,
-            };
-
-            for (account, balances) in &accounts_balances {
-                let signed_balance = balances.get(&asset);
-
-                match signed_balance {
-                    Some(SignedBalance::Positive(balance)) => {
-                        Self::withdraw(
-                            account,
-                            asset,
-                            *balance,
-                            false,
-                            Some(WithdrawReason::CrowdloanDotSwap),
-                            WithdrawReasons::empty(),
-                            ExistenceRequirement::KeepAlive,
-                        )?;
-
-                        Self::deposit_creating(
-                            account,
-                            DOT,
-                            *balance,
-                            false,
-                            Some(DepositReason::CrowdloanDotSwap),
-                        )?;
-                    }
-                    Some(SignedBalance::Negative(balance)) => {
-                        Self::deposit_creating(
-                            account,
-                            asset,
-                            *balance,
-                            false,
-                            Some(DepositReason::CrowdloanDotSwap),
-                        )?;
-
-                        Self::withdraw(
-                            account,
-                            DOT,
-                            *balance,
-                            false,
-                            Some(WithdrawReason::CrowdloanDotSwap),
-                            WithdrawReasons::empty(),
-                            ExistenceRequirement::KeepAlive,
-                        )?;
-                    }
-                    None => {}
-                };
-            }
-        }
-
-        Ok(())
-    }
 }
 
 impl<T: Config> LockGetter<T::AccountId, T::Balance> for Pallet<T> {
@@ -1881,14 +1752,4 @@ pub struct XcmDestinationResolved {
     destination: MultiLocation,
     asset_location: MultiLocation,
     beneficiary: MultiLocation,
-}
-
-#[derive(Decode, Encode, Clone, Debug, PartialEq, scale_info::TypeInfo)]
-pub enum CrowdloanDotAsset {
-    XDOT,
-    XDOT2,
-    XDOT3,
-    CDOT613,
-    CDOT714,
-    CDOT815,
 }
