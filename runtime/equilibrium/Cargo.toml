@@ -388,6 +388,11 @@ package = "eq-xdot-pool-rpc-runtime-api"
 path = "../../pallets/eq-xdot-pool/rpc/runtime-api"
 version = "0.1.0"
 
+[dependencies.eq-to-q-swap]
+default-features = false
+path = "../../pallets/eq-to-q-swap"
+version = "0.1.0"
+
 [dependencies.pallet-multisig]
 default-features = false
 git = "https://github.com/paritytech/substrate"
@@ -469,6 +474,7 @@ try-runtime = [
   "eq-wrapped-dot/try-runtime",
   "eq-staking/try-runtime",
   "eq-crowdloan-dots/try-runtime",
+  "eq-to-q-swap/try-runtime",
 ]
 std = [
   "common-runtime/std",
@@ -529,6 +535,7 @@ std = [
   "equilibrium-curve-amm-rpc-runtime-api/std",
   "eq-dex/std",
   "eq-migration/std",
+  "eq-to-q-swap/std",
   "pallet-multisig/std",
   "pallet-proxy/std",
   "pallet-preimage/std",
@@ -600,6 +607,7 @@ runtime-benchmarks = [
   "eq-lending/runtime-benchmarks",
   "eq-wrapped-dot/runtime-benchmarks",
   "eq-staking/runtime-benchmarks",
+  "eq-to-q-swap/runtime-benchmarks",
 ]
 production = [
   "common-runtime/production",
@@ -613,5 +621,6 @@ production = [
   "eq-subaccounts/production",
   "eq-primitives/production",
   "eq-staking/production",
+  "eq-to-q-swap/production",
 ]
 logging = ["eq-utils/logging"]

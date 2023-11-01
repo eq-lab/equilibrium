@@ -453,6 +453,7 @@ parameter_types! {
     pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT_USD; // 0.1 USD
     pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_BASIC; // 100 EQ
     pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
+    pub const QCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
 }
 
 impl eq_aggregates::Config for Runtime {
@@ -682,6 +683,12 @@ pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
     BasicCurrencyGet,
 >;
 
+pub type QCurrency = eq_primitives::balance_adapter::BalanceAdapter<
+    Balance,
+    eq_balances::Pallet<Runtime>,
+    QCurrencyGet,
+>;
+
 parameter_types! {
     pub const TransactionByteFee: Balance = 1;
     pub const OperationalFeeMultiplier: u8 = 5;
@@ -862,6 +869,21 @@ impl eq_vesting::Config<VestingInstance2> for Runtime {
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
     type PalletId = Vesting2ModuleId;
+    type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
+}
+
+parameter_types! {
+    pub const Vesting3ModuleId: PalletId = PalletId(*b"eq/vest3");
+}
+
+type VestingInstance3 = eq_vesting::Instance3;
+impl eq_vesting::Config<VestingInstance3> for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = QCurrency;
+    type BlockNumberToBalance = BlockNumberToBalance;
+    type MinVestedTransfer = MinVestedTransfer;
+    type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
+    type PalletId = Vesting3ModuleId;
     type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
 }
 
@@ -2519,6 +2541,14 @@ impl eq_crowdloan_dots::Config for Runtime {
     type LendingPoolManager = EqLending;
 }
 
+impl eq_to_q_swap::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
+    type SetEqSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
+    type VestingManager = VestingQSwap;
+    type EqCurrency = EqBalances;
+}
+
 construct_runtime!(
     pub enum Runtime where
         Block = Block,
@@ -2594,8 +2624,10 @@ construct_runtime!(
 
         Democracy: pallet_democracy = 66,
 
-        EqStaking: eq_staking::{Pallet, Call, Event<T>, Storage } = 67,
-        EqCrowdLoanDots: eq_crowdloan_dots::{Pallet, Call, Storage } = 68,
+        EqStaking: eq_staking::{ Pallet, Call, Event<T>, Storage } = 67,
+        EqCrowdLoanDots: eq_crowdloan_dots::{ Pallet, Call, Storage } = 68,
+        EqToQSwap: eq_to_q_swap::{ Pallet, Call, Event<T>, Storage } = 69,
+        VestingQSwap: eq_vesting::<Instance3>::{Pallet, Call, Storage, Event<T, Instance3>, Config<T, Instance3>} = 70,
     }
 );
 
