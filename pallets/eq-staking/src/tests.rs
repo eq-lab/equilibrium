@@ -24,6 +24,7 @@ use eq_primitives::{
     balance::{BalanceGetter, EqCurrency, LockGetter},
     SignedBalance,
 };
+use frame_support::pallet_prelude::Hooks;
 use frame_support::{assert_noop, assert_ok, BoundedVec};
 use frame_system::RawOrigin;
 use sp_runtime::traits::Zero;
@@ -459,5 +460,91 @@ fn unlock_rewards_err() {
             Pallet::<Test>::unlock(RuntimeOrigin::signed(ACCOUNT_1), None),
             Error::<Test>::LockPeriodNotEnded
         );
+    });
+}
+
+#[test]
+fn on_initialize_remove_stake() {
+    new_test_ext().execute_with(|| {
+        let periods = [
+            StakePeriod::One,
+            StakePeriod::Two,
+            StakePeriod::Three,
+            StakePeriod::Six,
+            StakePeriod::Twelve,
+            StakePeriod::Eighteen,
+            StakePeriod::TwentyFour,
+        ];
+        let stake = 500 * ONE_TOKEN;
+        let account = ACCOUNT_1;
+
+        for period in periods {
+            assert_ok!(Pallet::<Test>::stake(
+                RuntimeOrigin::signed(account),
+                stake,
+                period
+            ));
+        }
+
+        let stakes_num = periods.len();
+        assert_eq!(eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID), stake * stakes_num as u128);
+        assert_eq!(Stakes::<Test>::get(account).len(), stakes_num);
+        Pallet::<Test>::on_initialize(1);
+        assert_eq!(eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID), 0);
+        assert_eq!(Stakes::<Test>::get(account).len(), 0);
+    });
+}
+
+#[test]
+fn on_initialize_remove() {
+    new_test_ext().execute_with(|| {
+        let periods = [
+            StakePeriod::One,
+            StakePeriod::Two,
+            StakePeriod::Three,
+            StakePeriod::Six,
+            StakePeriod::Twelve,
+            StakePeriod::Eighteen,
+            StakePeriod::TwentyFour,
+        ];
+        let stake = 500 * ONE_TOKEN;
+        let accounts = [ACCOUNT_1, ACCOUNT_2, ACCOUNT_3];
+        let accounts_num = accounts.len() as u32;
+
+        for account in accounts {
+            for period in periods {
+                assert_ok!(Pallet::<Test>::stake(
+                    RuntimeOrigin::signed(account),
+                    stake,
+                    period
+                ));
+            }
+        }
+
+        let removed_per_block = AccountsPerBlock::get();
+        let stakes_num = periods.len() as u32;
+
+        let iterations = (accounts_num + removed_per_block - 1) / removed_per_block;
+
+        for iteration in 1..=iterations {
+            Pallet::<Test>::on_initialize(1);
+            let mut stakes_removed = 0;
+            let mut stakes_left = accounts_num;
+            for account in accounts {
+                let account_lock = eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID);
+    
+                if account_lock == 0 {
+                    stakes_removed += 1;
+                    stakes_left -= 1;
+                } else if account_lock != stake * stakes_num as u128 {
+                    panic!("Wrong locked amount for account {}", account);
+                }
+            }
+    
+            let should_be_removed = (removed_per_block * iteration).min(accounts_num);
+            assert_eq!(stakes_removed, should_be_removed);
+            assert_eq!(stakes_left, accounts_num - should_be_removed);
+        }
+
     });
 }

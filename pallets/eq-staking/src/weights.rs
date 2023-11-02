@@ -23,6 +23,7 @@ pub trait WeightInfo {
     fn reward() -> Weight;
     fn unlock_stake() -> Weight;
     fn unlock_reward() -> Weight;
+    fn on_initialize() -> Weight;
 }
 
 // for tests
@@ -37,6 +38,9 @@ impl crate::weights::WeightInfo for () {
         Weight::zero()
     }
     fn unlock_reward() -> Weight {
+        Weight::zero()
+    }
+    fn on_initialize() -> Weight {
         Weight::zero()
     }
 }

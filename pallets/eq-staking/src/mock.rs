@@ -281,6 +281,7 @@ impl Get<AccountId> for TreasuryAccount {
 
 parameter_types! {
     pub const MaxRewardExternalIdsCount: u32 = 1000;
+    pub const AccountsPerBlock: u32 = 2;
 }
 
 impl eq_staking::Config for Test {
@@ -297,6 +298,7 @@ impl eq_staking::Config for Test {
     type RewardsLockPeriod = RewardsLockPeriod;
     type WeightInfo = ();
     type MaxRewardExternalIdsCount = MaxRewardExternalIdsCount;
+    type AccountsPerBlock = AccountsPerBlock;
 }
 
 pub const ACCOUNT_1: AccountId = 1234;

@@ -101,6 +101,8 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
         #[pallet::constant]
         type MaxRewardExternalIdsCount: Get<u32>;
+        #[pallet::constant]
+        type AccountsPerBlock: Get<u32>;
     }
 
     #[pallet::storage]
@@ -154,6 +156,20 @@ pub mod pallet {
         CustomReward(u8),
         /// Error while adding reward external ID
         UnableToAddRewardExternalId,
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+            Stakes::<T>::iter_keys()
+                .take(T::AccountsPerBlock::get() as usize)
+                .for_each(|account| {
+                    T::EqCurrency::set_lock(STAKING_ID, &account, T::Balance::zero());
+                    Stakes::<T>::remove(account);
+                });
+
+            T::WeightInfo::on_initialize()
+        }
     }
 
     #[pallet::call]
