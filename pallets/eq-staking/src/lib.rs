@@ -168,7 +168,7 @@ pub mod pallet {
                     Stakes::<T>::remove(account);
                 });
 
-            T::WeightInfo::on_initialize()
+            T::DbWeight::get().writes(T::AccountsPerBlock::get() as u64)
         }
     }
 

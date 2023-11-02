@@ -496,7 +496,7 @@ fn on_initialize_remove_stake() {
 }
 
 #[test]
-fn on_initialize_remove() {
+fn on_initialize_remove_correct_number_of_locks() {
     new_test_ext().execute_with(|| {
         let periods = [
             StakePeriod::One,
