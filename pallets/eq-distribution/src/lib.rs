@@ -34,12 +34,13 @@ mod origin;
 mod tests;
 pub mod weights;
 
-use core::convert::TryInto;
+use core::convert::{TryFrom, TryInto};
+use eq_primitives::vestings::EqVestingSchedule;
 use eq_utils::eq_ensure;
-use frame_support::traits::{Currency, ExistenceRequirement, Get, VestingSchedule};
+use frame_support::traits::{ExistenceRequirement, Get};
 use frame_support::PalletId;
 use frame_system::pallet_prelude::OriginFor;
-use sp_runtime::traits::{AccountIdConversion, Zero};
+use sp_runtime::traits::{AccountIdConversion, AtLeast32BitUnsigned, Zero};
 
 pub use pallet::*;
 pub use weights::WeightInfo;
@@ -56,11 +57,6 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     // use frame_system::EnsureRoot;
 
-    pub type CurrencyOf<T, I> = <<T as Config<I>>::VestingSchedule as VestingSchedule<
-        <T as frame_system::Config>::AccountId,
-    >>::Currency;
-    pub type BalanceOf<T, I> =
-        <CurrencyOf<T, I> as Currency<<T as frame_system::Config>::AccountId>>::Balance;
     pub type EnsureManagerOrManagementOrigin<T, I> =
         EitherOfDiverse<EnsureManager<T, I>, <T as Config<I>>::ManagementOrigin>;
 
@@ -71,18 +67,30 @@ pub mod pallet {
     pub trait Config<I: 'static = ()>: frame_system::Config {
         /// Pallet's AccountId for balance
         #[pallet::constant]
-
         type PalletId: Get<PalletId>;
 
+        /// Numerical representation of stored balances
+        type Balance: Parameter
+            + Member
+            + AtLeast32BitUnsigned
+            + Default
+            + Copy
+            + MaybeSerializeDeserialize
+            + TryFrom<eq_primitives::balance::Balance>
+            + Into<eq_primitives::balance::Balance>;
         type ManagementOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         /// Gets vesting account (for vesting transfers).
         type VestingAccountId: Get<Self::AccountId>;
         /// Used to schedule vesting part of a claim.
-        type VestingSchedule: VestingSchedule<Self::AccountId, Moment = Self::BlockNumber>;
+        type EqVestingSchedule: EqVestingSchedule<
+            Self::Balance,
+            Self::AccountId,
+            Moment = Self::BlockNumber,
+        >;
         /// Used to deal with Native Asset
         type AssetGetter: AssetGetter;
         /// Used for currency-related operations and calculations
-        type EqCurrency: EqCurrency<Self::AccountId, BalanceOf<Self, I>>;
+        type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -110,7 +118,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: Asset,
             target: T::AccountId,
-            value: BalanceOf<T, I>,
+            value: T::Balance,
         ) -> DispatchResultWithPostInfo {
             <EnsureManagerOrManagementOrigin<T, I>>::ensure_origin(origin)?;
 
@@ -145,12 +153,12 @@ pub mod pallet {
         pub fn vested_transfer(
             origin: OriginFor<T>,
             target: T::AccountId,
-            schedule: (BalanceOf<T, I>, BalanceOf<T, I>, T::BlockNumber),
+            schedule: (T::Balance, T::Balance, T::BlockNumber),
         ) -> DispatchResultWithPostInfo {
             <EnsureManagerOrManagementOrigin<T, I>>::ensure_origin(origin)?;
 
             eq_ensure!(
-                schedule.1 > BalanceOf::<T, I>::zero(),
+                schedule.1 > T::Balance::zero(),
                 Error::<T, I>::AmountLow,
                 target: "eq_distribuiton",
                 "{}:{}. Schedule per block equals zero. Schedule: {:?}.",
@@ -159,7 +167,7 @@ pub mod pallet {
                 schedule.1
             );
             eq_ensure!(
-                T::VestingSchedule::vesting_balance(&target).is_none(),
+                T::EqVestingSchedule::vesting_balance(&target).is_none(),
                 Error::<T, I>::ExistingVestingSchedule,
                 target: "eq_distribuiton",
                 "{}:{}. An existing vesting schedule already exists for account. Who: {:?}.",
@@ -178,7 +186,7 @@ pub mod pallet {
                 true,
             )?;
             // We do not expect error as a result of add_vesting_schedule method
-            T::VestingSchedule::add_vesting_schedule(&target, schedule.0, schedule.1, schedule.2)
+            T::EqVestingSchedule::add_vesting_schedule(&target, schedule.0, schedule.1, schedule.2)
                 .expect("user does not have an existing vesting schedule; q.e.d.");
             Ok(().into())
         }

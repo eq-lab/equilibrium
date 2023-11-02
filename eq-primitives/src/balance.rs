@@ -609,6 +609,8 @@ pub enum DepositReason {
     Staking,
     /// Swap Crowdloan DOT to DOT
     CrowdloanDotSwap,
+    /// Swap EQ-to-Q
+    SwapEqToQ,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Decode, Encode, scale_info::TypeInfo)]
@@ -627,6 +629,8 @@ pub enum WithdrawReason {
     Staking,
     /// Swap Crowdloan DOT to DOT
     CrowdloanDotSwap,
+    /// Swap EQ-to-Q
+    SwapEqToQ,
 }
 
 #[derive(

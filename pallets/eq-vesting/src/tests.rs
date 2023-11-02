@@ -24,6 +24,7 @@ use crate::mock::{
     System, Test,
 };
 use eq_primitives::balance::EqCurrency;
+use eq_primitives::vestings::EqVestingSchedule;
 use eq_primitives::{asset, balance::BalanceGetter, SignedBalance};
 use eq_utils::fx128;
 use frame_support::{assert_err, assert_ok};
@@ -81,14 +82,14 @@ fn add_vesting_schedule() {
         let who = 1;
         let refs_before = frame_system::Pallet::<Test>::providers(&who);
 
-        assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
-            u64,
-        >>::add_vesting_schedule(
-            &who,
-            vesting_info.locked,
-            vesting_info.per_block,
-            vesting_info.starting_block
-        ));
+        assert_ok!(
+            <ModuleVesting as EqVestingSchedule<u128, u64>>::add_vesting_schedule(
+                &who,
+                vesting_info.locked,
+                vesting_info.per_block,
+                vesting_info.starting_block
+            )
+        );
         assert_eq!(ModuleVesting::vesting(who), Option::Some(vesting_info));
         assert_eq!(
             frame_system::Pallet::<Test>::providers(&who),
@@ -96,7 +97,7 @@ fn add_vesting_schedule() {
         );
 
         assert_err!(
-            <ModuleVesting as frame_support::traits::VestingSchedule<u64>>::add_vesting_schedule(
+            <ModuleVesting as EqVestingSchedule<u128, u64>>::add_vesting_schedule(
                 &who,
                 vesting_info.locked,
                 vesting_info.per_block,
@@ -112,11 +113,14 @@ fn add_zero_vesting_schedule() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
 
-        assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
-            u64,
-        >>::add_vesting_schedule(
-            &1, 0, fx128!(10, 0).into_inner() as u128, 10
-        ));
+        assert_ok!(
+            <ModuleVesting as EqVestingSchedule<u128, u64>>::add_vesting_schedule(
+                &1,
+                0,
+                fx128!(10, 0).into_inner() as u128,
+                10
+            )
+        );
         assert_eq!(ModuleVesting::vesting(1), Option::None);
     });
 }
