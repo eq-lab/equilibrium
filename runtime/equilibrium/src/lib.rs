@@ -2507,6 +2507,7 @@ parameter_types! {
     pub const EqStakingModuleId: PalletId = PalletId(*b"eq/stkng");
     pub const RewardsLockPeriod: eq_staking::StakePeriod = eq_staking::StakePeriod::Six;
     pub const MaxRewardExternalIdsCount: u32 = 1000;
+    pub const AccountsPerBlock: u32 = 100;
 }
 
 pub struct LiquidityAccount;
@@ -2536,6 +2537,7 @@ impl eq_staking::Config for Runtime {
     type LiquidityAccountCustom = LiquidityAccountCustom;
     type RewardsLockPeriod = RewardsLockPeriod;
     type MaxRewardExternalIdsCount = MaxRewardExternalIdsCount;
+    type AccountsPerBlock = AccountsPerBlock;
     type WeightInfo = ();
 }
 
