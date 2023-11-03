@@ -285,20 +285,18 @@ pub mod pallet {
                 .for_each(|(account, vesting_info)| {
                     let vested =
                         Vested::<T, I>::get(&account).unwrap_or_else(BalanceOf::<T, I>::zero);
-                    let success = if vesting_info.locked > vested {
-                        T::Currency::transfer(
-                            &Self::account_id(),
-                            &account,
-                            vesting_info.locked.saturating_sub(vested),
-                            ExistenceRequirement::KeepAlive,
-                        ).is_ok()
-                    } else {
-                        true
-                    };
 
-                    if success {
+                    if T::Currency::transfer(
+                        &Self::account_id(),
+                        &account,
+                        vesting_info.locked.saturating_sub(vested),
+                        ExistenceRequirement::KeepAlive,
+                    )
+                    .is_ok()
+                    {
                         Vesting::<T, I>::remove(&account);
                         Vested::<T, I>::remove(&account);
+                        AccountRefCounter::<T>::dec_ref(&account);
                     }
                 });
 

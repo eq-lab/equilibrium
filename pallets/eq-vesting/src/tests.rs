@@ -232,9 +232,14 @@ fn remove_vesting_schedule() {
         ));
         assert_eq!(ModuleVesting::vesting(who), Option::Some(vesting_info));
 
+        let refs_before = frame_system::Pallet::<Test>::providers(&who);
         ModuleVesting::on_initialize(2);
 
         assert!(ModuleVesting::vesting(who).is_none());
+        assert_eq!(
+            frame_system::Pallet::<Test>::providers(&who),
+            refs_before - 1
+        );
     });
 }
 
@@ -251,17 +256,21 @@ fn on_initialize_remove_correct_number_of_vesting_schedules() {
         let accounts: Vec<_> = (1..10).collect();
         let accounts_num = accounts.len() as u32;
 
-        for account in accounts.iter() {
-            assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
-                u64,
-            >>::add_vesting_schedule(
-                account,
-                vesting_info.locked,
-                vesting_info.per_block,
-                vesting_info.starting_block
-            ));
-            assert!(ModuleVesting::vesting(account).is_some());
-        }
+        let refs_before: Vec<_> = accounts
+            .iter()
+            .map(|account| {
+                assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
+                    u64,
+                >>::add_vesting_schedule(
+                    account,
+                    vesting_info.locked,
+                    vesting_info.per_block,
+                    vesting_info.starting_block
+                ));
+                assert!(ModuleVesting::vesting(account).is_some());
+                frame_system::Pallet::<Test>::providers(account)
+            })
+            .collect();
 
         let removed_per_block = crate::mock::AccountsPerBlock::get();
 
@@ -271,10 +280,14 @@ fn on_initialize_remove_correct_number_of_vesting_schedules() {
             ModuleVesting::on_initialize(2);
             let mut vestings_removed = 0;
             let mut vestings_left = accounts_num;
-            for account in accounts.iter() {
+            for (index, account) in accounts.iter().enumerate() {
                 if ModuleVesting::vesting(account).is_none() {
                     vestings_removed += 1;
                     vestings_left -= 1;
+                    assert_eq!(
+                        refs_before[index] - 1,
+                        frame_system::Pallet::<Test>::providers(account)
+                    )
                 }
             }
 
