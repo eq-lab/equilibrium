@@ -2553,9 +2553,10 @@ impl eq_to_q_swap::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type SetEqSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
-    type VestingManager = VestingQSwap;
+    type Vesting = VestingQSwap;
     type BasicCurrency = BasicCurrency;
     type QCurrency = QCurrency;
+    type VestingAccountId = VestingAccount;
 }
 
 construct_runtime!(

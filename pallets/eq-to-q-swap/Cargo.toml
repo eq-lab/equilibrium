@@ -93,6 +93,7 @@ std = [
 	"eq-utils/std",
 	"eq-assets/std",
 	"eq-balances/std",
+	"eq-vesting/std",
 ]
 production = []
 runtime-benchmarks = []

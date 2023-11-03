@@ -27,18 +27,20 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-use core::ops::Sub;
-
 use codec::{Decode, Encode};
+use core::ops::{Div, Sub};
 use eq_primitives::asset::{EQ, Q};
 use eq_primitives::balance::{BalanceGetter, DepositReason, EqCurrency, WithdrawReason};
 use eq_primitives::balance_number::EqFixedU128;
+use eq_primitives::vestings::EqVestingSchedule;
+use eq_primitives::Vesting;
 use eq_utils::eq_ensure;
 use frame_support::pallet_prelude::DispatchResult;
-use frame_support::traits::{ExistenceRequirement, VestingSchedule, WithdrawReasons};
+use frame_support::traits::{ExistenceRequirement, Get, WithdrawReasons};
 use frame_support::transactional;
+use frame_support::weights::Weight;
 use scale_info::TypeInfo;
-use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedDiv, Zero};
+use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
 use sp_runtime::{ArithmeticError, FixedPointNumber, FixedPointOperand, Percent};
 use sp_std::convert::{TryFrom, TryInto};
 
@@ -47,6 +49,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use eq_primitives::Vesting;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
@@ -71,16 +74,19 @@ pub mod pallet {
         /// Origin for setting configuration
         type SetEqSwapConfigurationOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         // Used for managing vestings
-        type VestingManager: EqVestingSchedule<Self::AccountId, Moment = Self::BlockNumber>;
+        type Vesting: Vesting<Self::AccountId>
+            + EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
         /// Used for managing balances and currencies
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>
             + BalanceGetter<Self::AccountId, Self::Balance>;
+        /// Returns vesting account
+        type VestingAccountId: Get<Self::AccountId>;
     }
 
     /// Stores EQ-to-Q swap configuration
     #[pallet::storage]
     pub type EqSwapConfiguration<T: Config> =
-        StorageValue<_, SwapConfiguration<T::BlockNumber>, ValueQuery>;
+        StorageValue<_, SwapConfiguration<T::Balance, T::BlockNumber>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -104,6 +110,22 @@ pub mod pallet {
         NotEnoughBalance,
     }
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
+            let mut configuration = EqSwapConfiguration::<T>::get();
+
+            if configuration.vesting_starting_block.le(&now) {
+                configuration.enabled = false;
+                EqSwapConfiguration::<T>::put(configuration);
+
+                return T::DbWeight::get().reads_writes(1, 1);
+            }
+
+            T::DbWeight::get().reads(1)
+        }
+    }
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
@@ -114,7 +136,7 @@ pub mod pallet {
             mb_eq_to_q_ratio: Option<u128>,
             mb_vesting_share: Option<Percent>,
             mb_vesting_starting_block: Option<T::BlockNumber>,
-            mb_vesting_duration_blocks: Option<u128>,
+            mb_vesting_duration_blocks: Option<T::Balance>,
         ) -> DispatchResultWithPostInfo {
             T::SetEqSwapConfigurationOrigin::ensure_origin(origin)?;
 
@@ -130,8 +152,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
-        // TBD
-        #[pallet::weight(T::DbWeight::get().reads_writes(1, 2))]
+        #[pallet::weight(T::DbWeight::get().reads(1))]
         #[transactional]
         pub fn swap_eq_to_q(
             origin: OriginFor<T>,
@@ -149,9 +170,11 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-    fn ensure_eq_swap_enabled(configuration: &SwapConfiguration<T::BlockNumber>) -> DispatchResult {
+    fn ensure_eq_swap_enabled(
+        configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
+    ) -> DispatchResult {
         eq_ensure!(
-            !configuration.enabled,
+            configuration.enabled,
             Error::<T>::SwapsAreDisabled,
             target: "eq_to_q_swap",
             "{}:{}. EQ swap is not allowed.",
@@ -167,7 +190,7 @@ impl<T: Config> Pallet<T> {
         mb_eq_to_q_ratio: Option<u128>,
         mb_vesting_share: Option<Percent>,
         mb_vesting_starting_block: Option<T::BlockNumber>,
-        mb_vesting_duration_blocks: Option<u128>,
+        mb_vesting_duration_blocks: Option<T::Balance>,
     ) -> DispatchResult {
         let mut configuration = EqSwapConfiguration::<T>::get();
 
@@ -192,9 +215,9 @@ impl<T: Config> Pallet<T> {
         }
 
         let is_valid_configuration = !configuration.enabled
-            || configuration.eq_to_q_ratio.is_zero()
-            || configuration.vesting_starting_block.is_zero()
-            || configuration.vesting_duration_blocks.is_zero();
+            || !configuration.eq_to_q_ratio.is_zero()
+                && !configuration.vesting_starting_block.is_zero()
+                && !configuration.vesting_duration_blocks.is_zero();
 
         eq_ensure!(
             is_valid_configuration,
@@ -213,7 +236,7 @@ impl<T: Config> Pallet<T> {
     fn do_swap_eq_to_q(
         who: &T::AccountId,
         amount: &T::Balance,
-        configuration: &SwapConfiguration<T::BlockNumber>,
+        configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
     ) -> DispatchResult {
         let balance = T::EqCurrency::get_balance(who, &EQ);
         let remaining_balance = balance
@@ -221,7 +244,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Underflow)?;
 
         frame_support::ensure!(
-            remaining_balance.is_positive(),
+            !amount.is_zero() && remaining_balance.is_positive(),
             Error::<T>::NotEnoughBalance
         );
 
@@ -236,37 +259,45 @@ impl<T: Config> Pallet<T> {
         )?;
 
         let q_total_amount = EqFixedU128::from_inner(configuration.eq_to_q_ratio)
-            .reciprocal()
-            .ok_or(ArithmeticError::DivisionByZero)?
             .checked_mul_int(*amount)
             .ok_or(ArithmeticError::Overflow)?;
 
-        let mut q_amount = T::Balance::zero();
+        let mut q_amount = q_total_amount;
         let mut vesting_amount = T::Balance::zero();
 
         if !configuration.vesting_share.is_zero() {
-            let vesting_amount = configuration.vesting_share.mul_floor(q_total_amount);
-            let q_amount = q_total_amount.sub(vesting_amount);
-            let vesting_duration_blocks = EqFixedU128::from(configuration.vesting_duration_blocks);
-            let per_block = if configuration
-                .vesting_duration_blocks
-                .ge(&vesting_amount.into())
-            {
-                EqFixedU128::from(configuration.vesting_duration_blocks)
-                    .reciprocal()
-                    .ok_or(ArithmeticError::DivisionByZero)?
-                    .checked_div_int(vesting_amount)
-                    .ok_or(ArithmeticError::Overflow)?
-            } else {
-                vesting_amount
-            };
+            let vesting_account_id = T::VestingAccountId::get();
+            vesting_amount = configuration.vesting_share.mul_floor(q_total_amount);
+            q_amount = q_total_amount.sub(vesting_amount);
 
-            T::VestingManager::add_vesting_schedule(
-                who,
-                vesting_amount,
-                per_block,
-                configuration.vesting_starting_block,
+            T::EqCurrency::deposit_creating(
+                &vesting_account_id,
+                Q,
+                q_amount,
+                false,
+                Some(DepositReason::SwapEqToQ),
             )?;
+
+            if T::Vesting::has_vesting_schedule(who.clone()) {
+                T::Vesting::update_vesting_schedule(
+                    who,
+                    vesting_amount,
+                    configuration.vesting_duration_blocks,
+                )?;
+            } else {
+                let per_block = configuration
+                    .vesting_duration_blocks
+                    .lt(&vesting_amount)
+                    .then(|| vesting_amount.div(configuration.vesting_duration_blocks))
+                    .unwrap_or(vesting_amount.div(vesting_amount));
+
+                T::Vesting::add_vesting_schedule(
+                    who,
+                    vesting_amount,
+                    per_block,
+                    configuration.vesting_starting_block,
+                )?;
+            }
         }
 
         T::EqCurrency::deposit_creating(who, Q, q_amount, false, Some(DepositReason::SwapEqToQ))?;
@@ -282,11 +313,11 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-#[derive(Default, Decode, Encode, PartialEq, TypeInfo)]
-pub struct SwapConfiguration<BlockNumber> {
+#[derive(Default, Debug, Decode, Encode, PartialEq, TypeInfo)]
+pub struct SwapConfiguration<Balance, BlockNumber> {
     pub enabled: bool,
     pub eq_to_q_ratio: u128,
     pub vesting_share: Percent,
     pub vesting_starting_block: BlockNumber,
-    pub vesting_duration_blocks: u128,
+    pub vesting_duration_blocks: Balance,
 }

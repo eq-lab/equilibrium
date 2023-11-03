@@ -404,16 +404,11 @@ impl EqVestingSchedule<Balance, DummyValidatorId> for VestingScheduleMock {
         Ok(())
     }
 
-    fn remove_vesting_schedule(_who: &DummyValidatorId, _schedule_index: u32) -> DispatchResult {
-        panic!("not used");
-    }
-
-    fn can_add_vesting_schedule(
+    fn update_vesting_schedule(
         _who: &DummyValidatorId,
         _locked: Balance,
-        _per_block: Balance,
-        _starting_block: Self::Moment,
-    ) -> frame_support::dispatch::DispatchResult {
+        _duration_blocks: Balance,
+    ) -> DispatchResult {
         unimplemented!()
     }
 }

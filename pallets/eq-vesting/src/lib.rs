@@ -41,6 +41,8 @@ use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_support::traits::{Currency, ExistenceRequirement, Get};
 use frame_support::PalletId;
 use frame_system::{ensure_root, ensure_signed};
+use sp_arithmetic::traits::CheckedDiv;
+use sp_arithmetic::ArithmeticError;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{
     traits::{
@@ -449,19 +451,36 @@ where
         Ok(())
     }
 
-    /// Remove a vesting schedule for a given account.
-    fn remove_vesting_schedule(_who: &T::AccountId, _shedule_index: u32) -> DispatchResult {
-        unimplemented!("fn remove_vesting_schedule");
-    }
-
-    /// Checks if `add_vesting_schedule` would work against `who`.
-    fn can_add_vesting_schedule(
-        _who: &T::AccountId,
-        _locked: T::Balance,
-        _per_block: T::Balance,
-        _starting_block: T::BlockNumber,
+    /// Updates an existings vesting schedule for a given account.
+    fn update_vesting_schedule(
+        who: &T::AccountId,
+        locked: T::Balance,
+        duration_blocks: T::Balance,
     ) -> DispatchResult {
-        unimplemented!("fn remove_vesting_schedule");
+        if locked.is_zero() {
+            return Ok(());
+        }
+
+        let mut vesting = ok_or_error!(
+            Self::vesting(who),
+            Error::<T, I>::NotVesting,
+            "{}:{}. The account is not vesting. Who: {:?}.",
+            file!(),
+            line!(),
+            who
+        )?;
+
+        vesting.locked = vesting.locked.saturating_add(locked);
+        vesting.per_block = vesting
+            .locked
+            .checked_div(&duration_blocks)
+            .ok_or(ArithmeticError::DivisionByZero)?;
+
+        Vesting::<T, I>::insert(who, vesting);
+        // it can't fail, but even if somehow it did, we don't really care.
+        let _ = Self::update_lock(who.clone());
+
+        Ok(())
     }
 }
 
