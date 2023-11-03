@@ -134,6 +134,8 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
         /// Checks if transaction disabled flag is off
         type IsTransfersEnabled: eq_primitives::IsTransfersEnabled;
+        #[pallet::constant]
+        type AccountsPerBlock: Get<u32>;
     }
 
     #[pallet::call]
@@ -276,7 +278,35 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
+    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
+        fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+            Vesting::<T, I>::iter()
+                .take(T::AccountsPerBlock::get() as usize)
+                .for_each(|(account, vesting_info)| {
+                    let vested =
+                        Vested::<T, I>::get(&account).unwrap_or_else(BalanceOf::<T, I>::zero);
+                    let success = if vesting_info.locked > vested {
+                        T::Currency::transfer(
+                            &Self::account_id(),
+                            &account,
+                            vesting_info.locked.saturating_sub(vested),
+                            ExistenceRequirement::KeepAlive,
+                        )
+                        .unwrap();
+                        true
+                    } else {
+                        true
+                    };
+
+                    if success {
+                        Vesting::<T, I>::remove(&account);
+                        Vested::<T, I>::remove(&account);
+                    }
+                });
+
+            T::DbWeight::get().writes(T::AccountsPerBlock::get().saturating_mul(2) as u64)
+        }
+    }
 
     /// Pallet storage: information regarding the vesting of a given account
     #[pallet::storage]
