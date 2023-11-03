@@ -102,11 +102,7 @@ pub mod pallet {
             + Into<eq_primitives::balance::Balance>;
         type WeightInfo: WeightInfo;
         /// Used to schedule vesting part of a claim
-        type EqVestingSchedule: EqVestingSchedule<
-            Self::Balance,
-            Self::AccountId,
-            Moment = Self::BlockNumber,
-        >;
+        type Vesting: EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
         /// The Prefix that is used in signed Ethereum messages for this network
         type Prefix: Get<&'static [u8]>;
         /// Origin that can move claims to another account
@@ -782,7 +778,7 @@ impl<T: Config> Pallet<T> {
         file!(), line!(), Self::total(), balance_due, signer)?;
 
         let vesting = Vesting::<T>::get(&signer);
-        if vesting.is_some() && T::EqVestingSchedule::vesting_balance(&dest).is_some() {
+        if vesting.is_some() && T::Vesting::vesting_balance(&dest).is_some() {
             return Err({
                 log::error!("{}:{}. The account already has a vested balance. Who ID: {:?}, dest ethereum address: {:?}.", 
             file!(), line!(), dest, signer);
@@ -800,7 +796,7 @@ impl<T: Config> Pallet<T> {
 
             // This can only fail if the account already has a vesting schedule,
             // but this is checked above.
-            T::EqVestingSchedule::add_vesting_schedule(&dest, vs.0, vs.1, vs.2)
+            T::Vesting::add_vesting_schedule(&dest, vs.0, vs.1, vs.2)
                 .expect("No other vesting schedule exists, as checked above; qed");
         } else {
             T::Currency::deposit_creating(&dest, balance_due);

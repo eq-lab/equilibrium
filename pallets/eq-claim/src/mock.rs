@@ -337,7 +337,7 @@ ord_parameter_types! {
 impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
     type Prefix = Prefix;
     type MoveClaimOrigin = frame_system::EnsureSignedBy<Six, u64>;
     type VestingAccountId = VestingAccountMock<AccountId>;
@@ -931,7 +931,7 @@ fn double_claiming_doesnt_work() {
 fn claiming_while_vested_doesnt_work() {
     new_test_ext().execute_with(|| {
         // A user is already vested
-        assert_ok!(<Test as Config>::EqVestingSchedule::add_vesting_schedule(
+        assert_ok!(<Test as Config>::Vesting::add_vesting_schedule(
             &69,
             total_claims(),
             100,

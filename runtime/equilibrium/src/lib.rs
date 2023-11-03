@@ -896,7 +896,7 @@ impl eq_vesting::Config<VestingInstance3> for Runtime {
 impl eq_claim::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
     type Prefix = Prefix;
     type MoveClaimOrigin = system::EnsureNever<Self::AccountId>;
     type VestingAccountId = VestingAccount;
@@ -1007,7 +1007,8 @@ type DistriBenchInstance = eq_distribution::Instance16;
 impl eq_distribution::Config<DistriBenchInstance> for Runtime {
     type ManagementOrigin = system::EnsureRoot<AccountId>;
     type PalletId = TreasuryModuleId;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1018,7 +1019,8 @@ type TreasuryInstance = eq_distribution::Instance5;
 impl eq_distribution::Config<TreasuryInstance> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = TreasuryModuleId;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1029,7 +1031,8 @@ type RepublicInstance = eq_distribution::Instance2;
 impl eq_distribution::Config<RepublicInstance> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = RepublicModuleId;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1040,7 +1043,8 @@ type Investors = eq_distribution::Instance3;
 impl eq_distribution::Config<Investors> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = InvestorsModuleId;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1051,7 +1055,8 @@ type LiquidityFarmingD = eq_distribution::Instance4;
 impl eq_distribution::Config<LiquidityFarmingD> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = LiquidityFarmingModuleId;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -2556,9 +2561,8 @@ impl eq_to_q_swap::Config for Runtime {
     type Balance = Balance;
     type SetEqSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
     type Vesting = VestingQSwap;
-    type BasicCurrency = BasicCurrency;
-    type QCurrency = QCurrency;
     type VestingAccountId = VestingAccount;
+    type EqCurrency = EqBalances;
 }
 
 construct_runtime!(

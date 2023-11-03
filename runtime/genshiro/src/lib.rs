@@ -974,7 +974,7 @@ type DistriBenchInstance = eq_distribution::Instance16;
 impl eq_distribution::Config<DistriBenchInstance> for Runtime {
     type PalletId = TreasuryModuleId;
     type Balance = Balance;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
     type VestingAccountId = VestingAccount;
     type AssetGetter = EqAssets;
     type EqCurrency = EqBalances;
@@ -986,7 +986,7 @@ type TreasuryInstance = eq_distribution::Instance5;
 impl eq_distribution::Config<TreasuryInstance> for Runtime {
     type PalletId = TreasuryModuleId;
     type Balance = Balance;
-    type EqVestingSchedule = Vesting;
+    type Vesting = Vesting;
     type VestingAccountId = VestingAccount;
     type AssetGetter = EqAssets;
     type EqCurrency = EqBalances;

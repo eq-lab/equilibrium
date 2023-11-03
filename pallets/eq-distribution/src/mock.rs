@@ -484,7 +484,7 @@ impl Config for Test {
     type ManagementOrigin =
         EitherOfDiverse<EnsureRoot<AccountId>, pallet_collective::EnsureMember<AccountId, ()>>;
     type VestingAccountId = VestingAccountMock<AccountId>;
-    type EqVestingSchedule = VestingScheduleMock;
+    type Vesting = VestingScheduleMock;
     type AssetGetter = AssetGetterMock;
     type EqCurrency = EqCurrencyMock;
     type WeightInfo = ();

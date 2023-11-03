@@ -82,7 +82,7 @@ pub mod pallet {
         /// Gets vesting account (for vesting transfers).
         type VestingAccountId: Get<Self::AccountId>;
         /// Used to schedule vesting part of a claim.
-        type EqVestingSchedule: EqVestingSchedule<
+        type Vesting: EqVestingSchedule<
             Self::Balance,
             Self::AccountId,
             Moment = Self::BlockNumber,
@@ -167,7 +167,7 @@ pub mod pallet {
                 schedule.1
             );
             eq_ensure!(
-                T::EqVestingSchedule::vesting_balance(&target).is_none(),
+                T::Vesting::vesting_balance(&target).is_none(),
                 Error::<T, I>::ExistingVestingSchedule,
                 target: "eq_distribuiton",
                 "{}:{}. An existing vesting schedule already exists for account. Who: {:?}.",
@@ -186,7 +186,7 @@ pub mod pallet {
                 true,
             )?;
             // We do not expect error as a result of add_vesting_schedule method
-            T::EqVestingSchedule::add_vesting_schedule(&target, schedule.0, schedule.1, schedule.2)
+            T::Vesting::add_vesting_schedule(&target, schedule.0, schedule.1, schedule.2)
                 .expect("user does not have an existing vesting schedule; q.e.d.");
             Ok(().into())
         }
