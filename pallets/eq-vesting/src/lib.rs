@@ -291,9 +291,7 @@ pub mod pallet {
                             &account,
                             vesting_info.locked.saturating_sub(vested),
                             ExistenceRequirement::KeepAlive,
-                        )
-                        .unwrap();
-                        true
+                        ).is_ok()
                     } else {
                         true
                     };
