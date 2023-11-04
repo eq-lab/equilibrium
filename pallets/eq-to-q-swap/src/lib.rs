@@ -115,7 +115,7 @@ pub mod pallet {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
             let mut configuration = EqSwapConfiguration::<T>::get();
 
-            if configuration.vesting_starting_block.le(&now) {
+            if configuration.enabled && configuration.vesting_starting_block.le(&now) {
                 configuration.enabled = false;
                 EqSwapConfiguration::<T>::put(configuration);
 
