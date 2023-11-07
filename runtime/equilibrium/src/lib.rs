@@ -848,7 +848,6 @@ impl eq_vesting::Config<VestingInstance1> for Runtime {
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
     type PalletId = VestingModuleId;
     type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
-    type AccountsPerBlock = AccountsPerBlock;
 }
 
 parameter_types! {
@@ -864,7 +863,6 @@ impl eq_vesting::Config<VestingInstance2> for Runtime {
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
     type PalletId = Vesting2ModuleId;
     type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
-    type AccountsPerBlock = AccountsPerBlock;
 }
 
 impl eq_claim::Config for Runtime {

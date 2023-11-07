@@ -875,10 +875,6 @@ impl sp_runtime::traits::Convert<BlockNumber, Balance> for BlockNumberToBalance 
     }
 }
 
-parameter_types! {
-    pub const AccountsPerBlock: u32 = 0;
-}
-
 type VestingInstance = eq_vesting::Instance1;
 impl eq_vesting::Config<VestingInstance> for Runtime {
     type RuntimeEvent = RuntimeEvent;
@@ -888,7 +884,6 @@ impl eq_vesting::Config<VestingInstance> for Runtime {
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
     type PalletId = VestingModuleId;
     type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
-    type AccountsPerBlock = AccountsPerBlock;
 }
 
 parameter_types! {

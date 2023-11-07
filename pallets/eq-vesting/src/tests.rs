@@ -238,10 +238,7 @@ fn does_not_remove_vestings_with_zero_value() {
         ModuleVesting::on_initialize(2);
 
         assert_eq!(ModuleVesting::vesting(who), Some(vesting_info));
-        assert_eq!(
-            frame_system::Pallet::<Test>::providers(&who),
-            refs_before
-        );
+        assert_eq!(frame_system::Pallet::<Test>::providers(&who), refs_before);
     });
 }
 
@@ -250,7 +247,10 @@ fn remove_vesting_schedule() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
 
-        assert_ok!(ModuleVesting::set_account_per_block_removed(RawOrigin::Root.into(), 2));
+        assert_ok!(ModuleVesting::set_accounts_per_block_removed(
+            RawOrigin::Root.into(),
+            2
+        ));
 
         let vesting_info = super::VestingInfo {
             locked: fx128!(10, 0).into_inner() as u128,
@@ -285,7 +285,10 @@ fn remove_vesting_schedule() {
 fn on_initialize_remove_correct_number_of_vesting_schedules() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
-        assert_ok!(ModuleVesting::set_account_per_block_removed(RawOrigin::Root.into(), 2));
+        assert_ok!(ModuleVesting::set_accounts_per_block_removed(
+            RawOrigin::Root.into(),
+            2
+        ));
 
         let vesting_info = super::VestingInfo {
             locked: fx128!(10, 0).into_inner() as u128,

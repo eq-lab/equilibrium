@@ -250,8 +250,8 @@ pub mod pallet {
 
         /// Sets number of accounts to be used in on_initialize vesting removals.
         #[pallet::call_index(3)]
-        #[pallet::weight(T::WeightInfo::vested_transfer())]
-        pub fn set_account_per_block_removed(
+        #[pallet::weight(T::DbWeight::get().writes(1))]
+        pub fn set_accounts_per_block_removed(
             origin: OriginFor<T>,
             account_per_block: u32,
         ) -> DispatchResultWithPostInfo {
