@@ -41,7 +41,7 @@ use frame_support::traits::{ExistenceRequirement, Get, IsSubType, WithdrawReason
 use frame_support::transactional;
 use frame_support::weights::Weight;
 use scale_info::TypeInfo;
-use sp_runtime::traits::{AtLeast32BitUnsigned, DispatchInfoOf, SignedExtension, Zero};
+use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedAdd, DispatchInfoOf, SignedExtension, Zero};
 use sp_runtime::transaction_validity::{
     InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
 };
@@ -99,6 +99,11 @@ pub mod pallet {
     pub type EqSwapConfiguration<T: Config> =
         StorageValue<_, SwapConfiguration<T::Balance, T::BlockNumber>, ValueQuery>;
 
+    /// Stores Q amount transferred to users
+    #[pallet::storage]
+    pub type QReceivedAmounts<T: Config> =
+        StorageMap<_, Identity, T::AccountId, T::Balance, ValueQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
@@ -121,6 +126,8 @@ pub mod pallet {
         NotEnoughBalance,
         /// Specified amount is too small to perform swap
         AmountTooSmall,
+        /// Q amount exceeded for a given account.
+        QAmountExceeded,
     }
 
     #[pallet::hooks]
@@ -147,6 +154,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             mb_enabled: Option<bool>,
             mb_min_amount: Option<T::Balance>,
+            mb_max_q_amount: Option<T::Balance>,
             mb_eq_to_q_ratio: Option<u128>,
             mb_vesting_share: Option<Percent>,
             mb_vesting_starting_block: Option<T::BlockNumber>,
@@ -157,6 +165,7 @@ pub mod pallet {
             Self::do_set_config(
                 mb_enabled,
                 mb_min_amount,
+                mb_max_q_amount,
                 mb_eq_to_q_ratio,
                 mb_vesting_share,
                 mb_vesting_starting_block,
@@ -217,6 +226,22 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    fn ensure_q_amount_not_exceeded(
+        configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
+        q_received: &T::Balance,
+    ) -> DispatchResult {
+        eq_ensure!(
+            q_received.le(&configuration.max_q_amount),
+            Error::<T>::QAmountExceeded,
+            target: "eq_to_q_swap",
+            "{}:{}. Q amount exceeded for a given account.",
+            file!(),
+            line!(),
+        );
+
+        Ok(())
+    }
+
     fn ensure_enough_balance(
         balance: &SignedBalance<T::Balance>,
         amount: &T::Balance,
@@ -240,6 +265,7 @@ impl<T: Config> Pallet<T> {
     fn do_set_config(
         mb_enabled: Option<bool>,
         mb_min_amount: Option<T::Balance>,
+        max_q_amount: Option<T::Balance>,
         mb_eq_to_q_ratio: Option<u128>,
         mb_vesting_share: Option<Percent>,
         mb_vesting_starting_block: Option<T::BlockNumber>,
@@ -253,6 +279,10 @@ impl<T: Config> Pallet<T> {
 
         if let Some(mb_min_amount) = mb_min_amount {
             configuration.min_amount = mb_min_amount;
+        }
+
+        if let Some(max_q_amount) = max_q_amount {
+            configuration.max_q_amount = max_q_amount;
         }
 
         if let Some(mb_eq_to_q_ratio) = mb_eq_to_q_ratio {
@@ -273,6 +303,7 @@ impl<T: Config> Pallet<T> {
 
         let is_valid_configuration = !configuration.enabled
             || configuration.min_amount.gt(&T::Balance::zero())
+                && configuration.max_q_amount.gt(&T::Balance::zero())
                 && !configuration.eq_to_q_ratio.is_zero()
                 && !configuration.vesting_starting_block.is_zero()
                 && !configuration.vesting_duration_blocks.is_zero();
@@ -343,6 +374,13 @@ impl<T: Config> Pallet<T> {
                 )?;
             }
         }
+
+        let q_received = QReceivedAmounts::<T>::get(who)
+            .checked_add(&q_amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        Self::ensure_q_amount_not_exceeded(&configuration, &q_received)?;
+
+        QReceivedAmounts::<T>::insert(who, q_received);
 
         T::EqCurrency::withdraw(
             who,
@@ -466,6 +504,14 @@ where
                 Pallet::<T>::ensure_enough_balance(&balance, amount).map_err(|_| {
                     InvalidTransaction::Custom(ValidityError::NotEnoughBalance.into())
                 })?;
+
+                let q_received = QReceivedAmounts::<T>::get(who).checked_add(amount).ok_or(
+                    InvalidTransaction::Custom(ValidityError::QAmountExceeded.into()),
+                )?;
+
+                Pallet::<T>::ensure_q_amount_not_exceeded(&configuration, &q_received).map_err(
+                    |_| InvalidTransaction::Custom(ValidityError::QAmountExceeded.into()),
+                )?;
             }
         }
 
@@ -484,6 +530,8 @@ pub enum ValidityError {
     NotEnoughBalance = 3,
     /// Specified amount is too small to perform swap
     AmountTooSmall = 4,
+    /// Q amount exceeded for a given account.
+    QAmountExceeded = 5,
 }
 
 impl From<ValidityError> for u8 {
@@ -496,6 +544,7 @@ impl From<ValidityError> for u8 {
 pub struct SwapConfiguration<Balance, BlockNumber> {
     pub enabled: bool,
     pub min_amount: Balance,
+    pub max_q_amount: Balance,
     pub eq_to_q_ratio: u128,
     pub vesting_share: Percent,
     pub vesting_starting_block: BlockNumber,
