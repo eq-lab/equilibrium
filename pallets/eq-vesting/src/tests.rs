@@ -26,6 +26,7 @@ use crate::mock::{
 use eq_primitives::balance::EqCurrency;
 use eq_primitives::{asset, balance::BalanceGetter, SignedBalance};
 use eq_utils::fx128;
+use frame_support::pallet_prelude::Hooks;
 use frame_support::{assert_err, assert_ok};
 use frame_system::RawOrigin;
 use sp_arithmetic::FixedI128;
@@ -205,5 +206,136 @@ fn forced_transfers_disabled() {
             <ModuleBalances as BalanceGetter<u64, u128>>::get_balance(&2, &asset::EQ),
             eq_primitives::SignedBalance::Positive(0)
         );
+    });
+}
+
+#[test]
+fn does_not_remove_vestings_with_zero_value() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+
+        assert_eq!(ModuleVesting::accounts_per_block(), 0);
+
+        let vesting_info = super::VestingInfo {
+            locked: fx128!(10, 0).into_inner() as u128,
+            per_block: fx128!(1, 0).into_inner() as u128,
+            starting_block: 10,
+        };
+
+        let who = 1;
+
+        assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
+            u64,
+        >>::add_vesting_schedule(
+            &who,
+            vesting_info.locked,
+            vesting_info.per_block,
+            vesting_info.starting_block
+        ));
+        assert_eq!(ModuleVesting::vesting(who), Option::Some(vesting_info));
+
+        let refs_before = frame_system::Pallet::<Test>::providers(&who);
+        ModuleVesting::on_initialize(2);
+
+        assert_eq!(ModuleVesting::vesting(who), Some(vesting_info));
+        assert_eq!(frame_system::Pallet::<Test>::providers(&who), refs_before);
+    });
+}
+
+#[test]
+fn remove_vesting_schedule() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+
+        assert_ok!(ModuleVesting::set_accounts_per_block_removed(
+            RawOrigin::Root.into(),
+            2
+        ));
+
+        let vesting_info = super::VestingInfo {
+            locked: fx128!(10, 0).into_inner() as u128,
+            per_block: fx128!(1, 0).into_inner() as u128,
+            starting_block: 10,
+        };
+
+        let who = 1;
+
+        assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
+            u64,
+        >>::add_vesting_schedule(
+            &who,
+            vesting_info.locked,
+            vesting_info.per_block,
+            vesting_info.starting_block
+        ));
+        assert_eq!(ModuleVesting::vesting(who), Option::Some(vesting_info));
+
+        let refs_before = frame_system::Pallet::<Test>::providers(&who);
+        ModuleVesting::on_initialize(2);
+
+        assert!(ModuleVesting::vesting(who).is_none());
+        assert_eq!(
+            frame_system::Pallet::<Test>::providers(&who),
+            refs_before - 1
+        );
+    });
+}
+
+#[test]
+fn on_initialize_remove_correct_number_of_vesting_schedules() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        assert_ok!(ModuleVesting::set_accounts_per_block_removed(
+            RawOrigin::Root.into(),
+            2
+        ));
+
+        let vesting_info = super::VestingInfo {
+            locked: fx128!(10, 0).into_inner() as u128,
+            per_block: fx128!(1, 0).into_inner() as u128,
+            starting_block: 10,
+        };
+        let accounts: Vec<_> = (1..10).collect();
+        let accounts_num = accounts.len() as u32;
+
+        let refs_before: Vec<_> = accounts
+            .iter()
+            .map(|account| {
+                assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
+                    u64,
+                >>::add_vesting_schedule(
+                    account,
+                    vesting_info.locked,
+                    vesting_info.per_block,
+                    vesting_info.starting_block
+                ));
+                assert!(ModuleVesting::vesting(account).is_some());
+                frame_system::Pallet::<Test>::providers(account)
+            })
+            .collect();
+
+        let removed_per_block = ModuleVesting::accounts_per_block();
+
+        let iterations = (accounts_num + removed_per_block - 1) / removed_per_block;
+
+        for iteration in 1..=iterations {
+            ModuleVesting::on_initialize(2);
+            let mut vestings_removed = 0;
+            let mut vestings_left = accounts_num;
+            for (index, account) in accounts.iter().enumerate() {
+                if ModuleVesting::vesting(account).is_none() {
+                    vestings_removed += 1;
+                    vestings_left -= 1;
+                    assert_eq!(
+                        refs_before[index] - 1,
+                        frame_system::Pallet::<Test>::providers(account)
+                    )
+                }
+            }
+
+            let should_be_removed = (removed_per_block * iteration).min(accounts_num);
+            assert_eq!(vestings_removed, should_be_removed);
+            assert_eq!(vestings_left, accounts_num - should_be_removed);
+        }
     });
 }

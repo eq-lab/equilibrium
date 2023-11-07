@@ -247,6 +247,21 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        /// Sets number of accounts to be used in on_initialize vesting removals.
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
+        pub fn set_accounts_per_block_removed(
+            origin: OriginFor<T>,
+            account_per_block: u32,
+        ) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+
+            AccountsPerBlock::<T, I>::set(account_per_block);
+            Self::deposit_event(Event::<T, I>::NewAccountsPerBlock(account_per_block));
+
+            Ok(().into())
+        }
     }
 
     #[pallet::event]
@@ -259,6 +274,9 @@ pub mod pallet {
         /// An `account` has become fully vested. No further vesting can happen
         /// \[account\]
         VestingCompleted(T::AccountId),
+        /// New value of AccountsPerBlock set
+        /// \[accounts_per_block\]
+        NewAccountsPerBlock(u32),
     }
 
     #[pallet::error]
@@ -276,7 +294,31 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
+    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
+        fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+            Vesting::<T, I>::iter()
+                .take(AccountsPerBlock::<T, I>::get() as usize)
+                .for_each(|(account, vesting_info)| {
+                    let vested =
+                        Vested::<T, I>::get(&account).unwrap_or_else(BalanceOf::<T, I>::zero);
+
+                    if T::Currency::transfer(
+                        &Self::account_id(),
+                        &account,
+                        vesting_info.locked.saturating_sub(vested),
+                        ExistenceRequirement::KeepAlive,
+                    )
+                    .is_ok()
+                    {
+                        Vesting::<T, I>::remove(&account);
+                        Vested::<T, I>::remove(&account);
+                        AccountRefCounter::<T>::dec_ref(&account);
+                    }
+                });
+
+            T::DbWeight::get().writes(AccountsPerBlock::<T, I>::get().saturating_mul(2) as u64)
+        }
+    }
 
     /// Pallet storage: information regarding the vesting of a given account
     #[pallet::storage]
@@ -289,6 +331,10 @@ pub mod pallet {
     #[pallet::getter(fn vested)]
     pub type Vested<T: Config<I>, I: 'static = ()> =
         StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T, I>>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn accounts_per_block)]
+    pub type AccountsPerBlock<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
