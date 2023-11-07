@@ -321,10 +321,64 @@ fn swap_eq_to_q() {
         );
         assert_eq!(account_2_q_received, (300 + 75) * ONE_TOKEN);
 
-        assert_err!(
-            ModuleEqToQSwap::swap_eq_to_q(RuntimeOrigin::signed(account_2), 300 * ONE_TOKEN),
-            Error::<Test>::QAmountExceeded
+        assert_ok!(ModuleEqToQSwap::swap_eq_to_q(
+            RuntimeOrigin::signed(account_2),
+            300 * ONE_TOKEN
+        ));
+
+        let account_2_vesting = ModuleVesting::vesting(account_2).unwrap();
+        let account_2_q_received = QReceivedAmounts::<Test>::get(account_2);
+
+        assert_balance!(&vesting_account_id, (128 + 32 + 75 + 425) * ONE_TOKEN, 0, Q);
+        assert_balance!(&account_2, (700 - 300) * ONE_TOKEN, 0, EQ);
+        assert_balance!(&account_2, (300 + 75 + 25) * ONE_TOKEN, 0, Q);
+        assert_balance!(
+            &q_holder_account_id,
+            (10_000 - 512 - 128 - 128 - 32 - 300 - 75 - 75 - 425 - 25) * ONE_TOKEN,
+            0,
+            Q
         );
+        assert_eq!(
+            account_2_vesting,
+            VestingInfo {
+                locked: (75 + 425) * ONE_TOKEN,
+                per_block: 10_000_000_000,
+                starting_block: 100
+            }
+        );
+        assert_eq!(account_2_q_received, (300 + 75 + 25) * ONE_TOKEN);
+
+        assert_ok!(ModuleEqToQSwap::swap_eq_to_q(
+            RuntimeOrigin::signed(account_2),
+            100 * ONE_TOKEN
+        ));
+
+        let account_2_vesting = ModuleVesting::vesting(account_2).unwrap();
+        let account_2_q_received = QReceivedAmounts::<Test>::get(account_2);
+
+        assert_balance!(
+            &vesting_account_id,
+            (128 + 32 + 75 + 425 + 150) * ONE_TOKEN,
+            0,
+            Q
+        );
+        assert_balance!(&account_2, (700 - 300 - 100) * ONE_TOKEN, 0, EQ);
+        assert_balance!(&account_2, (300 + 75 + 25) * ONE_TOKEN, 0, Q);
+        assert_balance!(
+            &q_holder_account_id,
+            (10_000 - 512 - 128 - 128 - 32 - 300 - 75 - 75 - 425 - 25 - 150) * ONE_TOKEN,
+            0,
+            Q
+        );
+        assert_eq!(
+            account_2_vesting,
+            VestingInfo {
+                locked: (75 + 425 + 150) * ONE_TOKEN,
+                per_block: 13_000_000_000,
+                starting_block: 100
+            }
+        );
+        assert_eq!(account_2_q_received, (300 + 75 + 25) * ONE_TOKEN);
 
         assert_ok!(ModuleEqToQSwap::set_config(
             RawOrigin::Root.into(),
@@ -462,43 +516,6 @@ mod signed_extension {
                 check.validate(&account_id, &eq_to_q_swap_call, &info, 1),
                 TransactionValidityError::Invalid(InvalidTransaction::Custom(
                     ValidityError::AmountTooSmall.into()
-                ))
-            );
-        });
-    }
-
-    #[test]
-    fn validate_should_fail_when_q_received_amount_exceeded() {
-        new_test_ext().execute_with(|| {
-            let account_id = 1u64;
-
-            assert_ok!(ModuleEqToQSwap::set_config(
-                RawOrigin::Root.into(),
-                Some(true),
-                Some(100 * ONE_TOKEN),
-                Some(200 * ONE_TOKEN),
-                Some(1_000_000_000),
-                Some(Percent::from_percent(50)),
-                Some(100),
-                Some(50)
-            ));
-
-            let eq_to_q_swap_call_1 = RuntimeCall::EqToQSwap(crate::Call::swap_eq_to_q {
-                amount: 200 * ONE_TOKEN,
-            });
-
-            let check = CheckEqToQSwap::<Test>::new();
-            let info = info_from_weight(Weight::zero());
-            assert_ok!(check.validate(&account_id, &eq_to_q_swap_call_1, &info, 0));
-
-            let eq_to_q_swap_call_2 = RuntimeCall::EqToQSwap(crate::Call::swap_eq_to_q {
-                amount: 210 * ONE_TOKEN,
-            });
-
-            assert_err!(
-                check.validate(&account_id, &eq_to_q_swap_call_2, &info, 1),
-                TransactionValidityError::Invalid(InvalidTransaction::Custom(
-                    ValidityError::QAmountExceeded.into()
                 ))
             );
         });
