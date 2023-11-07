@@ -21,14 +21,13 @@
 use super::*;
 use crate::mock::{
     new_test_ext, Balance, ModuleBalances, ModuleEqToQSwap, ModuleVesting, RuntimeOrigin, Test,
-    VestingModuleId,
 };
 use crate::{EqSwapConfiguration, SwapConfiguration};
+use eq_primitives::mocks::{TreasuryAccountMock, VestingAccountMock};
 use eq_primitives::ONE_TOKEN;
 use eq_vesting::VestingInfo;
 use frame_support::{assert_err, assert_ok};
 use frame_system::RawOrigin;
-use sp_runtime::traits::AccountIdConversion;
 
 macro_rules! assert_balance {
     ($who:expr, $balance:expr, $debt:expr, $asset:expr) => {
@@ -133,7 +132,8 @@ fn swap_eq_to_q() {
     new_test_ext().execute_with(|| {
         let account_1: u64 = 1;
         let account_2: u64 = 2;
-        let vesting_account_id = VestingModuleId::get().into_account_truncating();
+        let vesting_account_id = VestingAccountMock::get();
+        let q_holder_account_id = TreasuryAccountMock::get();
 
         assert_err!(
             ModuleEqToQSwap::swap_eq_to_q(RuntimeOrigin::signed(account_1), 1000 * ONE_TOKEN),
@@ -159,6 +159,7 @@ fn swap_eq_to_q() {
         assert_balance!(&vesting_account_id, 512 * ONE_TOKEN, 0, Q);
         assert_balance!(&account_1, 200 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_1, 512 * ONE_TOKEN, 0, Q);
+        assert_balance!(&q_holder_account_id, (10_000 - 512) * ONE_TOKEN, 0, Q);
         assert_eq!(
             account_1_vesting,
             VestingInfo {
@@ -178,6 +179,7 @@ fn swap_eq_to_q() {
         assert_balance!(&vesting_account_id, (512 + 128) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_1, 0, 0, EQ);
         assert_balance!(&account_1, (512 + 128) * ONE_TOKEN, 0, Q);
+        assert_balance!(&q_holder_account_id, (10_000 - 512 - 128) * ONE_TOKEN, 0, Q);
         assert_eq!(
             account_1_vesting,
             VestingInfo {
@@ -211,6 +213,12 @@ fn swap_eq_to_q() {
         assert_balance!(&vesting_account_id, (512 + 128) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_2, 800 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_2, 300 * ONE_TOKEN, 0, Q);
+        assert_balance!(
+            &q_holder_account_id,
+            (10_000 - 512 - 128 - 300) * ONE_TOKEN,
+            0,
+            Q
+        );
         assert_eq!(account_2_vesting, None);
 
         assert_ok!(ModuleEqToQSwap::set_config(
@@ -232,6 +240,12 @@ fn swap_eq_to_q() {
         assert_balance!(&vesting_account_id, (512 + 128 + 75) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_2, 700 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_2, (300 + 75) * ONE_TOKEN, 0, Q);
+        assert_balance!(
+            &q_holder_account_id,
+            (10_000 - 512 - 128 - 300 - 75) * ONE_TOKEN,
+            0,
+            Q
+        );
         assert_eq!(
             account_2_vesting,
             VestingInfo {

@@ -229,6 +229,9 @@ pub enum TransferReason {
 
     /// Transfer within vesting
     Vesting,
+
+    /// Swap EQ-to-Q
+    SwapEqToQ,
 }
 
 impl Eq for TransferReason {}

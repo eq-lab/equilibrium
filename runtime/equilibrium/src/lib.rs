@@ -2562,6 +2562,7 @@ impl eq_to_q_swap::Config for Runtime {
     type SetEqSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
     type Vesting = VestingQSwap;
     type VestingAccountId = VestingAccount;
+    type QHolderAccountId = TreasuryAccount;
     type EqCurrency = EqBalances;
 }
 

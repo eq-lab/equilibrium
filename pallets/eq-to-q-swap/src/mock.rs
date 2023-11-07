@@ -23,8 +23,8 @@ use core::marker::PhantomData;
 use eq_primitives::asset::{self, AssetType};
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::mocks::{
-    TimeZeroDurationMock, UniversalLocationMock, UpdateTimeManagerEmptyMock, VestingAccountMock,
-    XcmRouterErrMock, XcmToFeeZeroMock,
+    TimeZeroDurationMock, TreasuryAccountMock, UniversalLocationMock, UpdateTimeManagerEmptyMock,
+    VestingAccountMock, XcmRouterErrMock, XcmToFeeZeroMock,
 };
 use eq_primitives::subaccount::{SubAccType, SubaccountsManager};
 use eq_primitives::{
@@ -278,6 +278,7 @@ impl eq_to_q_swap::Config for Test {
     type SetEqSwapConfigurationOrigin = EnsureRoot<AccountId>;
     type Vesting = eq_vesting::Pallet<Test>;
     type VestingAccountId = VestingAccountMock<AccountId>;
+    type QHolderAccountId = TreasuryAccountMock<AccountId>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -325,6 +326,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![
             (1, vec![(1000 * ONE_TOKEN as Balance, asset::EQ.get_id())]),
             (2, vec![(1000 * ONE_TOKEN as Balance, asset::EQ.get_id())]),
+            (
+                TreasuryAccountMock::get(),
+                vec![(10_000 * ONE_TOKEN as Balance, asset::Q.get_id())],
+            ),
         ],
         is_transfers_enabled: true,
         is_xcm_enabled: Some(eq_primitives::XcmMode::Xcm(false)),

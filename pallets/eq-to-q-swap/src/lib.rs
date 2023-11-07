@@ -81,6 +81,8 @@ pub mod pallet {
             + BalanceGetter<Self::AccountId, Self::Balance>;
         /// Returns vesting account
         type VestingAccountId: Get<Self::AccountId>;
+        /// Returns Q holder account
+        type QHolderAccountId: Get<Self::AccountId>;
     }
 
     /// Stores EQ-to-Q swap configuration
@@ -248,16 +250,6 @@ impl<T: Config> Pallet<T> {
             Error::<T>::NotEnoughBalance
         );
 
-        T::EqCurrency::withdraw(
-            who,
-            EQ,
-            *amount,
-            false,
-            Some(WithdrawReason::SwapEqToQ),
-            WithdrawReasons::empty(),
-            ExistenceRequirement::KeepAlive,
-        )?;
-
         let q_total_amount = EqFixedU128::from_inner(configuration.eq_to_q_ratio)
             .checked_mul_int(*amount)
             .ok_or(ArithmeticError::Overflow)?;
@@ -300,7 +292,27 @@ impl<T: Config> Pallet<T> {
             }
         }
 
-        T::EqCurrency::deposit_creating(who, Q, q_amount, false, Some(DepositReason::SwapEqToQ))?;
+        let q_holder_account_id = T::QHolderAccountId::get();
+
+        T::EqCurrency::withdraw(
+            who,
+            EQ,
+            *amount,
+            false,
+            Some(WithdrawReason::SwapEqToQ),
+            WithdrawReasons::empty(),
+            ExistenceRequirement::KeepAlive,
+        )?;
+
+        T::EqCurrency::currency_transfer(
+            &q_holder_account_id,
+            who,
+            Q,
+            q_amount,
+            ExistenceRequirement::AllowDeath,
+            eq_primitives::TransferReason::SwapEqToQ,
+            false,
+        )?;
 
         Self::deposit_event(Event::EqToQSwap(
             who.clone(),
