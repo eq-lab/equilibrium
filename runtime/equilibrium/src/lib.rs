@@ -307,7 +307,6 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
             (false, RuntimeCall::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
             (false, RuntimeCall::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
             (false, RuntimeCall::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, RuntimeCall::Xdot(eq_xdot_pool::Call::remove_pool { .. })) => false,
             // XCM disallowed
             (_, &RuntimeCall::PolkadotXcm(_)) => false,
             (false, _) => true,
@@ -2053,194 +2052,6 @@ impl eq_dex::Config for Runtime {
     type ValidatorOffchainBatcher = eq_rate::Pallet<Runtime>;
 }
 
-pub struct XdotAssetsAdapter;
-impl eq_xdot_pool::traits::Assets<AssetId, Balance, AccountId> for XdotAssetsAdapter {
-    fn create_lp_asset(
-        pool_id: eq_primitives::xdot_pool::PoolId,
-    ) -> Result<AssetId, DispatchError> {
-        let asset = AssetGenerator::generate_asset_for_pool(pool_id, b"xlpt".to_vec());
-
-        EqAssets::do_add_asset(
-            asset,
-            // TODO hardcode for now, change after dex
-            EqFixedU128::from(0),
-            FixedI64::from(0),
-            Permill::zero(),
-            Permill::zero(),
-            asset::AssetXcmData::None,
-            LPTokensDebtWeight::get(),
-            LpTokenBuyoutPriority::get(),
-            asset::AssetType::Lp(asset::AmmPool::Yield(pool_id)),
-            false,
-            Percent::zero(),
-            Permill::one(),
-            vec![],
-        )
-        .map_err(|e| e.error)?;
-
-        Ok(asset)
-    }
-
-    fn mint(asset: AssetId, dest: &AccountId, amount: Balance) -> DispatchResult {
-        EqBalances::deposit_creating(dest, asset, amount, true, None)
-    }
-
-    fn burn(asset: AssetId, dest: &AccountId, amount: Balance) -> DispatchResult {
-        EqBalances::withdraw(
-            dest,
-            asset,
-            amount,
-            true,
-            None,
-            WithdrawReasons::empty(),
-            ExistenceRequirement::AllowDeath,
-        )
-    }
-
-    fn transfer(
-        asset: AssetId,
-        source: &AccountId,
-        dest: &AccountId,
-        amount: Balance,
-    ) -> DispatchResult {
-        EqBalances::currency_transfer(
-            source,
-            dest,
-            asset,
-            amount,
-            ExistenceRequirement::AllowDeath,
-            TransferReason::Common,
-            true,
-        )
-        .into()
-    }
-
-    fn balance(asset: AssetId, who: &AccountId) -> Balance {
-        EqBalances::free_balance(who, asset)
-    }
-
-    fn total_issuance(asset: AssetId) -> Balance {
-        <EqAggregates as eq_primitives::Aggregates<_, _>>::get_total(
-            eq_primitives::UserGroup::Balances,
-            asset,
-        )
-        .collateral
-    }
-}
-
-mod xdot_utils {
-    use super::*;
-    use eq_primitives::asset::Asset;
-    use eq_primitives::xdot_pool::XBasePrice;
-    use eq_utils::fixed::{fixedi64_to_i64f64, i64f64_to_fixedi64};
-    use financial_pallet::FinancialSystemTrait;
-
-    pub struct AssetChecker;
-    impl eq_xdot_pool::traits::AssetChecker<Asset> for AssetChecker {
-        fn check(base_asset: Asset, xbase_asset: Asset) -> Result<(), DispatchError> {
-            <EqAssets as asset::AssetGetter>::get_asset_data(&base_asset)?;
-
-            Financial::price_logs(base_asset)
-                .ok_or(eq_xdot_pool::pallet::Error::<Runtime>::ExternalAssetCheckFailed)?;
-
-            <EqAssets as asset::AssetGetter>::get_asset_data(&xbase_asset)?;
-
-            Ok(())
-        }
-    }
-
-    pub struct OnPoolInitialized;
-    impl eq_xdot_pool::traits::OnPoolInitialized for OnPoolInitialized {
-        fn on_initalize(pool_id: eq_primitives::xdot_pool::PoolId) -> Result<(), DispatchError> {
-            let pool = super::Xdot::get_pool(pool_id)?;
-
-            let base_asset_log = Financial::price_logs(pool.base_asset)
-                .ok_or(eq_xdot_pool::pallet::Error::<Runtime>::ExternalAssetCheckFailed)?;
-
-            let one_period =
-                (<Runtime as financial_pallet::Config>::PricePeriod::get() * 60) as u64;
-            let price_count = (<Runtime as financial_pallet::Config>::PriceCount::get()) as u64;
-
-            let time_till_maturity =
-                Xdot::time_till_maturity(pool.maturity + (price_count - 1) * one_period)?;
-            let mut lp_prices = financial_primitives::capvec::CapVec::new(
-                <Runtime as financial_pallet::Config>::PriceCount::get(),
-            );
-            let mut xbase_prices = financial_primitives::capvec::CapVec::new(
-                <Runtime as financial_pallet::Config>::PriceCount::get(),
-            );
-            let mut period = 0;
-            for base_price in base_asset_log.prices.iter() {
-                let ttm = time_till_maturity - period * one_period;
-                let lp_price = fixedi64_to_i64f64(Xdot::get_lp_virtual_price(&pool, Some(ttm))?);
-                let xbase_price =
-                    fixedi64_to_i64f64(Xdot::get_xbase_virtual_price(&pool, Some(ttm))?);
-                lp_prices.push(base_price.saturating_mul(lp_price));
-                xbase_prices.push(base_price.saturating_mul(xbase_price));
-                period += 1;
-            }
-            Oracle::set_the_only_price(
-                pool.pool_asset,
-                i64f64_to_fixedi64(*lp_prices.last().expect("Non empty")),
-            );
-            Oracle::set_the_only_price(
-                pool.xbase_asset,
-                i64f64_to_fixedi64(*xbase_prices.last().expect("Non empty")),
-            );
-            financial_pallet::PriceLogs::<Runtime>::insert(
-                pool.pool_asset,
-                financial_pallet::PriceLog {
-                    latest_timestamp: base_asset_log.latest_timestamp,
-                    prices: lp_prices,
-                },
-            );
-
-            financial_pallet::PriceLogs::<Runtime>::insert(
-                pool.base_asset,
-                financial_pallet::PriceLog {
-                    latest_timestamp: base_asset_log.latest_timestamp,
-                    prices: xbase_prices,
-                },
-            );
-
-            // May be that new prices are breaking financial pallet recalculation,
-            // but it is very rare case
-            #[allow(unused_must_use)]
-            let _ = Financial::recalc_inner();
-
-            Ok(())
-        }
-    }
-}
-
-pub struct XdotNumberPriceConvert;
-impl Convert<XdotNumber, sp_runtime::FixedI64> for XdotNumberPriceConvert {
-    fn convert(n: XdotNumber) -> sp_runtime::FixedI64 {
-        eq_utils::fixed::i64f64_to_fixedi64(n)
-    }
-}
-
-use eq_primitives::xdot_pool::{XdotBalanceConvert, XdotFixedNumberConvert, XdotNumber};
-
-impl eq_xdot_pool::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type PoolsManagementOrigin = EnsureRootOrTwoThirdsTechnicalCommittee;
-    type WeightInfo = ();
-    type FixedNumberBits = i128;
-    type XdotNumber = XdotNumber;
-    type NumberConvert = eq_xdot_pool::yield_math::YieldConvert;
-    type BalanceConvert = XdotBalanceConvert;
-    type AssetId = AssetId;
-    type Assets = XdotAssetsAdapter;
-    type YieldMath =
-        eq_xdot_pool::yield_math::YieldMath<XdotNumber, eq_xdot_pool::yield_math::YieldConvert>;
-    type PriceNumber = sp_runtime::FixedI64;
-    type PriceConvert = XdotNumberPriceConvert;
-    type FixedNumberConvert = XdotFixedNumberConvert;
-    type OnPoolInitialized = xdot_utils::OnPoolInitialized;
-    type AssetChecker = xdot_utils::AssetChecker;
-}
-
 use eq_xcm::relay_interface::{call::RelayChainCallBuilder, config::RelayRuntime};
 
 parameter_types! {
@@ -2574,7 +2385,6 @@ construct_runtime!(
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 37,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 38,
         EqMarketMaker: eq_market_maker::{Pallet, Call, Storage, Event<T>} = 39,
-        Xdot: eq_xdot_pool::{Pallet, Call, Storage, Event<T>} = 40,
         Migration: eq_migration::{Pallet, Call, Storage, Event<T>} = 41,
         CurveAmm: equilibrium_curve_amm::{Pallet, Call, Storage, Event<T>} = 42,
 
@@ -2651,6 +2461,15 @@ pub struct CustomOnRuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
+        eq_balances::DailyXcmLimit::<Runtime>::kill();
+        eq_balances::NextXcmLimitPeriod::<Runtime>::kill();
+        // eq_balances::XcmNativeTransfers::<Runtime>::
+        let _ = frame_support::storage::unhashed::clear_prefix(
+            //eqBalances.xcmNativeTransfers
+            &hex_literal::hex!("276c90850b9de2c495875fe945d2a9c7526d0b4092c3c799149eb73028bd9f23"),
+            None,
+            None);
+
         Weight::from_parts(1, 0)
     }
 }
@@ -2836,82 +2655,6 @@ impl_runtime_apis! {
     impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
         fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
             ParachainSystem::collect_collation_info(header)
-        }
-    }
-
-    impl eq_xdot_pool_rpc_runtime_api::EqXdotPoolApi<Block, Balance> for Runtime {
-        fn invariant(
-            pool_id: eq_primitives::xdot_pool::PoolId
-        ) -> Option<u128> {
-            Xdot::invariant(pool_id).ok()
-        }
-
-        fn fy_token_out_for_base_in(
-            pool_id: eq_primitives::xdot_pool::PoolId,
-            base_amount: Balance
-        ) -> Option<Balance> {
-            Xdot::fy_token_out_for_base_in(
-                pool_id,
-                base_amount
-            ).ok()
-        }
-
-        fn base_out_for_fy_token_in(
-           pool_id: eq_primitives::xdot_pool::PoolId,
-           fy_token_amount: Balance
-        ) -> Option<Balance> {
-            Xdot::base_out_for_fy_token_in(
-                pool_id,
-                fy_token_amount
-            ).ok()
-        }
-
-        fn fy_token_in_for_base_out(
-            pool_id: eq_primitives::xdot_pool::PoolId,
-            base_amount: Balance,
-        ) -> Option<Balance> {
-            Xdot::fy_token_in_for_base_out(
-                pool_id,
-                base_amount
-            ).ok()
-        }
-
-        fn base_in_for_fy_token_out(
-            pool_id: eq_primitives::xdot_pool::PoolId,
-            fy_token_amount: Balance,
-        ) -> Option<Balance> {
-            Xdot::base_in_for_fy_token_out(
-                pool_id,
-                fy_token_amount
-            ).ok()
-        }
-
-        fn base_out_for_lp_in(
-            pool_id: eq_primitives::xdot_pool::PoolId,
-            lp_in: Balance
-        ) -> Option<Balance> {
-                Xdot::base_out_for_lp_in(
-                    pool_id,
-                    lp_in
-            ).ok()
-        }
-
-        fn base_and_fy_out_for_lp_in(
-            pool_id: eq_primitives::xdot_pool::PoolId,
-            lp_in: Balance
-        ) -> Option<(Balance, Balance)> {
-                Xdot::base_and_fy_out_for_lp_in(
-                    pool_id,
-                    lp_in
-            ).ok()
-        }
-
-        fn max_base_xbase_in_and_out(
-            pool_id: eq_primitives::xdot_pool::PoolId
-        ) -> Option<(Balance, Balance, Balance, Balance)> {
-            Xdot::max_base_xbase_in_and_out(
-                pool_id
-            ).ok()
         }
     }
 

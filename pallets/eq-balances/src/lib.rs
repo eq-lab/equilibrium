@@ -94,8 +94,6 @@ pub mod weights;
 mod xcm_impl;
 mod xcm_impl_old;
 
-const XCM_LIMIT_PERIOD_IN_SEC: u64 = 86400; // 1 day
-
 frame_support::parameter_types! {
     pub const MaxLocks: u32 = 10;
 }
@@ -427,57 +425,6 @@ pub mod pallet {
             let from = ensure_signed(origin)?;
 
             Self::do_xcm_transfer(from, transfer, fee, XcmDestination::Native(to))?;
-
-            Ok(().into())
-        }
-
-        /// Allow for `accounts` to make limited xcm native transfers
-        #[pallet::call_index(12)]
-        #[pallet::weight(T::WeightInfo::allow_xcm_transfers_native_for(accounts.len() as u32))]
-        pub fn allow_xcm_transfers_native_for(
-            origin: OriginFor<T>,
-            accounts: Vec<T::AccountId>,
-        ) -> DispatchResultWithPostInfo {
-            T::ToggleTransferOrigin::ensure_origin(origin)?;
-
-            let now = T::UnixTime::now().as_secs();
-            for account_id in accounts {
-                if !XcmNativeTransfers::<T>::contains_key(&account_id) {
-                    XcmNativeTransfers::<T>::insert(account_id, (T::Balance::zero(), now));
-                }
-            }
-
-            Ok(().into())
-        }
-
-        /// Remove accounts from whitelist of xcm native transfers
-        #[pallet::call_index(13)]
-        #[pallet::weight(T::WeightInfo::forbid_xcm_transfers_native_for(accounts.len() as u32))]
-        pub fn forbid_xcm_transfers_native_for(
-            origin: OriginFor<T>,
-            accounts: Vec<T::AccountId>,
-        ) -> DispatchResultWithPostInfo {
-            T::ToggleTransferOrigin::ensure_origin(origin)?;
-
-            for account_id in accounts {
-                XcmNativeTransfers::<T>::remove(account_id);
-            }
-
-            Ok(().into())
-        }
-
-        /// Update XCM transfer limit or remove it in case of limit = `None`
-        #[pallet::call_index(14)]
-        #[pallet::weight(T::WeightInfo::update_xcm_transfer_native_limit())]
-        pub fn update_xcm_transfer_native_limit(
-            origin: OriginFor<T>,
-            limit: Option<T::Balance>,
-        ) -> DispatchResultWithPostInfo {
-            T::ToggleTransferOrigin::ensure_origin(origin)?;
-            match limit {
-                Some(limit) => DailyXcmLimit::<T>::put(limit),
-                None => DailyXcmLimit::<T>::kill(),
-            }
 
             Ok(().into())
         }
@@ -1675,45 +1622,6 @@ impl<T: Config> Pallet<T> {
         Ok(T::AssetGetter::get_asset_data(asset)?
             .get_xcm_data()
             .ok_or(Error::<T>::XcmUnknownAsset)?)
-    }
-
-    fn ensure_xcm_transfer_limit_not_exceeded(
-        account_id: &T::AccountId,
-        amount: T::Balance,
-    ) -> DispatchResult {
-        if let Some(transfer_limit) = DailyXcmLimit::<T>::get() {
-            let now = T::UnixTime::now().as_secs();
-            let current_period = (now / XCM_LIMIT_PERIOD_IN_SEC) * XCM_LIMIT_PERIOD_IN_SEC;
-            let (mut transferred, last_transfer) = XcmNativeTransfers::<T>::get(account_id)
-                .ok_or(Error::<T>::XcmTransfersNotAllowedForAccount)?;
-
-            if last_transfer < current_period {
-                transferred = Default::default();
-                XcmNativeTransfers::<T>::insert(account_id, (transferred, now));
-            };
-
-            ensure!(
-                transferred + amount <= transfer_limit,
-                Error::<T>::XcmTransfersLimitExceeded
-            );
-        }
-
-        Ok(())
-    }
-
-    fn update_xcm_native_transfers(account_id: &T::AccountId, amount: T::Balance) {
-        if DailyXcmLimit::<T>::get().is_some() {
-            XcmNativeTransfers::<T>::mutate_exists(
-                account_id,
-                |maybe_transfer| match maybe_transfer {
-                    Some((current_amount, last_transfer)) => {
-                        *current_amount = *current_amount + amount;
-                        *last_transfer = T::UnixTime::now().as_secs();
-                    }
-                    None => {}
-                },
-            );
-        }
     }
 
     fn get_locked(who: &T::AccountId) -> T::Balance {

@@ -35,10 +35,6 @@ impl<T: Config> Pallet<T> {
         to: XcmDestination,
     ) -> DispatchResult {
         let (asset, amount) = transfer;
-        let is_native_asset_transfer = asset == T::AssetGetter::get_main_asset();
-        if is_native_asset_transfer {
-            Self::ensure_xcm_transfer_limit_not_exceeded(&from, amount)?;
-        }
         let (fee_asset, fee_amount) = fee;
         // asset_native_location - asset's multilocation from our pov
         let (asset_native_location, decimals, self_reserved) = Self::xcm_data(&asset)?;

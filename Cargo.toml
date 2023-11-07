@@ -26,7 +26,6 @@ members = [
     "pallets/eq-migration",
     "pallets/eq-mm-pool",
     "pallets/eq-market-maker",
-    "pallets/eq-xdot-pool",
     "pallets/eq-wrapped-dot",
     "pallets/eq-staking",
     "pallets/gens-binary-opt",
