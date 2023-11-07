@@ -210,9 +210,47 @@ fn forced_transfers_disabled() {
 }
 
 #[test]
+fn does_not_remove_vestings_with_zero_value() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+
+        assert_eq!(ModuleVesting::accounts_per_block(), 0);
+
+        let vesting_info = super::VestingInfo {
+            locked: fx128!(10, 0).into_inner() as u128,
+            per_block: fx128!(1, 0).into_inner() as u128,
+            starting_block: 10,
+        };
+
+        let who = 1;
+
+        assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
+            u64,
+        >>::add_vesting_schedule(
+            &who,
+            vesting_info.locked,
+            vesting_info.per_block,
+            vesting_info.starting_block
+        ));
+        assert_eq!(ModuleVesting::vesting(who), Option::Some(vesting_info));
+
+        let refs_before = frame_system::Pallet::<Test>::providers(&who);
+        ModuleVesting::on_initialize(2);
+
+        assert_eq!(ModuleVesting::vesting(who), Some(vesting_info));
+        assert_eq!(
+            frame_system::Pallet::<Test>::providers(&who),
+            refs_before
+        );
+    });
+}
+
+#[test]
 fn remove_vesting_schedule() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+
+        assert_ok!(ModuleVesting::set_account_per_block_removed(RawOrigin::Root.into(), 2));
 
         let vesting_info = super::VestingInfo {
             locked: fx128!(10, 0).into_inner() as u128,
@@ -247,6 +285,7 @@ fn remove_vesting_schedule() {
 fn on_initialize_remove_correct_number_of_vesting_schedules() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        assert_ok!(ModuleVesting::set_account_per_block_removed(RawOrigin::Root.into(), 2));
 
         let vesting_info = super::VestingInfo {
             locked: fx128!(10, 0).into_inner() as u128,
@@ -272,7 +311,7 @@ fn on_initialize_remove_correct_number_of_vesting_schedules() {
             })
             .collect();
 
-        let removed_per_block = crate::mock::AccountsPerBlock::get();
+        let removed_per_block = ModuleVesting::accounts_per_block();
 
         let iterations = (accounts_num + removed_per_block - 1) / removed_per_block;
 

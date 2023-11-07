@@ -256,7 +256,6 @@ parameter_types! {
     pub const MinVestedTransfer: u128 = 1_000_000_000;
     pub const BasicCurrencyGet: asset::Asset = asset::EQ;
     pub const VestingModuleId: PalletId = PalletId(*b"eq/vestn");
-    pub const AccountsPerBlock: u32 = 2;
 }
 pub type BasicCurrency =
     eq_primitives::balance_adapter::BalanceAdapter<u128, EqBalances, BasicCurrencyGet>;
@@ -269,7 +268,6 @@ impl eq_vesting::Config<()> for Test {
     type WeightInfo = ();
     type PalletId = VestingModuleId;
     type IsTransfersEnabled = EqBalances;
-    type AccountsPerBlock = AccountsPerBlock;
 }
 
 thread_local! {
