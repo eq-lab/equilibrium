@@ -1223,6 +1223,7 @@ where
             eq_rate::reinit_extension::ReinitAccount::<Runtime, CallsWithReinit>::new(),
             eq_claim::PrevalidateAttests::<Runtime>::new(),
             eq_treasury::CheckBuyout::<Runtime>::new(),
+            eq_to_q_swap::CheckEqToQSwap::<Runtime>::new(),
         );
 
         let raw_payload = SignedPayload::new(call, extra)
@@ -2379,6 +2380,7 @@ impl eq_to_q_swap::Config for Runtime {
     type VestingAccountId = Vesting3Account;
     type QHolderAccountId = TreasuryAccount;
     type EqCurrency = EqBalances;
+    type WeightInfo = ();
 }
 
 construct_runtime!(
@@ -2482,6 +2484,7 @@ pub type SignedExtra = (
     eq_rate::reinit_extension::ReinitAccount<Runtime, CallsWithReinit>,
     eq_claim::PrevalidateAttests<Runtime>,
     eq_treasury::CheckBuyout<Runtime>,
+    eq_to_q_swap::CheckEqToQSwap<Runtime>,
 );
 
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;

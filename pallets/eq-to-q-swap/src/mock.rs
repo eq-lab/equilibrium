@@ -278,6 +278,7 @@ impl eq_to_q_swap::Config for Test {
     type Vesting = eq_vesting::Pallet<Test>;
     type VestingAccountId = VestingAccountMock<AccountId>;
     type QHolderAccountId = TreasuryAccountMock<AccountId>;
+    type WeightInfo = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

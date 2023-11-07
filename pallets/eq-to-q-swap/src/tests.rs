@@ -53,6 +53,20 @@ fn set_config() {
             ModuleEqToQSwap::set_config(
                 RawOrigin::Root.into(),
                 Some(true),
+                Some(123),
+                Some(123u128),
+                Some(Percent::one()),
+                Some(10),
+                None
+            ),
+            Error::<Test>::InvalidConfiguration
+        );
+
+        assert_err!(
+            ModuleEqToQSwap::set_config(
+                RawOrigin::Root.into(),
+                Some(true),
+                Some(0),
                 Some(123u128),
                 Some(Percent::one()),
                 Some(10),
@@ -64,6 +78,7 @@ fn set_config() {
         assert_ok!(ModuleEqToQSwap::set_config(
             RawOrigin::Root.into(),
             Some(true),
+            Some(123),
             Some(123u128),
             Some(Percent::one()),
             Some(10),
@@ -75,6 +90,7 @@ fn set_config() {
         assert_ok!(ModuleEqToQSwap::set_config(
             RawOrigin::Root.into(),
             Some(false),
+            Some(0),
             Some(123u128),
             Some(Percent::one()),
             None,
@@ -84,6 +100,7 @@ fn set_config() {
         assert_ok!(ModuleEqToQSwap::set_config(
             RawOrigin::Root.into(),
             Some(true),
+            Some(12),
             Some(200u128),
             Some(Percent::from_percent(80)),
             Some(20),
@@ -96,6 +113,7 @@ fn set_config() {
             config_initial,
             SwapConfiguration {
                 enabled: false,
+                min_amount: Balance::zero(),
                 eq_to_q_ratio: 0u128,
                 vesting_share: Percent::default(),
                 vesting_starting_block: 0u32,
@@ -107,6 +125,7 @@ fn set_config() {
             config_after_1,
             SwapConfiguration {
                 enabled: true,
+                min_amount: Balance::from(123u128),
                 eq_to_q_ratio: 123u128,
                 vesting_share: Percent::one(),
                 vesting_starting_block: 10u32,
@@ -118,6 +137,7 @@ fn set_config() {
             config_after_2,
             SwapConfiguration {
                 enabled: true,
+                min_amount: Balance::from(12u128),
                 eq_to_q_ratio: 200u128,
                 vesting_share: Percent::from_percent(80),
                 vesting_starting_block: 20u32,
@@ -143,11 +163,17 @@ fn swap_eq_to_q() {
         assert_ok!(ModuleEqToQSwap::set_config(
             RawOrigin::Root.into(),
             Some(true),
+            Some(100 * ONE_TOKEN),
             Some(800_000_000),
             Some(Percent::from_percent(20)),
             Some(10),
             Some(20)
         ));
+
+        assert_err!(
+            ModuleEqToQSwap::swap_eq_to_q(RuntimeOrigin::signed(account_1), 99 * ONE_TOKEN),
+            Error::<Test>::AmountTooSmall
+        );
 
         assert_ok!(ModuleEqToQSwap::swap_eq_to_q(
             RuntimeOrigin::signed(account_1),
@@ -196,12 +222,13 @@ fn swap_eq_to_q() {
 
         assert_err!(
             ModuleEqToQSwap::swap_eq_to_q(RuntimeOrigin::signed(account_1), 0),
-            Error::<Test>::NotEnoughBalance
+            Error::<Test>::AmountTooSmall
         );
 
         assert_ok!(ModuleEqToQSwap::set_config(
             RawOrigin::Root.into(),
             Some(true),
+            Some(100 * ONE_TOKEN),
             Some(1_500_000_000),
             Some(Percent::from_percent(0)),
             Some(10),
@@ -229,6 +256,7 @@ fn swap_eq_to_q() {
         assert_ok!(ModuleEqToQSwap::set_config(
             RawOrigin::Root.into(),
             Some(true),
+            Some(100 * ONE_TOKEN),
             Some(1_500_000_000),
             Some(Percent::from_percent(50)),
             Some(100),
@@ -266,6 +294,7 @@ fn swap_eq_to_q() {
             None,
             None,
             None,
+            None,
             None
         ));
 
@@ -274,4 +303,125 @@ fn swap_eq_to_q() {
             Error::<Test>::SwapsAreDisabled
         );
     });
+}
+
+mod signed_extension {
+    use super::*;
+    use crate::mock::RuntimeCall;
+    use frame_support::dispatch::DispatchInfo;
+
+    pub fn info_from_weight(w: Weight) -> DispatchInfo {
+        DispatchInfo {
+            weight: w,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn validate_should_skip_when_valid() {
+        new_test_ext().execute_with(|| {
+            let account_id = 1u64;
+
+            assert_ok!(ModuleEqToQSwap::set_config(
+                RawOrigin::Root.into(),
+                Some(true),
+                Some(100 * ONE_TOKEN),
+                Some(1_500_000_000),
+                Some(Percent::from_percent(50)),
+                Some(100),
+                Some(50)
+            ));
+
+            let eq_to_q_swap_call = RuntimeCall::EqToQSwap(crate::Call::swap_eq_to_q {
+                amount: 100 * ONE_TOKEN,
+            });
+
+            let check = CheckEqToQSwap::<Test>::new();
+            let info = info_from_weight(Weight::zero());
+            assert_ok!(check.validate(&account_id, &eq_to_q_swap_call, &info, 0));
+        });
+    }
+
+    #[test]
+    fn validate_should_fail_when_swap_disabled() {
+        new_test_ext().execute_with(|| {
+            let account_id = 1u64;
+
+            let eq_to_q_swap_call = RuntimeCall::EqToQSwap(crate::Call::swap_eq_to_q {
+                amount: 100 * ONE_TOKEN,
+            });
+
+            let check = CheckEqToQSwap::<Test>::new();
+            let info = info_from_weight(Weight::zero());
+
+            assert_err!(
+                check.validate(&account_id, &eq_to_q_swap_call, &info, 1),
+                TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                    ValidityError::SwapsAreDisabled.into()
+                ))
+            );
+        });
+    }
+
+    #[test]
+    fn validate_should_fail_when_not_enough_balance() {
+        new_test_ext().execute_with(|| {
+            let account_id = 1u64;
+
+            assert_ok!(ModuleEqToQSwap::set_config(
+                RawOrigin::Root.into(),
+                Some(true),
+                Some(100 * ONE_TOKEN),
+                Some(1_500_000_000),
+                Some(Percent::from_percent(50)),
+                Some(100),
+                Some(50)
+            ));
+
+            let eq_to_q_swap_call = RuntimeCall::EqToQSwap(crate::Call::swap_eq_to_q {
+                amount: 10_000 * ONE_TOKEN,
+            });
+
+            let check = CheckEqToQSwap::<Test>::new();
+            let info = info_from_weight(Weight::zero());
+
+            assert_err!(
+                check.validate(&account_id, &eq_to_q_swap_call, &info, 1),
+                TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                    ValidityError::NotEnoughBalance.into()
+                ))
+            );
+        });
+    }
+
+    #[test]
+    fn validate_should_fail_when_less_then_min_amount() {
+        new_test_ext().execute_with(|| {
+            let account_id = 1u64;
+
+            assert_ok!(ModuleEqToQSwap::set_config(
+                RawOrigin::Root.into(),
+                Some(true),
+                Some(100 * ONE_TOKEN),
+                Some(1_500_000_000),
+                Some(Percent::from_percent(50)),
+                Some(100),
+                Some(50)
+            ));
+
+            let eq_to_q_swap_call = RuntimeCall::EqToQSwap(crate::Call::swap_eq_to_q {
+                amount: 99 * ONE_TOKEN,
+            });
+
+            let check = CheckEqToQSwap::<Test>::new();
+            let info = info_from_weight(Weight::zero());
+
+            assert_err!(
+                check.validate(&account_id, &eq_to_q_swap_call, &info, 1),
+                TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                    ValidityError::AmountTooSmall.into()
+                ))
+            );
+        });
+    }
 }

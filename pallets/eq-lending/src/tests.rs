@@ -62,6 +62,10 @@ fn transfer_usd_ok() {
         let account_id_from = 21;
         let account_id_to = 22;
 
+        let test: u64 = LendingModuleId::get().into_account_truncating();
+
+        println!("TEST {:?}", test);
+
         assert_ok!(EqBalances::deposit_creating(
             &account_id_from,
             asset::EQD,

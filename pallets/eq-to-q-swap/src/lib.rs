@@ -26,6 +26,7 @@
 mod mock;
 #[cfg(test)]
 mod tests;
+pub mod weights;
 
 use codec::{Decode, Encode};
 use core::ops::{Div, Sub};
@@ -33,16 +34,22 @@ use eq_primitives::asset::{EQ, Q};
 use eq_primitives::balance::{BalanceGetter, EqCurrency, WithdrawReason};
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::vestings::EqVestingSchedule;
-use eq_primitives::Vesting;
+use eq_primitives::{SignedBalance, Vesting};
 use eq_utils::eq_ensure;
 use frame_support::pallet_prelude::DispatchResult;
-use frame_support::traits::{ExistenceRequirement, Get, WithdrawReasons};
+use frame_support::traits::{ExistenceRequirement, Get, IsSubType, WithdrawReasons};
 use frame_support::transactional;
 use frame_support::weights::Weight;
 use scale_info::TypeInfo;
-use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
+use sp_runtime::traits::{AtLeast32BitUnsigned, DispatchInfoOf, SignedExtension, Zero};
+use sp_runtime::transaction_validity::{
+    InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
+};
 use sp_runtime::{ArithmeticError, FixedPointNumber, FixedPointOperand, Percent};
 use sp_std::convert::{TryFrom, TryInto};
+use sp_std::fmt::Debug;
+use sp_std::marker::PhantomData;
+pub use weights::WeightInfo;
 
 pub use pallet::*;
 
@@ -83,6 +90,8 @@ pub mod pallet {
         type VestingAccountId: Get<Self::AccountId>;
         /// Returns Q holder account
         type QHolderAccountId: Get<Self::AccountId>;
+        /// Weight information for extrinsics in this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     /// Stores EQ-to-Q swap configuration
@@ -110,6 +119,8 @@ pub mod pallet {
         InvalidConfiguration,
         /// Available balance is not enough to perform swap
         NotEnoughBalance,
+        /// Specified amount is too small to perform swap
+        AmountTooSmall,
     }
 
     #[pallet::hooks]
@@ -135,6 +146,7 @@ pub mod pallet {
         pub fn set_config(
             origin: OriginFor<T>,
             mb_enabled: Option<bool>,
+            mb_min_amount: Option<T::Balance>,
             mb_eq_to_q_ratio: Option<u128>,
             mb_vesting_share: Option<Percent>,
             mb_vesting_starting_block: Option<T::BlockNumber>,
@@ -144,6 +156,7 @@ pub mod pallet {
 
             Self::do_set_config(
                 mb_enabled,
+                mb_min_amount,
                 mb_eq_to_q_ratio,
                 mb_vesting_share,
                 mb_vesting_starting_block,
@@ -154,7 +167,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight(T::DbWeight::get().reads(1))]
+        #[pallet::weight((T::WeightInfo::swap_eq_to_q(), DispatchClass::Normal, Pays::No))]
         #[transactional]
         pub fn swap_eq_to_q(
             origin: OriginFor<T>,
@@ -163,6 +176,7 @@ pub mod pallet {
             let caller = ensure_signed(origin)?;
             let configuration = EqSwapConfiguration::<T>::get();
 
+            Self::ensure_valid_amount(&configuration, &amount)?;
             Self::ensure_eq_swap_enabled(&configuration)?;
             Self::do_swap_eq_to_q(&caller, &amount, &configuration)?;
 
@@ -187,8 +201,45 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    fn ensure_valid_amount(
+        configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
+        amount: &T::Balance,
+    ) -> DispatchResult {
+        eq_ensure!(
+            amount.ge(&configuration.min_amount),
+            Error::<T>::AmountTooSmall,
+            target: "eq_to_q_swap",
+            "{}:{}. Specified amount is too small to perform swap.",
+            file!(),
+            line!(),
+        );
+
+        Ok(())
+    }
+
+    fn ensure_enough_balance(
+        balance: &SignedBalance<T::Balance>,
+        amount: &T::Balance,
+    ) -> DispatchResult {
+        let remaining_balance = balance
+            .sub_balance(amount)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        eq_ensure!(
+            remaining_balance.is_positive(),
+            Error::<T>::NotEnoughBalance,
+            target: "eq_to_q_swap",
+            "{}:{}. Available balance is not enough to perform swap.",
+            file!(),
+            line!(),
+        );
+
+        Ok(())
+    }
+
     fn do_set_config(
         mb_enabled: Option<bool>,
+        mb_min_amount: Option<T::Balance>,
         mb_eq_to_q_ratio: Option<u128>,
         mb_vesting_share: Option<Percent>,
         mb_vesting_starting_block: Option<T::BlockNumber>,
@@ -198,6 +249,10 @@ impl<T: Config> Pallet<T> {
 
         if let Some(mb_enabled) = mb_enabled {
             configuration.enabled = mb_enabled;
+        }
+
+        if let Some(mb_min_amount) = mb_min_amount {
+            configuration.min_amount = mb_min_amount;
         }
 
         if let Some(mb_eq_to_q_ratio) = mb_eq_to_q_ratio {
@@ -217,7 +272,8 @@ impl<T: Config> Pallet<T> {
         }
 
         let is_valid_configuration = !configuration.enabled
-            || !configuration.eq_to_q_ratio.is_zero()
+            || configuration.min_amount.gt(&T::Balance::zero())
+                && !configuration.eq_to_q_ratio.is_zero()
                 && !configuration.vesting_starting_block.is_zero()
                 && !configuration.vesting_duration_blocks.is_zero();
 
@@ -241,14 +297,7 @@ impl<T: Config> Pallet<T> {
         configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
     ) -> DispatchResult {
         let balance = T::EqCurrency::get_balance(who, &EQ);
-        let remaining_balance = balance
-            .sub_balance(amount)
-            .ok_or(ArithmeticError::Underflow)?;
-
-        frame_support::ensure!(
-            !amount.is_zero() && remaining_balance.is_positive(),
-            Error::<T>::NotEnoughBalance
-        );
+        Self::ensure_enough_balance(&balance, amount)?;
 
         let q_total_amount = EqFixedU128::from_inner(configuration.eq_to_q_ratio)
             .checked_mul_int(*amount)
@@ -326,9 +375,127 @@ impl<T: Config> Pallet<T> {
     }
 }
 
+#[derive(Encode, Decode, Clone, Eq, PartialEq, scale_info::TypeInfo)]
+pub struct CheckEqToQSwap<T: Config + Send + Sync + scale_info::TypeInfo>(PhantomData<T>)
+where
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
+
+impl<T: Config + Send + Sync + scale_info::TypeInfo> Debug for CheckEqToQSwap<T>
+where
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+{
+    #[cfg(feature = "std")]
+    fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+        write!(f, "CheckEqToQSwap")
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn fmt(&self, _: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+        Ok(())
+    }
+}
+
+impl<T: Config + Send + Sync + scale_info::TypeInfo> Default for CheckEqToQSwap<T>
+where
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+{
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<T: Config + Send + Sync + scale_info::TypeInfo> CheckEqToQSwap<T>
+where
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+{
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<T: Config + Send + Sync + scale_info::TypeInfo> SignedExtension for CheckEqToQSwap<T>
+where
+    <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+{
+    const IDENTIFIER: &'static str = "CheckEqToQSwap";
+    type AccountId = T::AccountId;
+    type Call = T::RuntimeCall;
+    type AdditionalSigned = ();
+    type Pre = ();
+
+    fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
+        Ok(())
+    }
+
+    fn pre_dispatch(
+        self,
+        who: &Self::AccountId,
+        call: &Self::Call,
+        info: &DispatchInfoOf<Self::Call>,
+        len: usize,
+    ) -> Result<Self::Pre, TransactionValidityError> {
+        self.validate(who, call, info, len)
+            .map(|_| Self::Pre::default())
+            .map_err(Into::into)
+    }
+
+    /// Checks:
+    /// - Swap is enabled.
+    /// - Available balance is enough to perform swap.
+    /// - Swapping amount is greater or equal to the minimum swap amount.
+    fn validate(
+        &self,
+        who: &Self::AccountId,
+        call: &Self::Call,
+        _info: &DispatchInfoOf<Self::Call>,
+        _len: usize,
+    ) -> TransactionValidity {
+        if let Some(local_call) = call.is_sub_type() {
+            if let Call::swap_eq_to_q { amount } = local_call {
+                let configuration = EqSwapConfiguration::<T>::get();
+
+                Pallet::<T>::ensure_eq_swap_enabled(&configuration).map_err(|_| {
+                    InvalidTransaction::Custom(ValidityError::SwapsAreDisabled.into())
+                })?;
+                Pallet::<T>::ensure_valid_amount(&configuration, amount).map_err(|_| {
+                    InvalidTransaction::Custom(ValidityError::AmountTooSmall.into())
+                })?;
+
+                let balance = T::EqCurrency::get_balance(who, &EQ);
+
+                Pallet::<T>::ensure_enough_balance(&balance, amount).map_err(|_| {
+                    InvalidTransaction::Custom(ValidityError::NotEnoughBalance.into())
+                })?;
+            }
+        }
+
+        Ok(ValidTransaction::default())
+    }
+}
+
+/// Claim validation errors
+#[repr(u8)]
+pub enum ValidityError {
+    /// Swaps are disabled
+    SwapsAreDisabled = 1,
+    /// Configuration is invalid
+    InvalidConfiguration = 2,
+    /// Available balance is not enough to perform swap
+    NotEnoughBalance = 3,
+    /// Specified amount is too small to perform swap
+    AmountTooSmall = 4,
+}
+
+impl From<ValidityError> for u8 {
+    fn from(err: ValidityError) -> Self {
+        err as u8
+    }
+}
+
 #[derive(Default, Debug, Decode, Encode, PartialEq, TypeInfo)]
 pub struct SwapConfiguration<Balance, BlockNumber> {
     pub enabled: bool,
+    pub min_amount: Balance,
     pub eq_to_q_ratio: u128,
     pub vesting_share: Percent,
     pub vesting_starting_block: BlockNumber,
