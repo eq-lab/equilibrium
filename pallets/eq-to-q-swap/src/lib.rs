@@ -30,7 +30,7 @@ mod tests;
 use codec::{Decode, Encode};
 use core::ops::{Div, Sub};
 use eq_primitives::asset::{EQ, Q};
-use eq_primitives::balance::{BalanceGetter, DepositReason, EqCurrency, WithdrawReason};
+use eq_primitives::balance::{BalanceGetter, EqCurrency, WithdrawReason};
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::vestings::EqVestingSchedule;
 use eq_primitives::Vesting;
@@ -254,6 +254,7 @@ impl<T: Config> Pallet<T> {
             .checked_mul_int(*amount)
             .ok_or(ArithmeticError::Overflow)?;
 
+        let q_holder_account_id = T::QHolderAccountId::get();
         let mut q_amount = q_total_amount;
         let mut vesting_amount = T::Balance::zero();
 
@@ -262,12 +263,14 @@ impl<T: Config> Pallet<T> {
             vesting_amount = configuration.vesting_share.mul_floor(q_total_amount);
             q_amount = q_total_amount.sub(vesting_amount);
 
-            T::EqCurrency::deposit_creating(
+            T::EqCurrency::currency_transfer(
+                &q_holder_account_id,
                 &vesting_account_id,
                 Q,
-                q_amount,
-                false,
-                Some(DepositReason::SwapEqToQ),
+                vesting_amount,
+                ExistenceRequirement::AllowDeath,
+                eq_primitives::TransferReason::SwapEqToQ,
+                true,
             )?;
 
             if T::Vesting::has_vesting_schedule(who.clone()) {
@@ -292,13 +295,11 @@ impl<T: Config> Pallet<T> {
             }
         }
 
-        let q_holder_account_id = T::QHolderAccountId::get();
-
         T::EqCurrency::withdraw(
             who,
             EQ,
             *amount,
-            false,
+            true,
             Some(WithdrawReason::SwapEqToQ),
             WithdrawReasons::empty(),
             ExistenceRequirement::KeepAlive,
@@ -311,7 +312,7 @@ impl<T: Config> Pallet<T> {
             q_amount,
             ExistenceRequirement::AllowDeath,
             eq_primitives::TransferReason::SwapEqToQ,
-            false,
+            true,
         )?;
 
         Self::deposit_event(Event::EqToQSwap(

@@ -156,10 +156,10 @@ fn swap_eq_to_q() {
 
         let account_1_vesting = ModuleVesting::vesting(account_1).unwrap();
 
-        assert_balance!(&vesting_account_id, 512 * ONE_TOKEN, 0, Q);
+        assert_balance!(&vesting_account_id, 128 * ONE_TOKEN, 0, Q);
         assert_balance!(&account_1, 200 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_1, 512 * ONE_TOKEN, 0, Q);
-        assert_balance!(&q_holder_account_id, (10_000 - 512) * ONE_TOKEN, 0, Q);
+        assert_balance!(&q_holder_account_id, (10_000 - 512 - 128) * ONE_TOKEN, 0, Q);
         assert_eq!(
             account_1_vesting,
             VestingInfo {
@@ -176,10 +176,15 @@ fn swap_eq_to_q() {
 
         let account_1_vesting = ModuleVesting::vesting(account_1).unwrap();
 
-        assert_balance!(&vesting_account_id, (512 + 128) * ONE_TOKEN, 0, Q);
+        assert_balance!(&vesting_account_id, (128 + 32) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_1, 0, 0, EQ);
         assert_balance!(&account_1, (512 + 128) * ONE_TOKEN, 0, Q);
-        assert_balance!(&q_holder_account_id, (10_000 - 512 - 128) * ONE_TOKEN, 0, Q);
+        assert_balance!(
+            &q_holder_account_id,
+            (10_000 - 512 - 128 - 128 - 32) * ONE_TOKEN,
+            0,
+            Q
+        );
         assert_eq!(
             account_1_vesting,
             VestingInfo {
@@ -210,12 +215,12 @@ fn swap_eq_to_q() {
 
         let account_2_vesting = ModuleVesting::vesting(account_2);
 
-        assert_balance!(&vesting_account_id, (512 + 128) * ONE_TOKEN, 0, Q);
+        assert_balance!(&vesting_account_id, (128 + 32) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_2, 800 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_2, 300 * ONE_TOKEN, 0, Q);
         assert_balance!(
             &q_holder_account_id,
-            (10_000 - 512 - 128 - 300) * ONE_TOKEN,
+            (10_000 - 512 - 128 - 128 - 32 - 300) * ONE_TOKEN,
             0,
             Q
         );
@@ -237,12 +242,12 @@ fn swap_eq_to_q() {
 
         let account_2_vesting = ModuleVesting::vesting(account_2).unwrap();
 
-        assert_balance!(&vesting_account_id, (512 + 128 + 75) * ONE_TOKEN, 0, Q);
+        assert_balance!(&vesting_account_id, (128 + 32 + 75) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_2, 700 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_2, (300 + 75) * ONE_TOKEN, 0, Q);
         assert_balance!(
             &q_holder_account_id,
-            (10_000 - 512 - 128 - 300 - 75) * ONE_TOKEN,
+            (10_000 - 512 - 128 - 128 - 32 - 300 - 75 - 75) * ONE_TOKEN,
             0,
             Q
         );

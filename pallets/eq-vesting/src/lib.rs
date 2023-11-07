@@ -33,7 +33,6 @@ pub mod weights;
 
 use codec::{Decode, Encode};
 use core::convert::{TryFrom, TryInto};
-use eq_primitives::asset::Asset;
 use eq_primitives::vestings::EqVestingSchedule;
 use eq_primitives::{AccountRefCounter, AccountRefCounts, IsTransfersEnabled};
 use eq_utils::{eq_ensure, ok_or_error};
@@ -124,8 +123,6 @@ pub mod pallet {
         type MinVestedTransfer: Get<Self::Balance>;
         #[pallet::constant]
         type PalletId: Get<PalletId>;
-        #[pallet::constant]
-        type VestingAsset: Get<Asset>;
 
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self, I>>
@@ -312,8 +309,7 @@ pub mod pallet {
             Vesting::<T, I>::iter()
                 .take(AccountsPerBlock::<T, I>::get() as usize)
                 .for_each(|(account, vesting_info)| {
-                    let vested =
-                        Vested::<T, I>::get(&account).unwrap_or_else(BalanceOf::<T, I>::zero);
+                    let vested = Vested::<T, I>::get(&account).unwrap_or_else(T::Balance::zero);
 
                     if T::Currency::transfer(
                         &Self::account_id(),

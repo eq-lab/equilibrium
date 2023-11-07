@@ -845,12 +845,18 @@ impl Get<AccountId> for VestingAccount {
     }
 }
 
+pub struct Vesting3Account;
+impl Get<AccountId> for Vesting3Account {
+    fn get() -> AccountId {
+        Vesting3ModuleId::get().into_account_truncating()
+    }
+}
+
 type VestingInstance1 = eq_vesting::Instance1;
 impl eq_vesting::Config<VestingInstance1> for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Currency = BasicCurrency;
-    type VestingAsset = BasicCurrencyGet;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
@@ -867,7 +873,6 @@ impl eq_vesting::Config<VestingInstance2> for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Currency = BasicCurrency;
-    type VestingAsset = BasicCurrencyGet;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
@@ -884,7 +889,6 @@ impl eq_vesting::Config<VestingInstance3> for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Currency = QCurrency;
-    type VestingAsset = QCurrencyGet;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
@@ -2372,7 +2376,7 @@ impl eq_to_q_swap::Config for Runtime {
     type Balance = Balance;
     type SetEqSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
     type Vesting = VestingQSwap;
-    type VestingAccountId = VestingAccount;
+    type VestingAccountId = Vesting3Account;
     type QHolderAccountId = TreasuryAccount;
     type EqCurrency = EqBalances;
 }
@@ -2515,7 +2519,8 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             //eqBalances.xcmNativeTransfers
             &hex_literal::hex!("276c90850b9de2c495875fe945d2a9c7526d0b4092c3c799149eb73028bd9f23"),
             None,
-            None);
+            None,
+        );
 
         Weight::from_parts(1, 0)
     }

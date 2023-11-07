@@ -318,7 +318,6 @@ impl eq_vesting::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type Currency = BasicCurrency;
-    type VestingAsset = BasicCurrencyGet;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = ();

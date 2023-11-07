@@ -516,7 +516,6 @@ pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
 impl eq_vesting::Config for Test {
     type PalletId = VestingModuleId;
     type Balance = Balance;
-    type VestingAsset = BasicCurrencyGet;
     type RuntimeEvent = RuntimeEvent;
     type Currency = BasicCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;

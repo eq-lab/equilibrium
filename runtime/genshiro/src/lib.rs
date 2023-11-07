@@ -879,7 +879,6 @@ type VestingInstance = eq_vesting::Instance1;
 impl eq_vesting::Config<VestingInstance> for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
-    type VestingAsset = BasicCurrencyGet;
     type Currency = BasicCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;

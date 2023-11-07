@@ -263,7 +263,6 @@ impl eq_vesting::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type PalletId = VestingModuleId;
     type Balance = Balance;
-    type VestingAsset = QCurrencyGet;
     type Currency = QCurrency;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = ();

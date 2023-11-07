@@ -228,9 +228,7 @@ fn does_not_remove_vestings_with_zero_value() {
 
         let who = 1;
 
-        assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
-            u64,
-        >>::add_vesting_schedule(
+        assert_ok!(ModuleVesting::add_vesting_schedule(
             &who,
             vesting_info.locked,
             vesting_info.per_block,
@@ -264,9 +262,7 @@ fn remove_vesting_schedule() {
 
         let who = 1;
 
-        assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
-            u64,
-        >>::add_vesting_schedule(
+        assert_ok!(ModuleVesting::add_vesting_schedule(
             &who,
             vesting_info.locked,
             vesting_info.per_block,
@@ -305,9 +301,7 @@ fn on_initialize_remove_correct_number_of_vesting_schedules() {
         let refs_before: Vec<_> = accounts
             .iter()
             .map(|account| {
-                assert_ok!(<ModuleVesting as frame_support::traits::VestingSchedule<
-                    u64,
-                >>::add_vesting_schedule(
+                assert_ok!(ModuleVesting::add_vesting_schedule(
                     account,
                     vesting_info.locked,
                     vesting_info.per_block,
