@@ -487,10 +487,16 @@ fn on_initialize_remove_stake() {
         }
 
         let stakes_num = periods.len();
-        assert_eq!(eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID), stake * stakes_num as u128);
+        assert_eq!(
+            eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID),
+            stake * stakes_num as u128
+        );
         assert_eq!(Stakes::<Test>::get(account).len(), stakes_num);
         Pallet::<Test>::on_initialize(1);
-        assert_eq!(eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID), 0);
+        assert_eq!(
+            eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID),
+            0
+        );
         assert_eq!(Stakes::<Test>::get(account).len(), 0);
     });
 }
@@ -532,7 +538,7 @@ fn on_initialize_remove_correct_number_of_locks() {
             let mut stakes_left = accounts_num;
             for account in accounts {
                 let account_lock = eq_balances::Pallet::<Test>::get_lock(account, STAKING_ID);
-    
+
                 if account_lock == 0 {
                     stakes_removed += 1;
                     stakes_left -= 1;
@@ -540,11 +546,10 @@ fn on_initialize_remove_correct_number_of_locks() {
                     panic!("Wrong locked amount for account {}", account);
                 }
             }
-    
+
             let should_be_removed = (removed_per_block * iteration).min(accounts_num);
             assert_eq!(stakes_removed, should_be_removed);
             assert_eq!(stakes_left, accounts_num - should_be_removed);
         }
-
     });
 }

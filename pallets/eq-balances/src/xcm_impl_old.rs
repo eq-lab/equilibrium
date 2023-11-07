@@ -92,11 +92,6 @@ impl<T: Config> Pallet<T> {
         kind: XcmDestination,
         deal_with_fee: XcmTransferDealWithFee,
     ) -> DispatchResult {
-        let is_native_asset_transfer = asset == T::AssetGetter::get_main_asset();
-        if is_native_asset_transfer {
-            Self::ensure_xcm_transfer_limit_not_exceeded(&from, amount)?;
-        }
-
         let (multi_location, decimals, self_reserved) = Self::xcm_data(&asset)?;
 
         let XcmDestinationResolved {
@@ -276,10 +271,6 @@ impl<T: Config> Pallet<T> {
                     if let Err(err) = res {
                         return Rollback(Err(err));
                     }
-                }
-
-                if is_native_asset_transfer {
-                    Self::update_xcm_native_transfers(&from, amount);
                 }
 
                 log::trace!(target: "eq_balances", "Sending XcmMessage dest: {:?}, xcm: {:?}", destination, xcm);

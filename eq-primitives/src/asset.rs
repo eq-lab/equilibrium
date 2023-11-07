@@ -56,7 +56,7 @@ impl AssetData<Asset> {
         let multi_location = MultiLocation {
             parents: 0,
             interior: match self.asset_type {
-                AssetType::Native => Here,
+                _ if self.id == EQ => Here,
                 _ => X1(GeneralKey {
                     length: id.len() as u8,
                     data,

@@ -367,11 +367,6 @@ default-features = false
 path = "../../pallets/eq-dex"
 version = "0.1.0"
 
-[dependencies.eq-xdot-pool]
-default-features = false
-path = "../../pallets/eq-xdot-pool"
-version = "0.1.0"
-
 [dependencies.eq-wrapped-dot]
 default-features = false
 path = "../../pallets/eq-wrapped-dot"
@@ -380,12 +375,6 @@ version = "0.1.0"
 [dependencies.eq-market-maker]
 default-features = false
 path = "../../pallets/eq-market-maker"
-version = "0.1.0"
-
-[dependencies.eq-xdot-pool-rpc-runtime-api]
-default-features = false
-package = "eq-xdot-pool-rpc-runtime-api"
-path = "../../pallets/eq-xdot-pool/rpc/runtime-api"
 version = "0.1.0"
 
 [dependencies.eq-to-q-swap]
@@ -469,7 +458,6 @@ try-runtime = [
   "eq-lending/try-runtime",
   "eq-lockdrop/try-runtime",
   "eq-market-maker/try-runtime",
-  "eq-xdot-pool/try-runtime",
   "eq-migration/try-runtime",
   "eq-wrapped-dot/try-runtime",
   "eq-staking/try-runtime",
@@ -561,8 +549,6 @@ std = [
   "xcm-executor/std",
   "pallet-xcm/std",
   "eq-xcm/std",
-  "eq-xdot-pool/std",
-  "eq-xdot-pool-rpc-runtime-api/std",
   "eq-wrapped-dot/std",
   "eq-market-maker/std",
   "eq-staking/std",

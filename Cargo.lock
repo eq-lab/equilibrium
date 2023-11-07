@@ -3114,7 +3114,6 @@ dependencies = [
  "eq-rate",
  "eq-session-manager",
  "eq-xcm",
- "eq-xdot-pool-rpc",
  "equilibrium-curve-amm-rpc",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -3221,8 +3220,6 @@ dependencies = [
  "eq-whitelists",
  "eq-wrapped-dot",
  "eq-xcm",
- "eq-xdot-pool",
- "eq-xdot-pool-rpc-runtime-api",
  "equilibrium-curve-amm",
  "equilibrium-curve-amm-rpc-runtime-api",
  "financial-pallet",
@@ -3663,21 +3660,6 @@ dependencies = [
  "sp-std",
  "substrate-fixed",
  "test-utils",
-]
-
-[[package]]
-name = "eq-xdot-pool-rpc"
-version = "0.1.0"
-dependencies = [
- "eq-xdot-pool-rpc-runtime-api",
- "jsonrpsee",
- "parity-scale-codec",
- "sp-api",
- "sp-blockchain",
- "sp-core",
- "sp-rpc",
- "sp-runtime",
- "substrate-fixed",
 ]
 
 [[package]]
