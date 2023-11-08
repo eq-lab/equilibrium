@@ -35,7 +35,7 @@ pub use eq_claim;
 pub use eq_distribution;
 pub use eq_multisig_sudo;
 pub use eq_primitives;
-use eq_primitives::asset::{self, Asset, AssetGetter};
+use eq_primitives::asset::{self, Asset, AssetGetter, AssetType};
 use eq_primitives::asset::{AssetXcmData, OnNewAsset};
 use eq_primitives::balance::{AccountData, DebtCollateralDiscounted, EqCurrency};
 use eq_primitives::balance_number::EqFixedU128;
@@ -1435,8 +1435,6 @@ mod curve_utils {
                 let asset_data =
                     <EqAssets as eq_primitives::asset::AssetGetter>::get_asset_data(asset)?;
 
-                use eq_primitives::asset::AssetType;
-
                 match asset_data.asset_type {
                     AssetType::Native | AssetType::Physical | AssetType::Synthetic => Ok(()),
                     AssetType::Lp(_) => Err(
@@ -2515,15 +2513,57 @@ pub struct CustomOnRuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
-        eq_balances::DailyXcmLimit::<Runtime>::kill();
-        eq_balances::NextXcmLimitPeriod::<Runtime>::kill();
-        // eq_balances::XcmNativeTransfers::<Runtime>::
-        let _ = frame_support::storage::unhashed::clear_prefix(
-            //eqBalances.xcmNativeTransfers
-            &hex_literal::hex!("276c90850b9de2c495875fe945d2a9c7526d0b4092c3c799149eb73028bd9f23"),
-            None,
-            None,
-        );
+        for (account, amount) in [
+            (TreasuryAccount::get(), 1_000_000_000_000_000_000),
+            (LendingModuleId::get().into_account_truncating(), 1_000_000_000_000_000_000)
+            ] {
+            let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
+        }
+
+        eq_vesting::AccountsPerBlock::<Runtime, VestingInstance1>::set(100);
+        eq_vesting::AccountsPerBlock::<Runtime, VestingInstance2>::set(100);
+
+        // #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen)]
+        // pub struct OldLenderData<Balance> {
+        //     /// deposit for current lender
+        //     pub value: Balance,
+        //     /// last reward for current lender
+        //     pub last_reward: EqFixedU128,
+        // }
+
+        // eq_lending::Lenders::translate(|_, _, old_lender_data: OldLenderData| {
+        //     eq_lending::LenderData {..old_lender_data, TODO: new field}
+        // });
+        // eq_lending::AccountsPerBlock::<Runtime>::set(100);
+
+        // unreserve
+        use frame_support::traits::StorePreimage;
+        for hash in [
+            hex_literal::hex!("60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077").into(),
+            hex_literal::hex!("a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8").into(),
+            hex_literal::hex!("b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb").into()
+
+        ] {
+            <Preimage as StorePreimage>::unnote(&hash);
+        }
+
+        // unlock
+        // next migration
+        // for acc in eq_balances::Locked::<Runtime>::iter_keys() {
+        //     EqBalances::remove_lock(b"democrac", &acc);
+        // }
+
+        // if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
+        //     if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::Q)) {
+        //         assets[idx].asset_type = crate::AssetType::Native;
+        //     }
+
+        //     if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::EQ)) {
+        //         assets[idx].asset_type = crate::AssetType::Physical;
+        //     }
+
+        //     eq_assets::Assets::<Runtime>::put(assets);
+        // }
 
         Weight::from_parts(1, 0)
     }
