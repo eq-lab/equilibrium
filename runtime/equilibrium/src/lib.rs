@@ -1223,7 +1223,7 @@ where
             eq_rate::reinit_extension::ReinitAccount::<Runtime, CallsWithReinit>::new(),
             eq_claim::PrevalidateAttests::<Runtime>::new(),
             eq_treasury::CheckBuyout::<Runtime>::new(),
-            eq_to_q_swap::CheckEqToQSwap::<Runtime>::new(),
+            q_swap::CheckQSwap::<Runtime>::new(),
         );
 
         let raw_payload = SignedPayload::new(call, extra)
@@ -2372,13 +2372,14 @@ impl eq_crowdloan_dots::Config for Runtime {
     type LendingPoolManager = EqLending;
 }
 
-impl eq_to_q_swap::Config for Runtime {
+impl q_swap::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
-    type SetEqSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
+    type SetQSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
     type Vesting = VestingQSwap;
     type VestingAccountId = Vesting3Account;
     type QHolderAccountId = TreasuryAccount;
+    type AssetHolderAccountId = TreasuryAccount;
     type EqCurrency = EqBalances;
     type WeightInfo = ();
 }
@@ -2459,7 +2460,7 @@ construct_runtime!(
 
         EqStaking: eq_staking::{ Pallet, Call, Event<T>, Storage } = 67,
         EqCrowdLoanDots: eq_crowdloan_dots::{ Pallet, Call, Storage } = 68,
-        EqToQSwap: eq_to_q_swap::{ Pallet, Call, Event<T>, Storage } = 69,
+        QSwap: q_swap::{ Pallet, Call, Event<T>, Storage } = 69,
         VestingQSwap: eq_vesting::<Instance3>::{Pallet, Call, Storage, Event<T, Instance3>, Config<T, Instance3>} = 70,
     }
 );
@@ -2484,7 +2485,7 @@ pub type SignedExtra = (
     eq_rate::reinit_extension::ReinitAccount<Runtime, CallsWithReinit>,
     eq_claim::PrevalidateAttests<Runtime>,
     eq_treasury::CheckBuyout<Runtime>,
-    eq_to_q_swap::CheckEqToQSwap<Runtime>,
+    q_swap::CheckQSwap<Runtime>,
 );
 
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;

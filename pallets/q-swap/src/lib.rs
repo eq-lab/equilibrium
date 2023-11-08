@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//! # Equilibrium EQ-to-Q Swap
+//! # Equilibrium Q Swap
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
@@ -30,16 +30,17 @@ pub mod weights;
 
 use codec::{Decode, Encode};
 use core::ops::{Div, Sub};
-use eq_primitives::asset::{EQ, Q};
-use eq_primitives::balance::{BalanceGetter, EqCurrency, WithdrawReason};
+use eq_primitives::asset::{Asset, Q};
+use eq_primitives::balance::{BalanceGetter, EqCurrency};
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::vestings::EqVestingSchedule;
 use eq_primitives::{SignedBalance, Vesting};
 use eq_utils::eq_ensure;
 use frame_support::pallet_prelude::DispatchResult;
-use frame_support::traits::{ExistenceRequirement, Get, IsSubType, WithdrawReasons};
+use frame_support::traits::{ExistenceRequirement, Get, IsSubType};
 use frame_support::transactional;
 use frame_support::weights::Weight;
+use frame_system::pallet_prelude::BlockNumberFor;
 use scale_info::TypeInfo;
 use sp_runtime::traits::{
     AtLeast32BitUnsigned, CheckedAdd, DispatchInfoOf, Saturating, SignedExtension, Zero,
@@ -51,6 +52,7 @@ use sp_runtime::{ArithmeticError, FixedPointNumber, FixedPointOperand, Percent};
 use sp_std::convert::{TryFrom, TryInto};
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
+use sp_std::vec::Vec;
 pub use weights::WeightInfo;
 
 pub use pallet::*;
@@ -81,7 +83,7 @@ pub mod pallet {
             + TryFrom<eq_primitives::balance::Balance>
             + Into<eq_primitives::balance::Balance>;
         /// Origin for setting configuration
-        type SetEqSwapConfigurationOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+        type SetQSwapConfigurationOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         // Used for managing vestings
         type Vesting: Vesting<Self::AccountId>
             + EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
@@ -92,14 +94,25 @@ pub mod pallet {
         type VestingAccountId: Get<Self::AccountId>;
         /// Returns Q holder account
         type QHolderAccountId: Get<Self::AccountId>;
+        /// Returns Asset holder account
+        type AssetHolderAccountId: Get<Self::AccountId>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
     }
 
-    /// Stores EQ-to-Q swap configuration
+    /// Stores Q swap configuration
     #[pallet::storage]
-    pub type EqSwapConfiguration<T: Config> =
-        StorageValue<_, SwapConfiguration<T::Balance, T::BlockNumber>, ValueQuery>;
+    pub type QSwapConfigurations<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        Asset,
+        SwapConfiguration<T::Balance, T::BlockNumber>,
+        ValueQuery,
+    >;
+
+    /// Max amount of Q to receive by each user.
+    #[pallet::storage]
+    pub type QReceivingThreshold<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
 
     /// Stores Q amount transferred to users
     #[pallet::storage]
@@ -115,7 +128,7 @@ pub mod pallet {
         /// - Q received amount
         /// - Q vested amount
         /// \[from, amount_1, amount_2, amount_3\]
-        EqToQSwap(T::AccountId, T::Balance, T::Balance, T::Balance),
+        QSwap(T::AccountId, T::Balance, T::Balance, T::Balance),
     }
 
     #[pallet::error]
@@ -133,61 +146,57 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            let mut configuration = EqSwapConfiguration::<T>::get();
+            let mut reads = 0;
+            let mut writes = 0;
 
-            if configuration.enabled && configuration.vesting_starting_block.le(&now) {
-                configuration.enabled = false;
-                EqSwapConfiguration::<T>::put(configuration);
+            for (asset, mut config) in QSwapConfigurations::<T>::iter() {
+                if config.enabled && config.vesting_starting_block.le(&now) {
+                    config.enabled = false;
+                    writes += 1;
 
-                return T::DbWeight::get().reads_writes(1, 1);
+                    QSwapConfigurations::<T>::insert(asset, config);
+                }
+                reads += 1;
             }
 
-            T::DbWeight::get().reads(1)
+            return T::DbWeight::get().reads_writes(reads, writes);
         }
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(1, 1))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(4, 4))]
         pub fn set_config(
             origin: OriginFor<T>,
-            mb_enabled: Option<bool>,
-            mb_min_amount: Option<T::Balance>,
             mb_max_q_amount: Option<T::Balance>,
-            mb_eq_to_q_ratio: Option<u128>,
-            mb_vesting_share: Option<Percent>,
-            mb_vesting_starting_block: Option<T::BlockNumber>,
-            mb_vesting_duration_blocks: Option<T::Balance>,
+            mb_q_swap_configurations: Option<
+                Vec<(Asset, SwapConfigurationInput<T::Balance, T::BlockNumber>)>,
+            >,
         ) -> DispatchResultWithPostInfo {
-            T::SetEqSwapConfigurationOrigin::ensure_origin(origin)?;
+            T::SetQSwapConfigurationOrigin::ensure_origin(origin)?;
 
-            Self::do_set_config(
-                mb_enabled,
-                mb_min_amount,
-                mb_max_q_amount,
-                mb_eq_to_q_ratio,
-                mb_vesting_share,
-                mb_vesting_starting_block,
-                mb_vesting_duration_blocks,
-            )?;
+            Self::do_set_config(mb_max_q_amount, mb_q_swap_configurations)?;
 
             Ok(().into())
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight((T::WeightInfo::swap_eq_to_q(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::swap(), DispatchClass::Normal, Pays::No))]
         #[transactional]
-        pub fn swap_eq_to_q(
+        pub fn swap(
             origin: OriginFor<T>,
+            asset: Asset,
             amount: T::Balance,
         ) -> DispatchResultWithPostInfo {
             let caller = ensure_signed(origin)?;
-            let configuration = EqSwapConfiguration::<T>::get();
+            let configuration = QSwapConfigurations::<T>::get(asset);
+            let max_q_amount = QReceivingThreshold::<T>::get();
 
             Self::ensure_valid_amount(&configuration, &amount)?;
-            Self::ensure_eq_swap_enabled(&configuration)?;
-            Self::do_swap_eq_to_q(&caller, &amount, &configuration)?;
+            Self::ensure_swap_enabled(&configuration)?;
+
+            Self::do_swap(&caller, &asset, &amount, &max_q_amount, &configuration)?;
 
             Ok(().into())
         }
@@ -195,14 +204,14 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-    fn ensure_eq_swap_enabled(
+    fn ensure_swap_enabled(
         configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
     ) -> DispatchResult {
         eq_ensure!(
             configuration.enabled,
             Error::<T>::SwapsAreDisabled,
-            target: "eq_to_q_swap",
-            "{}:{}. EQ swap is not allowed.",
+            target: "q_swap",
+            "{}:{}. Q swap is not allowed.",
             file!(),
             line!(),
         );
@@ -217,7 +226,7 @@ impl<T: Config> Pallet<T> {
         eq_ensure!(
             amount.ge(&configuration.min_amount),
             Error::<T>::AmountTooSmall,
-            target: "eq_to_q_swap",
+            target: "q_swap",
             "{}:{}. Specified amount is too small to perform swap.",
             file!(),
             line!(),
@@ -237,7 +246,7 @@ impl<T: Config> Pallet<T> {
         eq_ensure!(
             remaining_balance.is_positive(),
             Error::<T>::NotEnoughBalance,
-            target: "eq_to_q_swap",
+            target: "q_swap",
             "{}:{}. Available balance is not enough to perform swap.",
             file!(),
             line!(),
@@ -247,78 +256,54 @@ impl<T: Config> Pallet<T> {
     }
 
     fn do_set_config(
-        mb_enabled: Option<bool>,
-        mb_min_amount: Option<T::Balance>,
-        max_q_amount: Option<T::Balance>,
-        mb_eq_to_q_ratio: Option<u128>,
-        mb_vesting_share: Option<Percent>,
-        mb_vesting_starting_block: Option<T::BlockNumber>,
-        mb_vesting_duration_blocks: Option<T::Balance>,
+        mb_max_q_amount: Option<T::Balance>,
+        mb_q_swap_configurations: Option<
+            Vec<(Asset, SwapConfigurationInput<T::Balance, T::BlockNumber>)>,
+        >,
     ) -> DispatchResult {
-        let mut configuration = EqSwapConfiguration::<T>::get();
+        let max_q_amount = mb_max_q_amount.unwrap_or(QReceivingThreshold::<T>::get());
 
-        if let Some(mb_enabled) = mb_enabled {
-            configuration.enabled = mb_enabled;
+        if let Some(q_swap_configurations) = mb_q_swap_configurations {
+            for (asset, config) in q_swap_configurations {
+                let mut configuration = QSwapConfigurations::<T>::get(asset);
+                configuration.set(config);
+
+                eq_ensure!(
+                    configuration.is_valid() && !max_q_amount.is_zero(),
+                    Error::<T>::InvalidConfiguration,
+                    target: "q_swap",
+                    "{}:{}. Invalid configuration provided.",
+                    file!(),
+                    line!()
+                );
+
+                QSwapConfigurations::<T>::insert(asset, configuration)
+            }
         }
 
-        if let Some(mb_min_amount) = mb_min_amount {
-            configuration.min_amount = mb_min_amount;
+        if let Some(max_q_amount) = mb_max_q_amount {
+            QReceivingThreshold::<T>::put(max_q_amount);
         }
-
-        if let Some(max_q_amount) = max_q_amount {
-            configuration.max_q_amount = max_q_amount;
-        }
-
-        if let Some(mb_eq_to_q_ratio) = mb_eq_to_q_ratio {
-            configuration.eq_to_q_ratio = mb_eq_to_q_ratio;
-        }
-
-        if let Some(mb_vesting_share) = mb_vesting_share {
-            configuration.vesting_share = mb_vesting_share;
-        }
-
-        if let Some(mb_vesting_starting_block) = mb_vesting_starting_block {
-            configuration.vesting_starting_block = mb_vesting_starting_block;
-        }
-
-        if let Some(mb_vesting_duration_blocks) = mb_vesting_duration_blocks {
-            configuration.vesting_duration_blocks = mb_vesting_duration_blocks;
-        }
-
-        let is_valid_configuration = !configuration.enabled
-            || configuration.min_amount.gt(&T::Balance::zero())
-                && configuration.max_q_amount.gt(&T::Balance::zero())
-                && !configuration.eq_to_q_ratio.is_zero()
-                && !configuration.vesting_starting_block.is_zero()
-                && !configuration.vesting_duration_blocks.is_zero();
-
-        eq_ensure!(
-            is_valid_configuration,
-            Error::<T>::InvalidConfiguration,
-            target: "eq_to_q_swap",
-            "{}:{}. Invalid configuration provided.",
-            file!(),
-            line!(),
-        );
-
-        EqSwapConfiguration::<T>::put(configuration);
 
         Ok(())
     }
 
-    fn do_swap_eq_to_q(
+    fn do_swap(
         who: &T::AccountId,
+        asset: &Asset,
         amount: &T::Balance,
+        max_q_amount: &T::Balance,
         configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
     ) -> DispatchResult {
-        let balance = T::EqCurrency::get_balance(who, &EQ);
+        let balance = T::EqCurrency::get_balance(who, asset);
         Self::ensure_enough_balance(&balance, amount)?;
 
-        let q_total_amount = EqFixedU128::from_inner(configuration.eq_to_q_ratio)
+        let q_total_amount = EqFixedU128::from_inner(configuration.q_ratio)
             .checked_mul_int(*amount)
             .ok_or(ArithmeticError::Overflow)?;
 
         let q_holder_account_id = T::QHolderAccountId::get();
+        let asset_holder_account_id = T::AssetHolderAccountId::get();
 
         let vesting_amount = (!configuration.vesting_share.is_zero())
             .then(|| configuration.vesting_share.mul_floor(q_total_amount))
@@ -331,26 +316,25 @@ impl<T: Config> Pallet<T> {
             .checked_add(&q_amount)
             .ok_or(ArithmeticError::Underflow)?;
 
-        let (vesting_amount, q_amount, q_received_after) =
-            if q_received_after.le(&configuration.max_q_amount) {
-                (vesting_amount, q_amount, q_received_after)
-            } else {
-                let q_surplus = q_received_after.sub(configuration.max_q_amount);
-                let q_received_after = configuration.max_q_amount;
-                let vesting_amount = vesting_amount.saturating_add(q_surplus);
-                let q_amount = q_amount.saturating_sub(q_surplus);
+        let (vesting_amount, q_amount, q_received_after) = if q_received_after.le(&max_q_amount) {
+            (vesting_amount, q_amount, q_received_after)
+        } else {
+            let q_surplus = q_received_after.sub(*max_q_amount);
+            let q_received_after = *max_q_amount;
+            let vesting_amount = vesting_amount.saturating_add(q_surplus);
+            let q_amount = q_amount.saturating_sub(q_surplus);
 
-                (vesting_amount, q_amount, q_received_after)
-            };
+            (vesting_amount, q_amount, q_received_after)
+        };
 
-        T::EqCurrency::withdraw(
+        T::EqCurrency::currency_transfer(
             who,
-            EQ,
+            &asset_holder_account_id,
+            *asset,
             *amount,
+            ExistenceRequirement::AllowDeath,
+            eq_primitives::TransferReason::QSwap,
             true,
-            Some(WithdrawReason::SwapEqToQ),
-            WithdrawReasons::empty(),
-            ExistenceRequirement::KeepAlive,
         )?;
 
         if !vesting_amount.is_zero() {
@@ -360,7 +344,7 @@ impl<T: Config> Pallet<T> {
                 Q,
                 vesting_amount,
                 ExistenceRequirement::AllowDeath,
-                eq_primitives::TransferReason::SwapEqToQ,
+                eq_primitives::TransferReason::QSwap,
                 true,
             )?;
 
@@ -393,36 +377,31 @@ impl<T: Config> Pallet<T> {
                 Q,
                 q_amount,
                 ExistenceRequirement::AllowDeath,
-                eq_primitives::TransferReason::SwapEqToQ,
+                eq_primitives::TransferReason::QSwap,
                 true,
             )?;
         }
 
         QReceivedAmounts::<T>::insert(who, q_received_after);
 
-        Self::deposit_event(Event::EqToQSwap(
-            who.clone(),
-            *amount,
-            q_amount,
-            vesting_amount,
-        ));
+        Self::deposit_event(Event::QSwap(who.clone(), *amount, q_amount, vesting_amount));
 
         Ok(())
     }
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, scale_info::TypeInfo)]
-pub struct CheckEqToQSwap<T: Config + Send + Sync + scale_info::TypeInfo>(PhantomData<T>)
+pub struct CheckQSwap<T: Config + Send + Sync + scale_info::TypeInfo>(PhantomData<T>)
 where
     <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
-impl<T: Config + Send + Sync + scale_info::TypeInfo> Debug for CheckEqToQSwap<T>
+impl<T: Config + Send + Sync + scale_info::TypeInfo> Debug for CheckQSwap<T>
 where
     <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
     #[cfg(feature = "std")]
     fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-        write!(f, "CheckEqToQSwap")
+        write!(f, "CheckQSwap")
     }
 
     #[cfg(not(feature = "std"))]
@@ -431,7 +410,7 @@ where
     }
 }
 
-impl<T: Config + Send + Sync + scale_info::TypeInfo> Default for CheckEqToQSwap<T>
+impl<T: Config + Send + Sync + scale_info::TypeInfo> Default for CheckQSwap<T>
 where
     <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
@@ -440,7 +419,7 @@ where
     }
 }
 
-impl<T: Config + Send + Sync + scale_info::TypeInfo> CheckEqToQSwap<T>
+impl<T: Config + Send + Sync + scale_info::TypeInfo> CheckQSwap<T>
 where
     <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
@@ -449,11 +428,11 @@ where
     }
 }
 
-impl<T: Config + Send + Sync + scale_info::TypeInfo> SignedExtension for CheckEqToQSwap<T>
+impl<T: Config + Send + Sync + scale_info::TypeInfo> SignedExtension for CheckQSwap<T>
 where
     <T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
-    const IDENTIFIER: &'static str = "CheckEqToQSwap";
+    const IDENTIFIER: &'static str = "CheckQSwap";
     type AccountId = T::AccountId;
     type Call = T::RuntimeCall;
     type AdditionalSigned = ();
@@ -487,17 +466,17 @@ where
         _len: usize,
     ) -> TransactionValidity {
         if let Some(local_call) = call.is_sub_type() {
-            if let Call::swap_eq_to_q { amount } = local_call {
-                let configuration = EqSwapConfiguration::<T>::get();
+            if let Call::swap { asset, amount } = local_call {
+                let configuration = QSwapConfigurations::<T>::get(asset);
 
-                Pallet::<T>::ensure_eq_swap_enabled(&configuration).map_err(|_| {
+                Pallet::<T>::ensure_swap_enabled(&configuration).map_err(|_| {
                     InvalidTransaction::Custom(ValidityError::SwapsAreDisabled.into())
                 })?;
                 Pallet::<T>::ensure_valid_amount(&configuration, amount).map_err(|_| {
                     InvalidTransaction::Custom(ValidityError::AmountTooSmall.into())
                 })?;
 
-                let balance = T::EqCurrency::get_balance(who, &EQ);
+                let balance = T::EqCurrency::get_balance(who, &asset);
 
                 Pallet::<T>::ensure_enough_balance(&balance, amount).map_err(|_| {
                     InvalidTransaction::Custom(ValidityError::NotEnoughBalance.into())
@@ -532,9 +511,54 @@ impl From<ValidityError> for u8 {
 pub struct SwapConfiguration<Balance, BlockNumber> {
     pub enabled: bool,
     pub min_amount: Balance,
-    pub max_q_amount: Balance,
-    pub eq_to_q_ratio: u128,
+    pub q_ratio: u128,
     pub vesting_share: Percent,
     pub vesting_starting_block: BlockNumber,
     pub vesting_duration_blocks: Balance,
+}
+
+impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, BlockNumber> {
+    fn set(&mut self, config: SwapConfigurationInput<Balance, BlockNumber>) {
+        if let Some(enabled) = config.mb_enabled {
+            self.enabled = enabled;
+        }
+
+        if let Some(min_amount) = config.mb_min_amount {
+            self.min_amount = min_amount;
+        }
+
+        if let Some(q_ratio) = config.mb_q_ratio {
+            self.q_ratio = q_ratio;
+        }
+
+        if let Some(vesting_share) = config.mb_vesting_share {
+            self.vesting_share = vesting_share;
+        }
+
+        if let Some(vesting_starting_block) = config.mb_vesting_starting_block {
+            self.vesting_starting_block = vesting_starting_block;
+        }
+
+        if let Some(vesting_duration_blocks) = config.mb_vesting_duration_blocks {
+            self.vesting_duration_blocks = vesting_duration_blocks;
+        }
+    }
+
+    fn is_valid(&self) -> bool {
+        !self.enabled
+            || self.min_amount.gt(&Balance::zero())
+                && !self.q_ratio.is_zero()
+                && !self.vesting_starting_block.is_zero()
+                && !self.vesting_duration_blocks.is_zero()
+    }
+}
+
+#[derive(Clone, Default, Debug, Decode, Encode, PartialEq, TypeInfo)]
+pub struct SwapConfigurationInput<Balance, BlockNumber> {
+    pub mb_enabled: Option<bool>,
+    pub mb_min_amount: Option<Balance>,
+    pub mb_q_ratio: Option<u128>,
+    pub mb_vesting_share: Option<Percent>,
+    pub mb_vesting_starting_block: Option<BlockNumber>,
+    pub mb_vesting_duration_blocks: Option<Balance>,
 }
