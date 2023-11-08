@@ -639,10 +639,10 @@ mod signed_extension {
                     asset: asset,
                     amount: Amount::Buyout(100 * ONE_TOKEN),
                 });
-    
+
                 let check = CheckBuyout::<Test>::new();
                 let info = info_from_weight(Weight::zero());
-    
+
                 assert_err!(
                     check.validate(&account_id, &buyout_call, &info, 1),
                     TransactionValidityError::Invalid(InvalidTransaction::Custom(

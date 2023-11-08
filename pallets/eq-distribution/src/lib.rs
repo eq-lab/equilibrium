@@ -82,11 +82,7 @@ pub mod pallet {
         /// Gets vesting account (for vesting transfers).
         type VestingAccountId: Get<Self::AccountId>;
         /// Used to schedule vesting part of a claim.
-        type Vesting: EqVestingSchedule<
-            Self::Balance,
-            Self::AccountId,
-            Moment = Self::BlockNumber,
-        >;
+        type Vesting: EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
         /// Used to deal with Native Asset
         type AssetGetter: AssetGetter;
         /// Used for currency-related operations and calculations
