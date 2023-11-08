@@ -17,7 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::*;
-use crate as eq_to_q_swap;
+use crate as q_swap;
 use core::convert::{TryFrom, TryInto};
 use core::marker::PhantomData;
 use eq_primitives::asset::{self, AssetType};
@@ -46,7 +46,7 @@ pub(crate) type Balance = eq_primitives::balance::Balance;
 pub(crate) type OracleMock = eq_primitives::price::mock::OracleMock<AccountId>;
 
 pub type ModuleBalances = eq_balances::Pallet<Test>;
-pub type ModuleEqToQSwap = Pallet<Test>;
+pub type ModuleQSwap = Pallet<Test>;
 pub type ModuleVesting = eq_vesting::Pallet<Test>;
 
 type DummyValidatorId = u64;
@@ -78,7 +78,7 @@ frame_support::construct_runtime!(
         EqAssets: eq_assets::{Pallet, Call, Storage, Event},
         EqVesting: eq_vesting::{Pallet, Call, Storage, Event<T>},
         EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>},
-        EqToQSwap: eq_to_q_swap::{Pallet, Call, Storage, Event<T>},
+        QSwap: q_swap::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -270,14 +270,15 @@ impl eq_vesting::Config for Test {
     type BlockNumberToBalance = BlockNumberToBalance;
 }
 
-impl eq_to_q_swap::Config for Test {
+impl q_swap::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
     type EqCurrency = EqBalances;
-    type SetEqSwapConfigurationOrigin = EnsureRoot<AccountId>;
+    type SetQSwapConfigurationOrigin = EnsureRoot<AccountId>;
     type Vesting = eq_vesting::Pallet<Test>;
     type VestingAccountId = VestingAccountMock<AccountId>;
     type QHolderAccountId = TreasuryAccountMock<AccountId>;
+    type AssetHolderAccountId = TreasuryAccountMock<AccountId>;
     type WeightInfo = ();
 }
 
@@ -316,7 +317,21 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                 true,
                 Percent::one(),
                 Permill::one(),
-            )
+            ),
+            (
+                asset::DOT.get_id(),
+                EqFixedU128::from(0),
+                FixedI64::from(0),
+                Permill::zero(),
+                Permill::zero(),
+                vec![],
+                Permill::from_rational(2u32, 5u32),
+                4,
+                AssetType::Physical,
+                true,
+                Percent::one(),
+                Permill::one(),
+            ),
 		]
 	}
     .assimilate_storage(&mut storage)
@@ -325,7 +340,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     eq_balances::GenesisConfig::<Test> {
         balances: vec![
             (1, vec![(1000 * ONE_TOKEN as Balance, asset::EQ.get_id())]),
-            (2, vec![(1000 * ONE_TOKEN as Balance, asset::EQ.get_id())]),
+            (
+                2,
+                vec![
+                    (1000 * ONE_TOKEN as Balance, asset::EQ.get_id()),
+                    (1000 * ONE_TOKEN as Balance, asset::DOT.get_id()),
+                ],
+            ),
             (
                 TreasuryAccountMock::get(),
                 vec![(10_000 * ONE_TOKEN as Balance, asset::Q.get_id())],

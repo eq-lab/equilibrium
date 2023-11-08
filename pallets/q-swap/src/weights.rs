@@ -24,7 +24,7 @@ use sp_std::marker::PhantomData;
 
 pub trait WeightInfo {
     fn set_config() -> Weight;
-    fn swap_eq_to_q() -> Weight;
+    fn swap() -> Weight;
 }
 
 // for tests
@@ -32,7 +32,7 @@ impl crate::WeightInfo for () {
     fn set_config() -> Weight {
         Weight::zero()
     }
-    fn swap_eq_to_q() -> Weight {
+    fn swap() -> Weight {
         Weight::zero()
     }
 }

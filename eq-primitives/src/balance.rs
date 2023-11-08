@@ -627,8 +627,6 @@ pub enum WithdrawReason {
     Staking,
     /// Swap Crowdloan DOT to DOT
     CrowdloanDotSwap,
-    /// Swap EQ-to-Q
-    SwapEqToQ,
 }
 
 #[derive(
