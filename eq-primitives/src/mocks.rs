@@ -186,6 +186,15 @@ impl<AccountId: Encode + Decode> Get<AccountId> for VestingAccountMock<AccountId
     }
 }
 
+const TREASURY_MODULE_ID: frame_support::PalletId = frame_support::PalletId(*b"eq/trsry");
+
+pub struct TreasuryAccountMock<AccountId>(PhantomData<AccountId>);
+impl<AccountId: Encode + Decode> Get<AccountId> for TreasuryAccountMock<AccountId> {
+    fn get() -> AccountId {
+        TREASURY_MODULE_ID.into_account_truncating()
+    }
+}
+
 frame_support::parameter_types! {
     pub ParachainId: polkadot_parachain::primitives::Id = 2011u32.into();
 }

@@ -130,6 +130,7 @@ pub const ETH: Asset = Asset(6648936); //::from_bytes(b"eth"); 0x657468
 pub const CRV: Asset = Asset(6517366); //::from_bytes(b"crv"); 0x637276
 pub const EOS: Asset = Asset(6647667); //::from_bytes(b"eos"); 0x656F73
 pub const EQ: Asset = Asset(25969); //::from_bytes(b"eq"); 0x6571
+pub const Q: Asset = Asset(113); //::from_bytes(b"q"); 0x71
 pub const GENS: Asset = Asset(1734700659); //::from_bytes(b"gens"); 0x67656E73
 pub const DAI: Asset = Asset(6578537); //::from_bytes(b"dai"); 0x646169
 pub const USDT: Asset = Asset(1970496628); //::from_bytes(b"usdt"); 0x75736474

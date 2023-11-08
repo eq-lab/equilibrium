@@ -3213,6 +3213,7 @@ dependencies = [
  "eq-session-manager",
  "eq-staking",
  "eq-subaccounts",
+ "eq-to-q-swap",
  "eq-treasury",
  "eq-utils",
  "eq-vesting",
@@ -3452,6 +3453,26 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "substrate-fixed",
+]
+
+[[package]]
+name = "eq-to-q-swap"
+version = "0.1.0"
+dependencies = [
+ "eq-assets",
+ "eq-balances",
+ "eq-primitives",
+ "eq-utils",
+ "eq-vesting",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

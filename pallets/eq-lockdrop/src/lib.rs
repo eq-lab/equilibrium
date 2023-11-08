@@ -83,7 +83,6 @@ pub mod pallet {
     pub trait Config:
         frame_system::Config + SendTransactionTypes<Call<Self>> + eq_rate::Config
     {
-        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Pallet's AccountId for balances
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -93,6 +92,11 @@ pub mod pallet {
         /// Period of lock program in seconds
         #[pallet::constant]
         type LockPeriod: Get<u64>;
+        /// Used for calculation unsigned transaction priority
+        #[pallet::constant]
+        type LockDropUnsignedPriority: Get<TransactionPriority>;
+
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Used to update accounts locks
         type Vesting: Vesting<Self::AccountId>;
         /// Used to execute batch operations for every `AuthorityId` key in keys storage
@@ -101,9 +105,6 @@ pub mod pallet {
             Self::BlockNumber,
             Self::AccountId,
         >;
-        /// Used for calculation unsigned transaction priority
-        #[pallet::constant]
-        type LockDropUnsignedPriority: Get<TransactionPriority>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
     }

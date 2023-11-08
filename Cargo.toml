@@ -28,6 +28,7 @@ members = [
     "pallets/eq-market-maker",
     "pallets/eq-wrapped-dot",
     "pallets/eq-staking",
+    "pallets/eq-to-q-swap",
     "pallets/gens-binary-opt",
     "eq-primitives",
     "eq-utils",

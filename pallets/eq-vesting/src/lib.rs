@@ -32,13 +32,16 @@ mod tests;
 pub mod weights;
 
 use codec::{Decode, Encode};
-use core::convert::TryInto;
+use core::convert::{TryFrom, TryInto};
+use eq_primitives::vestings::EqVestingSchedule;
 use eq_primitives::{AccountRefCounter, AccountRefCounts, IsTransfersEnabled};
 use eq_utils::{eq_ensure, ok_or_error};
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
-use frame_support::traits::{Currency, ExistenceRequirement, Get, VestingSchedule};
+use frame_support::traits::{Currency, ExistenceRequirement, Get};
 use frame_support::PalletId;
 use frame_system::{ensure_root, ensure_signed};
+use sp_arithmetic::traits::CheckedDiv;
+use sp_arithmetic::ArithmeticError;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{
     traits::{
@@ -49,9 +52,6 @@ use sp_runtime::{
 use sp_std::fmt::Debug;
 use sp_std::prelude::*;
 pub use weights::WeightInfo;
-
-type BalanceOf<T, I> =
-    <<T as Config<I>>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 /// Struct to encode the vesting schedule of an individual account
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
@@ -118,18 +118,28 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
+        /// The minimum amount transferred to call `vested_transfer`
+        #[pallet::constant]
+        type MinVestedTransfer: Get<Self::Balance>;
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self, I>>
             + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        /// The currency adapter trait
-        type Currency: Currency<Self::AccountId>;
+        /// Numerical representation of stored balances
+        type Balance: Parameter
+            + Member
+            + AtLeast32BitUnsigned
+            + Default
+            + Copy
+            + MaybeSerializeDeserialize
+            + TryFrom<eq_primitives::balance::Balance>
+            + Into<eq_primitives::balance::Balance>;
+        /// Standard balances pallet for utility token or adapter
+        type Currency: Currency<Self::AccountId, Balance = Self::Balance>;
         /// Convert the block number into a balance
-        type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self, I>>;
-        /// The minimum amount transferred to call `vested_transfer`
-        #[pallet::constant]
-        type MinVestedTransfer: Get<BalanceOf<Self, I>>;
+        type BlockNumberToBalance: Convert<Self::BlockNumber, Self::Balance>;
         /// Weight information for extrinsics in this pallet
         type WeightInfo: WeightInfo;
         /// Checks if transaction disabled flag is off
@@ -183,7 +193,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             source: <T::Lookup as StaticLookup>::Source,
             target: <T::Lookup as StaticLookup>::Source,
-            schedule: VestingInfo<BalanceOf<T, I>, T::BlockNumber>,
+            schedule: VestingInfo<T::Balance, T::BlockNumber>,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
@@ -209,7 +219,7 @@ pub mod pallet {
                 T::MinVestedTransfer::get()
             );
             eq_ensure!(
-                schedule.per_block > BalanceOf::<T, I>::zero(),
+                schedule.per_block > T::Balance::zero(),
                 Error::<T, I>::AmountLow,
                 target: "eq_vesting",
                 "{}:{}. Schedule per block equals zero. Schedule: {:?}.",
@@ -270,7 +280,7 @@ pub mod pallet {
         /// The amount vested has been updated. This could indicate more funds are available. The
         /// balance given is the amount which is left unvested (and thus locked)
         /// \[account, unvested\]
-        VestingUpdated(T::AccountId, BalanceOf<T, I>),
+        VestingUpdated(T::AccountId, T::Balance),
         /// An `account` has become fully vested. No further vesting can happen
         /// \[account\]
         VestingCompleted(T::AccountId),
@@ -299,8 +309,7 @@ pub mod pallet {
             Vesting::<T, I>::iter()
                 .take(AccountsPerBlock::<T, I>::get() as usize)
                 .for_each(|(account, vesting_info)| {
-                    let vested =
-                        Vested::<T, I>::get(&account).unwrap_or_else(BalanceOf::<T, I>::zero);
+                    let vested = Vested::<T, I>::get(&account).unwrap_or_else(T::Balance::zero);
 
                     if T::Currency::transfer(
                         &Self::account_id(),
@@ -324,13 +333,13 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn vesting)]
     pub type Vesting<T: Config<I>, I: 'static = ()> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, VestingInfo<BalanceOf<T, I>, T::BlockNumber>>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, VestingInfo<T::Balance, T::BlockNumber>>;
 
     /// Pallet storage: information about already vested balances for given account
     #[pallet::storage]
     #[pallet::getter(fn vested)]
     pub type Vested<T: Config<I>, I: 'static = ()> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T, I>>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance>;
 
     #[pallet::storage]
     #[pallet::getter(fn accounts_per_block)]
@@ -338,12 +347,7 @@ pub mod pallet {
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
-        pub vestings: Vec<(
-            T::AccountId,
-            BalanceOf<T, I>,
-            BalanceOf<T, I>,
-            T::BlockNumber,
-        )>,
+        pub vestings: Vec<(T::AccountId, T::Balance, T::Balance, T::BlockNumber)>,
     }
 
     #[cfg(feature = "std")]
@@ -359,11 +363,12 @@ pub mod pallet {
     impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
         fn build(&self) {
             use eq_primitives::{EqPalletAccountInitializer, PalletAccountInitializer};
+
             EqPalletAccountInitializer::<T>::initialize(
                 &T::PalletId::get().into_account_truncating(),
             );
 
-            let mut deposit: BalanceOf<T, I> = Zero::zero();
+            let mut deposit: T::Balance = Zero::zero();
 
             for (who, locked, per_block, starting_block) in &self.vestings {
                 let vesting_schedule = VestingInfo {
@@ -403,10 +408,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         )?;
         let now = <frame_system::Pallet<T>>::block_number();
         let unlocked_now = vesting.unlocked_at::<T::BlockNumberToBalance>(now);
-        let vested = Self::vested(&who).unwrap_or_else(BalanceOf::<T, I>::zero);
+        let vested = Self::vested(&who).unwrap_or_else(T::Balance::zero);
         let to_vest = unlocked_now.saturating_sub(vested);
 
-        if to_vest > BalanceOf::<T, I>::zero() {
+        if to_vest > T::Balance::zero() {
             T::Currency::transfer(
                 &Self::account_id(),
                 &who,
@@ -429,15 +434,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 }
 
-impl<T: Config<I>, I: 'static> VestingSchedule<T::AccountId> for Pallet<T, I>
+impl<T: Config<I>, I: 'static> EqVestingSchedule<T::Balance, T::AccountId> for Pallet<T, I>
 where
-    BalanceOf<T, I>: MaybeSerializeDeserialize + Debug,
+    T::Balance: MaybeSerializeDeserialize + Debug,
 {
     type Moment = T::BlockNumber;
-    type Currency = T::Currency;
 
     /// Vesting amount rest if user called vest now.
-    fn vesting_balance(who: &T::AccountId) -> Option<BalanceOf<T, I>> {
+    fn vesting_balance(who: &T::AccountId) -> Option<T::Balance> {
         if let Some(v) = Self::vesting(who) {
             let now = <frame_system::Pallet<T>>::block_number();
             let locked_now = v.locked_at::<T::BlockNumberToBalance>(now);
@@ -459,8 +463,8 @@ where
     /// Is a no-op if the amount to be vested is zero.
     fn add_vesting_schedule(
         who: &T::AccountId,
-        locked: BalanceOf<T, I>,
-        per_block: BalanceOf<T, I>,
+        locked: T::Balance,
+        per_block: T::Balance,
         starting_block: T::BlockNumber,
     ) -> DispatchResult {
         if locked.is_zero() {
@@ -489,19 +493,36 @@ where
         Ok(())
     }
 
-    /// Remove a vesting schedule for a given account.
-    fn remove_vesting_schedule(_who: &T::AccountId, _shedule_index: u32) -> DispatchResult {
-        unimplemented!("fn remove_vesting_schedule");
-    }
-
-    /// Checks if `add_vesting_schedule` would work against `who`.
-    fn can_add_vesting_schedule(
-        _who: &T::AccountId,
-        _locked: BalanceOf<T, I>,
-        _per_block: BalanceOf<T, I>,
-        _starting_block: T::BlockNumber,
+    /// Updates an existings vesting schedule for a given account.
+    fn update_vesting_schedule(
+        who: &T::AccountId,
+        locked: T::Balance,
+        duration_blocks: T::Balance,
     ) -> DispatchResult {
-        unimplemented!("fn remove_vesting_schedule");
+        if locked.is_zero() {
+            return Ok(());
+        }
+
+        let mut vesting = ok_or_error!(
+            Self::vesting(who),
+            Error::<T, I>::NotVesting,
+            "{}:{}. The account is not vesting. Who: {:?}.",
+            file!(),
+            line!(),
+            who
+        )?;
+
+        vesting.locked = vesting.locked.saturating_add(locked);
+        vesting.per_block = vesting
+            .locked
+            .checked_div(&duration_blocks)
+            .ok_or(ArithmeticError::DivisionByZero)?;
+
+        Vesting::<T, I>::insert(who, vesting);
+        // it can't fail, but even if somehow it did, we don't really care.
+        let _ = Self::update_lock(who.clone());
+
+        Ok(())
     }
 }
 

@@ -30,20 +30,24 @@ mod secp_utils;
 pub mod weights;
 
 use codec::{Decode, Encode};
-use core::convert::TryInto;
+use core::convert::{TryFrom, TryInto};
+use eq_primitives::vestings::EqVestingSchedule;
 use eq_utils::{eq_ensure, ok_or_error};
 #[allow(unused_imports)]
 use frame_support::debug; // This usage is required by a macro
+use frame_support::traits::{Currency, Get};
 use frame_support::{
     dispatch::{DispatchClass, Pays},
-    traits::{Currency, EnsureOrigin, Get, IsSubType, VestingSchedule},
+    traits::{EnsureOrigin, IsSubType},
 };
 use frame_system::{ensure_none, ensure_root, ensure_signed};
 #[cfg(feature = "std")]
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
 use sp_runtime::{
-    traits::{CheckedAdd, CheckedSub, DispatchInfoOf, Saturating, SignedExtension},
+    traits::{
+        AtLeast32BitUnsigned, CheckedAdd, CheckedSub, DispatchInfoOf, Saturating, SignedExtension,
+    },
     transaction_validity::{
         InvalidTransaction, TransactionLongevity, TransactionSource, TransactionValidity,
         TransactionValidityError, ValidTransaction,
@@ -53,11 +57,6 @@ use sp_runtime::{
 use sp_std::{fmt::Debug, prelude::*};
 
 pub use weights::WeightInfo;
-
-type CurrencyOf<T> = <<T as Config>::VestingSchedule as VestingSchedule<
-    <T as frame_system::Config>::AccountId,
->>::Currency;
-type BalanceOf<T> = <CurrencyOf<T> as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 /// Claim validation errors
 #[repr(u8)]
@@ -92,9 +91,18 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         /// The overarching event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        /// Numerical representation of stored balances
+        type Balance: Parameter
+            + Member
+            + AtLeast32BitUnsigned
+            + Default
+            + Copy
+            + MaybeSerializeDeserialize
+            + TryFrom<eq_primitives::balance::Balance>
+            + Into<eq_primitives::balance::Balance>;
         type WeightInfo: WeightInfo;
         /// Used to schedule vesting part of a claim
-        type VestingSchedule: VestingSchedule<Self::AccountId, Moment = Self::BlockNumber>;
+        type Vesting: EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
         /// The Prefix that is used in signed Ethereum messages for this network
         type Prefix: Get<&'static [u8]>;
         /// Origin that can move claims to another account
@@ -103,6 +111,8 @@ pub mod pallet {
         type VestingAccountId: Get<Self::AccountId>;
         /// For unsigned transaction priority calculation
         type UnsignedPriority: Get<TransactionPriority>;
+        /// Standard balances pallet for utility token or adapter
+        type Currency: Currency<Self::AccountId, Balance = Self::Balance>;
     }
 
     #[pallet::call]
@@ -166,8 +176,8 @@ pub mod pallet {
         pub fn mint_claim(
             origin: OriginFor<T>,
             who: EthereumAddress,
-            value: BalanceOf<T>,
-            vesting_schedule: Option<(BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>,
+            value: T::Balance,
+            vesting_schedule: Option<(T::Balance, T::Balance, T::BlockNumber)>,
             statement: bool,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
@@ -454,7 +464,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// `AccountId` claimed `Balance` amount of currency reserved for `EthereumAddress`
         /// \[who, ethereum_account, amount\]
-        Claimed(T::AccountId, EthereumAddress, BalanceOf<T>),
+        Claimed(T::AccountId, EthereumAddress, T::Balance),
     }
 
     #[pallet::error]
@@ -481,12 +491,12 @@ pub mod pallet {
     /// Pallet storage - stores amount to be claimed by each `EthereumAddress`
     #[pallet::storage]
     #[pallet::getter(fn claims)]
-    pub type Claims<T: Config> = StorageMap<_, Identity, EthereumAddress, BalanceOf<T>>;
+    pub type Claims<T: Config> = StorageMap<_, Identity, EthereumAddress, T::Balance>;
 
     /// Pallet storage - total `Claims` amount
     #[pallet::storage]
     #[pallet::getter(fn total)]
-    pub type Total<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    pub type Total<T: Config> = StorageValue<_, T::Balance, ValueQuery>;
 
     /// Pallet storage - vesting schedule for a claim.
     /// First balance is the total amount that should be held for vesting.
@@ -495,7 +505,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn vesting)]
     pub type Vesting<T: Config> =
-        StorageMap<_, Identity, EthereumAddress, (BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>;
+        StorageMap<_, Identity, EthereumAddress, (T::Balance, T::Balance, T::BlockNumber)>;
 
     /// Pallet storage - stores Ethereum addresses from which additional statement
     /// singing is required
@@ -513,11 +523,8 @@ pub mod pallet {
         #[doc = " First balance is the total amount that should be held for vesting."]
         #[doc = " Second balance is how much should be unlocked per block."]
         #[doc = " The block number is when the vesting should start."]
-        pub vesting: Vec<(
-            EthereumAddress,
-            (BalanceOf<T>, BalanceOf<T>, T::BlockNumber),
-        )>,
-        pub claims: Vec<(EthereumAddress, BalanceOf<T>, Option<T::AccountId>, bool)>,
+        pub vesting: Vec<(EthereumAddress, (T::Balance, T::Balance, T::BlockNumber))>,
+        pub claims: Vec<(EthereumAddress, T::Balance, Option<T::AccountId>, bool)>,
     }
 
     #[cfg(feature = "std")]
@@ -542,12 +549,12 @@ pub mod pallet {
                         .collect::<Vec<_>>()
                 };
                 let data = &builder(self);
-                let data: &frame_support::sp_std::vec::Vec<(EthereumAddress, BalanceOf<T>)> = data;
+                let data: &frame_support::sp_std::vec::Vec<(EthereumAddress, T::Balance)> = data;
                 data.iter().for_each(|(k, v)| {
                     <Claims<T> as frame_support::storage::StorageMap<
                         EthereumAddress,
-                        BalanceOf<T>,
-                    >>::insert::<&EthereumAddress, &BalanceOf<T>>(k, v);
+                        T::Balance,
+                    >>::insert::<&EthereumAddress, &T::Balance>(k, v);
                 });
             }
             {
@@ -556,26 +563,26 @@ pub mod pallet {
                     config
                         .claims
                         .iter()
-                        .fold(Zero::zero(), |acc: BalanceOf<T>, &(_, b, _, _)| acc + b)
+                        .fold(Zero::zero(), |acc: T::Balance, &(_, b, _, _)| acc + b)
                 };
                 let data = &builder(self);
-                let v: &BalanceOf<T> = data;
-                <Total<T> as frame_support::storage::StorageValue<BalanceOf<T>>>::put::<
-                    &BalanceOf<T>,
-                >(v);
+                let v: &T::Balance = data;
+                <Total<T> as frame_support::storage::StorageValue<T::Balance>>::put::<&T::Balance>(
+                    v,
+                );
             }
             {
                 let data = &self.vesting;
                 let data: &frame_support::sp_std::vec::Vec<(
                     EthereumAddress,
-                    (BalanceOf<T>, BalanceOf<T>, T::BlockNumber),
+                    (T::Balance, T::Balance, T::BlockNumber),
                 )> = data;
                 data.iter().for_each(|(k, v)| {
                     <Vesting<T> as frame_support::storage::StorageMap<
                         EthereumAddress,
-                        (BalanceOf<T>, BalanceOf<T>, T::BlockNumber),
-                    >>::insert::<&EthereumAddress, &(BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>(
-                        k, v,
+                        (T::Balance, T::Balance, T::BlockNumber),
+                    >>::insert::<&EthereumAddress, &(T::Balance, T::Balance, T::BlockNumber)>(
+                        k, v
                     );
                 });
             }
@@ -771,7 +778,7 @@ impl<T: Config> Pallet<T> {
         file!(), line!(), Self::total(), balance_due, signer)?;
 
         let vesting = Vesting::<T>::get(&signer);
-        if vesting.is_some() && T::VestingSchedule::vesting_balance(&dest).is_some() {
+        if vesting.is_some() && T::Vesting::vesting_balance(&dest).is_some() {
             return Err({
                 log::error!("{}:{}. The account already has a vested balance. Who ID: {:?}, dest ethereum address: {:?}.", 
             file!(), line!(), dest, signer);
@@ -782,17 +789,17 @@ impl<T: Config> Pallet<T> {
         // Check if this claim should have a vesting schedule.
         if let Some(vs) = vesting {
             let initial_balance = balance_due.saturating_sub(vs.0);
-            CurrencyOf::<T>::deposit_creating(&dest, initial_balance);
+            T::Currency::deposit_creating(&dest, initial_balance);
             let vesting_account_id = T::VestingAccountId::get();
 
-            CurrencyOf::<T>::deposit_creating(&vesting_account_id, vs.0);
+            T::Currency::deposit_creating(&vesting_account_id, vs.0);
 
             // This can only fail if the account already has a vesting schedule,
             // but this is checked above.
-            T::VestingSchedule::add_vesting_schedule(&dest, vs.0, vs.1, vs.2)
+            T::Vesting::add_vesting_schedule(&dest, vs.0, vs.1, vs.2)
                 .expect("No other vesting schedule exists, as checked above; qed");
         } else {
-            CurrencyOf::<T>::deposit_creating(&dest, balance_due);
+            T::Currency::deposit_creating(&dest, balance_due);
         }
 
         <Total<T>>::put(new_total);

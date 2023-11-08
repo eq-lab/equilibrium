@@ -878,6 +878,7 @@ impl sp_runtime::traits::Convert<BlockNumber, Balance> for BlockNumberToBalance 
 type VestingInstance = eq_vesting::Instance1;
 impl eq_vesting::Config<VestingInstance> for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
     type Currency = BasicCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
@@ -971,7 +972,8 @@ type DistriBenchInstance = eq_distribution::Instance16;
 #[cfg(feature = "runtime-benchmarks")]
 impl eq_distribution::Config<DistriBenchInstance> for Runtime {
     type PalletId = TreasuryModuleId;
-    type VestingSchedule = Vesting;
+    type Balance = Balance;
+    type Vesting = Vesting;
     type VestingAccountId = VestingAccount;
     type AssetGetter = EqAssets;
     type EqCurrency = EqBalances;
@@ -982,7 +984,8 @@ impl eq_distribution::Config<DistriBenchInstance> for Runtime {
 type TreasuryInstance = eq_distribution::Instance5;
 impl eq_distribution::Config<TreasuryInstance> for Runtime {
     type PalletId = TreasuryModuleId;
-    type VestingSchedule = Vesting;
+    type Balance = Balance;
+    type Vesting = Vesting;
     type VestingAccountId = VestingAccount;
     type AssetGetter = EqAssets;
     type EqCurrency = EqBalances;

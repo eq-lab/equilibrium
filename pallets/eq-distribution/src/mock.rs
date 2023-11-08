@@ -212,36 +212,28 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
         unimplemented!()
     }
 
-    fn debt(
-        _: &DummyValidatorId,
-        _: Asset,
-    ) -> <CurrencyMock as Currency<DummyValidatorId>>::Balance {
+    fn debt(_: &DummyValidatorId, _: Asset) -> Balance {
         unimplemented!()
     }
 
-    fn currency_total_issuance(
-        _: asset::Asset,
-    ) -> <CurrencyMock as Currency<DummyValidatorId>>::Balance {
+    fn currency_total_issuance(_: asset::Asset) -> Balance {
         unimplemented!()
     }
 
-    fn minimum_balance_value() -> <CurrencyMock as Currency<DummyValidatorId>>::Balance {
+    fn minimum_balance_value() -> Balance {
         unimplemented!()
     }
 
-    fn free_balance(
-        _: &DummyValidatorId,
-        _: asset::Asset,
-    ) -> <CurrencyMock as Currency<DummyValidatorId>>::Balance {
+    fn free_balance(_: &DummyValidatorId, _: asset::Asset) -> Balance {
         unimplemented!()
     }
 
     fn ensure_can_withdraw(
         _: &DummyValidatorId,
         _: asset::Asset,
-        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        _: Balance,
         _: WithdrawReasons,
-        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        _: Balance,
     ) -> DispatchResult {
         unimplemented!()
     }
@@ -250,7 +242,7 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
         transactor: &DummyValidatorId,
         dest: &DummyValidatorId,
         asset: Asset,
-        value: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        value: Balance,
         existence_requirement: ExistenceRequirement,
         transfer_reason: TransferReason,
         ensure_can_change: bool,
@@ -282,7 +274,7 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
     fn deposit_into_existing(
         _: &DummyValidatorId,
         _: Asset,
-        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        _: Balance,
         _: Option<DepositReason>,
     ) -> Result<(), DispatchError> {
         unimplemented!()
@@ -291,7 +283,7 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
     fn deposit_creating(
         _: &DummyValidatorId,
         _: Asset,
-        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        _: Balance,
         _: bool,
         _: Option<DepositReason>,
     ) -> Result<(), DispatchError> {
@@ -301,7 +293,7 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
     fn withdraw(
         _: &DummyValidatorId,
         _: Asset,
-        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
+        _: Balance,
         _: bool,
         _: Option<WithdrawReason>,
         _: WithdrawReasons,
@@ -313,7 +305,7 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
     fn make_free_balance_be(
         _: &DummyValidatorId,
         _: Asset,
-        _: eq_primitives::SignedBalance<<CurrencyMock as Currency<DummyValidatorId>>::Balance>,
+        _: eq_primitives::SignedBalance<Balance>,
     ) {
         unimplemented!()
     }
@@ -329,27 +321,16 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
     fn exchange(
         _: (&DummyValidatorId, &DummyValidatorId),
         _: (&Asset, &Asset),
-        _: (
-            <CurrencyMock as Currency<DummyValidatorId>>::Balance,
-            <CurrencyMock as Currency<DummyValidatorId>>::Balance,
-        ),
+        _: (Balance, Balance),
     ) -> Result<(), (DispatchError, Option<DummyValidatorId>)> {
         unimplemented!()
     }
 
-    fn reserve(
-        _: &DummyValidatorId,
-        _: Asset,
-        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
-    ) -> DispatchResult {
+    fn reserve(_: &DummyValidatorId, _: Asset, _: Balance) -> DispatchResult {
         unimplemented!()
     }
 
-    fn unreserve(
-        _: &DummyValidatorId,
-        _: Asset,
-        _: <CurrencyMock as Currency<DummyValidatorId>>::Balance,
-    ) -> <CurrencyMock as Currency<DummyValidatorId>>::Balance {
+    fn unreserve(_: &DummyValidatorId, _: Asset, _: Balance) -> Balance {
         unimplemented!()
     }
 
@@ -397,18 +378,11 @@ impl EqCurrency<DummyValidatorId, Balance> for EqCurrencyMock {
     }
 }
 
-pub type CurrencyMock =
-    eq_primitives::balance_adapter::BalanceAdapter<Balance, EqCurrencyMock, BasicCurrencyGet>;
-
 pub struct VestingScheduleMock;
-impl VestingSchedule<DummyValidatorId> for VestingScheduleMock {
+impl EqVestingSchedule<Balance, DummyValidatorId> for VestingScheduleMock {
     type Moment = u64;
 
-    type Currency = CurrencyMock;
-
-    fn vesting_balance(
-        _who: &DummyValidatorId,
-    ) -> Option<<Self::Currency as Currency<DummyValidatorId>>::Balance> {
+    fn vesting_balance(_who: &DummyValidatorId) -> Option<Balance> {
         let mut result = false;
         VESTING_EXISTS.with(|v| result = v.borrow().clone());
         if result {
@@ -420,8 +394,8 @@ impl VestingSchedule<DummyValidatorId> for VestingScheduleMock {
 
     fn add_vesting_schedule(
         who: &DummyValidatorId,
-        locked: <Self::Currency as Currency<DummyValidatorId>>::Balance,
-        per_block: <Self::Currency as Currency<DummyValidatorId>>::Balance,
+        locked: Balance,
+        per_block: Balance,
         starting_block: Self::Moment,
     ) -> DispatchResult {
         ADDED_VESTING.with(|v| {
@@ -430,16 +404,11 @@ impl VestingSchedule<DummyValidatorId> for VestingScheduleMock {
         Ok(())
     }
 
-    fn remove_vesting_schedule(_who: &DummyValidatorId, _schedule_index: u32) -> DispatchResult {
-        panic!("not used");
-    }
-
-    fn can_add_vesting_schedule(
+    fn update_vesting_schedule(
         _who: &DummyValidatorId,
-        _locked: <Self::Currency as Currency<DummyValidatorId>>::Balance,
-        _per_block: <Self::Currency as Currency<DummyValidatorId>>::Balance,
-        _starting_block: Self::Moment,
-    ) -> frame_support::dispatch::DispatchResult {
+        _locked: Balance,
+        _duration_blocks: Balance,
+    ) -> DispatchResult {
         unimplemented!()
     }
 }
@@ -510,11 +479,12 @@ impl pallet_collective::Config<()> for Test {
 }
 
 impl Config for Test {
+    type Balance = Balance;
     type PalletId = DistributionModuleId;
     type ManagementOrigin =
         EitherOfDiverse<EnsureRoot<AccountId>, pallet_collective::EnsureMember<AccountId, ()>>;
     type VestingAccountId = VestingAccountMock<AccountId>;
-    type VestingSchedule = VestingScheduleMock;
+    type Vesting = VestingScheduleMock;
     type AssetGetter = AssetGetterMock;
     type EqCurrency = EqCurrencyMock;
     type WeightInfo = ();

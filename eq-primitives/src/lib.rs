@@ -65,6 +65,7 @@ pub mod proxy;
 pub mod signed_balance;
 pub mod subaccount;
 pub mod vec_map;
+pub mod vestings;
 pub mod wrapped_dot;
 pub mod xcm_origins;
 pub mod xdot_pool;
@@ -225,6 +226,12 @@ pub enum TransferReason {
 
     /// XCM fee payment
     XcmPayment,
+
+    /// Transfer within vesting
+    Vesting,
+
+    /// Swap EQ-to-Q
+    SwapEqToQ,
 }
 
 impl Eq for TransferReason {}

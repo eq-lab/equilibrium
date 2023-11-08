@@ -59,8 +59,9 @@ use sp_runtime::{
     DispatchError,
 };
 
-type AccountId = u64;
 pub(crate) type Balance = eq_primitives::balance::Balance;
+
+type AccountId = u64;
 type OracleMock = eq_primitives::price::mock::OracleMock<AccountId>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -315,6 +316,7 @@ pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
 >;
 impl eq_vesting::Config for Test {
     type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
     type Currency = BasicCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
@@ -333,12 +335,14 @@ ord_parameter_types! {
 
 impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
-    type VestingSchedule = Vesting;
+    type Balance = Balance;
+    type Vesting = Vesting;
     type Prefix = Prefix;
     type MoveClaimOrigin = frame_system::EnsureSignedBy<Six, u64>;
     type VestingAccountId = VestingAccountMock<AccountId>;
     type WeightInfo = ();
     type UnsignedPriority = ClaimUnsignedPriority;
+    type Currency = BasicCurrency;
 }
 
 type Balances = eq_balances::Pallet<Test>;
@@ -926,13 +930,13 @@ fn double_claiming_doesnt_work() {
 fn claiming_while_vested_doesnt_work() {
     new_test_ext().execute_with(|| {
         // A user is already vested
-        assert_ok!(<Test as Config>::VestingSchedule::add_vesting_schedule(
+        assert_ok!(<Test as Config>::Vesting::add_vesting_schedule(
             &69,
             total_claims(),
             100,
             10
         ));
-        CurrencyOf::<Test>::make_free_balance_be(&69, total_claims());
+        <Test as Config>::Currency::make_free_balance_be(&69, total_claims());
         assert_eq!(BasicCurrency::free_balance(&69), total_claims());
         assert_ok!(Claims::mint_claim(
             RuntimeOrigin::root(),

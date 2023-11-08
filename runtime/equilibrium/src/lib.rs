@@ -452,6 +452,7 @@ parameter_types! {
     pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT_USD; // 0.1 USD
     pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_BASIC; // 100 EQ
     pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
+    pub const QCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
 }
 
 impl eq_aggregates::Config for Runtime {
@@ -681,6 +682,12 @@ pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
     BasicCurrencyGet,
 >;
 
+pub type QCurrency = eq_primitives::balance_adapter::BalanceAdapter<
+    Balance,
+    eq_balances::Pallet<Runtime>,
+    QCurrencyGet,
+>;
+
 parameter_types! {
     pub const TransactionByteFee: Balance = 1;
     pub const OperationalFeeMultiplier: u8 = 5;
@@ -838,9 +845,17 @@ impl Get<AccountId> for VestingAccount {
     }
 }
 
+pub struct Vesting3Account;
+impl Get<AccountId> for Vesting3Account {
+    fn get() -> AccountId {
+        Vesting3ModuleId::get().into_account_truncating()
+    }
+}
+
 type VestingInstance1 = eq_vesting::Instance1;
 impl eq_vesting::Config<VestingInstance1> for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
     type Currency = BasicCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
@@ -856,6 +871,7 @@ parameter_types! {
 type VestingInstance2 = eq_vesting::Instance2;
 impl eq_vesting::Config<VestingInstance2> for Runtime {
     type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
     type Currency = BasicCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
@@ -864,14 +880,32 @@ impl eq_vesting::Config<VestingInstance2> for Runtime {
     type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
 }
 
+parameter_types! {
+    pub const Vesting3ModuleId: PalletId = PalletId(*b"eq/vest3");
+}
+
+type VestingInstance3 = eq_vesting::Instance3;
+impl eq_vesting::Config<VestingInstance3> for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
+    type Currency = QCurrency;
+    type BlockNumberToBalance = BlockNumberToBalance;
+    type MinVestedTransfer = MinVestedTransfer;
+    type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
+    type PalletId = Vesting3ModuleId;
+    type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
+}
+
 impl eq_claim::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type VestingSchedule = Vesting;
+    type Balance = Balance;
+    type Vesting = Vesting;
     type Prefix = Prefix;
     type MoveClaimOrigin = system::EnsureNever<Self::AccountId>;
     type VestingAccountId = VestingAccount;
     type WeightInfo = weights::pallet_claim::WeightInfo<Runtime>;
     type UnsignedPriority = ClaimUnsignedPriorityPair;
+    type Currency = BasicCurrency;
 }
 
 parameter_types! {
@@ -976,7 +1010,8 @@ type DistriBenchInstance = eq_distribution::Instance16;
 impl eq_distribution::Config<DistriBenchInstance> for Runtime {
     type ManagementOrigin = system::EnsureRoot<AccountId>;
     type PalletId = TreasuryModuleId;
-    type VestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -987,7 +1022,8 @@ type TreasuryInstance = eq_distribution::Instance5;
 impl eq_distribution::Config<TreasuryInstance> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = TreasuryModuleId;
-    type VestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -998,7 +1034,8 @@ type RepublicInstance = eq_distribution::Instance2;
 impl eq_distribution::Config<RepublicInstance> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = RepublicModuleId;
-    type VestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1009,7 +1046,8 @@ type Investors = eq_distribution::Instance3;
 impl eq_distribution::Config<Investors> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = InvestorsModuleId;
-    type VestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1020,7 +1058,8 @@ type LiquidityFarmingD = eq_distribution::Instance4;
 impl eq_distribution::Config<LiquidityFarmingD> for Runtime {
     type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
     type PalletId = LiquidityFarmingModuleId;
-    type VestingSchedule = Vesting;
+    type Vesting = Vesting;
+    type Balance = Balance;
     type VestingAccountId = VestingAccount;
     type AssetGetter = eq_assets::Pallet<Runtime>;
     type EqCurrency = eq_balances::Pallet<Runtime>;
@@ -1184,6 +1223,7 @@ where
             eq_rate::reinit_extension::ReinitAccount::<Runtime, CallsWithReinit>::new(),
             eq_claim::PrevalidateAttests::<Runtime>::new(),
             eq_treasury::CheckBuyout::<Runtime>::new(),
+            eq_to_q_swap::CheckEqToQSwap::<Runtime>::new(),
         );
 
         let raw_payload = SignedPayload::new(call, extra)
@@ -2332,6 +2372,17 @@ impl eq_crowdloan_dots::Config for Runtime {
     type LendingPoolManager = EqLending;
 }
 
+impl eq_to_q_swap::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Balance = Balance;
+    type SetEqSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
+    type Vesting = VestingQSwap;
+    type VestingAccountId = Vesting3Account;
+    type QHolderAccountId = TreasuryAccount;
+    type EqCurrency = EqBalances;
+    type WeightInfo = ();
+}
+
 construct_runtime!(
     pub enum Runtime where
         Block = Block,
@@ -2406,8 +2457,10 @@ construct_runtime!(
 
         Democracy: pallet_democracy = 66,
 
-        EqStaking: eq_staking::{Pallet, Call, Event<T>, Storage } = 67,
-        EqCrowdLoanDots: eq_crowdloan_dots::{Pallet, Call, Storage } = 68,
+        EqStaking: eq_staking::{ Pallet, Call, Event<T>, Storage } = 67,
+        EqCrowdLoanDots: eq_crowdloan_dots::{ Pallet, Call, Storage } = 68,
+        EqToQSwap: eq_to_q_swap::{ Pallet, Call, Event<T>, Storage } = 69,
+        VestingQSwap: eq_vesting::<Instance3>::{Pallet, Call, Storage, Event<T, Instance3>, Config<T, Instance3>} = 70,
     }
 );
 
@@ -2431,6 +2484,7 @@ pub type SignedExtra = (
     eq_rate::reinit_extension::ReinitAccount<Runtime, CallsWithReinit>,
     eq_claim::PrevalidateAttests<Runtime>,
     eq_treasury::CheckBuyout<Runtime>,
+    eq_to_q_swap::CheckEqToQSwap<Runtime>,
 );
 
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
@@ -2468,7 +2522,8 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             //eqBalances.xcmNativeTransfers
             &hex_literal::hex!("276c90850b9de2c495875fe945d2a9c7526d0b4092c3c799149eb73028bd9f23"),
             None,
-            None);
+            None,
+        );
 
         Weight::from_parts(1, 0)
     }

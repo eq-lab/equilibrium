@@ -263,6 +263,7 @@ pub type BasicCurrency =
 impl eq_vesting::Config<()> for Test {
     type RuntimeEvent = RuntimeEvent;
     type Currency = BasicCurrency;
+    type Balance = Balance;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = ();
