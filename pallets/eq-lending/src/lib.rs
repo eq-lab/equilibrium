@@ -21,7 +21,7 @@
 
 use codec::{Codec, Decode, Encode, MaxEncodedLen};
 use eq_primitives::{
-    asset,
+    asset::{self, EQ, Q},
     asset::{Asset, AssetGetter, AssetType},
     balance::{BalanceChecker, BalanceGetter, DepositReason, EqCurrency, WithdrawReason},
     balance_number::EqFixedU128,
@@ -59,6 +59,8 @@ pub struct LenderData<Balance> {
     pub value: Balance,
     /// last reward for current lender
     pub last_reward: EqFixedU128,
+    /// q last reward for current lender
+    pub q_last_reward: EqFixedU128,
 }
 
 impl<Balance: Default> LenderData<Balance> {
@@ -66,6 +68,7 @@ impl<Balance: Default> LenderData<Balance> {
         Self {
             value: Balance::default(),
             last_reward: <CumulatedReward<T>>::get(asset),
+            q_last_reward: <QCumulatedReward<T>>::get(asset),
         }
     }
 }
@@ -150,6 +153,13 @@ pub mod pallet {
     pub type CumulatedReward<T: Config> =
         StorageMap<_, Blake2_128Concat, Asset, EqFixedU128, ValueQuery>;
 
+    /// Table with accumulated rewards per asset
+    /// cumulated_reward[i+i] > cumulated_reward[i] is guaranteed
+    #[pallet::storage]
+    #[pallet::getter(fn q_rewards)]
+    pub type QCumulatedReward<T: Config> =
+        StorageMap<_, Blake2_128Concat, Asset, EqFixedU128, ValueQuery>;
+
     #[pallet::error]
     pub enum Error<T> {
         /// Only physical asset types allowed to deposit/withdraw in lending pool
@@ -227,6 +237,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
             let mut lender = <Lenders<T>>::get(&who, asset).ok_or(Error::<T>::NotALender)?;
+
             Self::try_payout(&who, &mut lender, asset)?;
             <Lenders<T>>::insert(&who, asset, lender);
             Ok(().into())
@@ -286,6 +297,7 @@ impl<T: Config> Pallet<T> {
 
         let mut lender = <Lenders<T>>::get(who, asset)
             .unwrap_or_else(|| LenderData::default_per_asset::<T>(asset));
+
         Self::try_payout(who, &mut lender, asset)?;
 
         lender.value = lender
@@ -314,6 +326,7 @@ impl<T: Config> Pallet<T> {
 
     fn do_withdraw(who: &T::AccountId, asset: Asset, value: T::Balance) -> DispatchResult {
         let mut lender = <Lenders<T>>::get(who, asset).ok_or(Error::<T>::NotALender)?;
+
         Self::try_payout(who, &mut lender, asset)?;
 
         ensure!(lender.value >= value, Error::<T>::NotEnoughToWithdraw);
@@ -418,13 +431,23 @@ impl<T: Config> Pallet<T> {
 
         let diff_reward = EqFixedU128::checked_from_rational(reward, total_lendable)
             .ok_or(Error::<T>::Overflow)?;
+        let main_asset = T::AssetGetter::get_main_asset();
 
-        <CumulatedReward<T>>::try_mutate(asset, |cumulated| -> DispatchResult {
-            *cumulated = cumulated
-                .checked_add(&diff_reward)
-                .ok_or(Error::<T>::Overflow)?;
-            Ok(())
-        })?;
+        if main_asset == EQ {
+            <CumulatedReward<T>>::try_mutate(asset, |cumulated| -> DispatchResult {
+                *cumulated = cumulated
+                    .checked_add(&diff_reward)
+                    .ok_or(Error::<T>::Overflow)?;
+                Ok(())
+            })?;
+        } else {
+            <QCumulatedReward<T>>::try_mutate(asset, |cumulated| -> DispatchResult {
+                *cumulated = cumulated
+                    .checked_add(&diff_reward)
+                    .ok_or(Error::<T>::Overflow)?;
+                Ok(())
+            })?;
+        }
 
         Ok(())
     }
@@ -434,11 +457,13 @@ impl<T: Config> Pallet<T> {
         lender: &mut LenderData<T::Balance>,
         asset: Asset,
     ) -> Result<(), DispatchError> {
-        if let Some(payout) = Self::calc_payout(lender, asset) {
+        let main_asset = T::AssetGetter::get_main_asset();
+
+        if let Some(payout) = Self::calc_payout(lender, asset, main_asset) {
             T::EqCurrency::currency_transfer(
                 &T::ModuleId::get().into_account_truncating(),
                 who,
-                T::AssetGetter::get_main_asset(),
+                main_asset,
                 payout,
                 frame_support::traits::ExistenceRequirement::KeepAlive,
                 eq_primitives::TransferReason::Common,
@@ -457,8 +482,17 @@ impl<T: Config> Pallet<T> {
 
     /// Calculate proper amount of reward that could be obtained by lender
     /// Each lender
-    fn calc_payout(lender: &mut LenderData<T::Balance>, asset: Asset) -> Option<T::Balance> {
-        let curr_reward = <CumulatedReward<T>>::get(asset);
+    fn calc_payout(
+        lender: &mut LenderData<T::Balance>,
+        asset: Asset,
+        main_asset: Asset,
+    ) -> Option<T::Balance> {
+        let curr_reward = if main_asset == EQ {
+            <CumulatedReward<T>>::get(asset)
+        } else {
+            <QCumulatedReward<T>>::get(asset)
+        };
+
         let payout = (curr_reward - lender.last_reward).saturating_mul_int(lender.value);
 
         lender.last_reward = curr_reward;
@@ -643,8 +677,15 @@ impl<T: Config> eq_primitives::LendingPoolManager<T::Balance, T::AccountId> for 
 
 impl<T: Config> eq_primitives::LendingAssetRemoval<T::AccountId> for Pallet<T> {
     fn remove_from_aggregates_and_rewards(asset: &Asset) {
+        let main_asset = T::AssetGetter::get_main_asset();
+
         LendersAggregates::<T>::remove(asset);
-        CumulatedReward::<T>::remove(asset);
+
+        match main_asset {
+            EQ => CumulatedReward::<T>::remove(asset),
+            Q => QCumulatedReward::<T>::remove(asset),
+            _ => {}
+        };
     }
 
     fn remove_from_lenders(asset: &Asset, account: &T::AccountId) {
