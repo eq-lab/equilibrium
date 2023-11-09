@@ -361,6 +361,7 @@ impl eq_assets::Config for Runtime {
 
 parameter_types! {
     pub const MigrationsPerBlock: u16 = 2_000;
+    pub const AccountsPerBlock: u16 = 100;
 }
 
 impl eq_migration::Config for Runtime {
@@ -1097,6 +1098,7 @@ impl eq_lending::Config for Runtime {
     type EqCurrency = EqBalances;
     type UnixTime = EqRate;
     type PriceGetter = Oracle;
+    type AccountsToMigratePerBlock = AccountsPerBlock;
     type WeightInfo = weights::pallet_lending::WeightInfo<Runtime>;
 }
 

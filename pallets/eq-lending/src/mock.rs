@@ -176,6 +176,7 @@ impl MarginCallManager<AccountId, Balance> for MarginCallManagerMock {
 parameter_types! {
     pub const MaxBailsmenToDistribute: u32 = 1;
     pub const QueueLengthWeightConstant: u32 = 5;
+    pub const AccountsToMigratePerBlock: u32 = 2;
 }
 
 impl<LocalCall> SendTransactionTypes<LocalCall> for Test
@@ -221,6 +222,7 @@ impl Config for Test {
     type ModuleId = LendingModuleId;
     type EqCurrency = EqBalances;
     type UnixTime = TimeMock;
+    type AccountsToMigratePerBlock = AccountsToMigratePerBlock;
     type WeightInfo = ();
 }
 
@@ -459,6 +461,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (1, vec![(1_000, asset::ETH.get_id())]),
             (2, vec![(1_000, asset::ETH.get_id())]),
             (3, vec![(1_000, asset::EQD.get_id())]),
+            (4, vec![(1_000, asset::ETH.get_id())]),
+            (5, vec![(1_000, asset::ETH.get_id())]),
+            (6, vec![(1_000, asset::ETH.get_id())]),
         ],
         is_transfers_enabled: true,
         is_xcm_enabled: Some(XcmMode::Xcm(true)),

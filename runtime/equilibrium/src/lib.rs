@@ -1171,6 +1171,7 @@ impl eq_lending::Config for Runtime {
     type EqCurrency = EqBalances;
     type BailsmanManager = Bailsman;
     type UnixTime = EqRate;
+    type AccountsToMigratePerBlock = AccountsPerBlock;
     type WeightInfo = weights::pallet_lending::WeightInfo<Runtime>;
 }
 
@@ -2516,8 +2517,11 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
         for (account, amount) in [
             (TreasuryAccount::get(), 1_000_000_000_000_000_000),
-            (LendingModuleId::get().into_account_truncating(), 1_000_000_000_000_000_000)
-            ] {
+            (
+                LendingModuleId::get().into_account_truncating(),
+                1_000_000_000_000_000_000,
+            ),
+        ] {
             let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
         }
 
@@ -2540,10 +2544,12 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
         // unreserve
         use frame_support::traits::StorePreimage;
         for hash in [
-            hex_literal::hex!("60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077").into(),
-            hex_literal::hex!("a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8").into(),
-            hex_literal::hex!("b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb").into()
-
+            hex_literal::hex!("60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077")
+                .into(),
+            hex_literal::hex!("a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8")
+                .into(),
+            hex_literal::hex!("b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb")
+                .into(),
         ] {
             <Preimage as StorePreimage>::unnote(&hash);
         }
