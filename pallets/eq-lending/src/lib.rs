@@ -743,7 +743,7 @@ impl<T: Config> eq_primitives::LendingAssetRemoval<T::AccountId> for Pallet<T> {
         match main_asset {
             EQ => CumulatedReward::<T>::remove(asset),
             Q => QCumulatedReward::<T>::remove(asset),
-            _ => panic!("Invalid main asset"),
+            _ => (),
         };
     }
 
