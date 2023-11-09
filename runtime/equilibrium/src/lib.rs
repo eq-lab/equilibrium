@@ -2528,18 +2528,25 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
         eq_vesting::AccountsPerBlock::<Runtime, VestingInstance1>::set(100);
         eq_vesting::AccountsPerBlock::<Runtime, VestingInstance2>::set(100);
 
-        // #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen)]
-        // pub struct OldLenderData<Balance> {
-        //     /// deposit for current lender
-        //     pub value: Balance,
-        //     /// last reward for current lender
-        //     pub last_reward: EqFixedU128,
-        // }
+        
+        use codec::{Decode, MaxEncodedLen};
+        #[derive(
+            Clone, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen,
+        )]
+        pub struct OldLenderData<Balance> {
+            /// deposit for current lender
+            pub value: Balance,
+            /// last reward for current lender
+            pub last_reward: EqFixedU128,
+        }
 
-        // eq_lending::Lenders::translate(|_, _, old_lender_data: OldLenderData| {
-        //     eq_lending::LenderData {..old_lender_data, TODO: new field}
-        // });
-        // eq_lending::AccountsPerBlock::<Runtime>::set(100);
+        eq_lending::Lenders::<Runtime>::translate(|_, _, old_lender_data: OldLenderData<Balance>| {
+            Some(eq_lending::LenderData {
+                value: old_lender_data.value,
+                last_reward: old_lender_data.last_reward,
+                q_last_reward: EqFixedU128::zero(),
+            })
+        });
 
         // unreserve
         use frame_support::traits::StorePreimage;
