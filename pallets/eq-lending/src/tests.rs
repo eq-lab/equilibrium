@@ -18,6 +18,7 @@
 
 #![cfg(test)]
 
+use eq_primitives::asset::ETH;
 use eq_primitives::balance::EqCurrency;
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::{asset, PriceGetter, TotalAggregates};
@@ -25,6 +26,7 @@ use eq_utils::{
     fixed::{balance_from_eq_fixedu128, eq_fixedu128_from_balance},
     ONE_TOKEN,
 };
+use frame_support::traits::Hooks;
 use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_arithmetic::Permill;
 use sp_runtime::FixedPointNumber;
@@ -1369,5 +1371,158 @@ fn baisman_withdraw_usd_ok() {
             account_id_to,
             bails_collateral_eqd
         ));
+    });
+}
+
+#[test]
+fn on_initialize() {
+    new_test_ext().execute_with(|| {
+        let account_1 = 1;
+        let account_2 = 2;
+        let account_3 = 4;
+        let account_4 = 5;
+        let account_5 = 6;
+
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(account_1),
+            ETH,
+            100
+        ));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(account_2),
+            ETH,
+            200
+        ));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(account_3),
+            ETH,
+            300
+        ));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(account_4),
+            ETH,
+            400
+        ));
+        assert_ok!(EqLending::deposit(
+            RuntimeOrigin::signed(account_5),
+            ETH,
+            500
+        ));
+
+        assert_ok!(EqLending::do_add_reward(ETH, 1000));
+
+        assert_eq!(
+            EqLending::lender(&account_1, &asset::ETH).unwrap().value,
+            100
+        );
+        assert_eq!(
+            EqLending::lender(&account_2, &asset::ETH).unwrap().value,
+            200
+        );
+        assert_eq!(
+            EqLending::lender(&account_3, &asset::ETH).unwrap().value,
+            300
+        );
+        assert_eq!(
+            EqLending::lender(&account_4, &asset::ETH).unwrap().value,
+            400
+        );
+        assert_eq!(
+            EqLending::lender(&account_5, &asset::ETH).unwrap().value,
+            500
+        );
+
+        assert_eq!(EqLending::q_lender(&account_1, &asset::ETH), None);
+        assert_eq!(EqLending::q_lender(&account_2, &asset::ETH), None);
+        assert_eq!(EqLending::q_lender(&account_3, &asset::ETH), None);
+        assert_eq!(EqLending::q_lender(&account_4, &asset::ETH), None);
+        assert_eq!(EqLending::q_lender(&account_5, &asset::ETH), None);
+
+        Pallet::<Test>::on_initialize(1);
+
+        assert_eq!(
+            EqLending::lender(&account_1, &asset::ETH).unwrap().value,
+            100
+        );
+        assert_eq!(
+            EqLending::lender(&account_2, &asset::ETH).unwrap().value,
+            200
+        );
+        assert_eq!(
+            EqLending::lender(&account_3, &asset::ETH).unwrap().value,
+            300
+        );
+        assert_eq!(EqLending::lender(&account_4, &asset::ETH), None);
+        assert_eq!(EqLending::lender(&account_5, &asset::ETH), None);
+
+        assert_eq!(EqLending::q_lender(&account_1, &asset::ETH), None);
+        assert_eq!(EqLending::q_lender(&account_2, &asset::ETH), None);
+        assert_eq!(EqLending::q_lender(&account_3, &asset::ETH), None);
+        assert_eq!(
+            EqLending::q_lender(&account_4, &asset::ETH).unwrap().value,
+            400
+        );
+        assert_eq!(
+            EqLending::q_lender(&account_5, &asset::ETH).unwrap().value,
+            500
+        );
+
+        Pallet::<Test>::on_initialize(1);
+
+        assert_eq!(EqLending::lender(&account_1, &asset::ETH), None);
+        assert_eq!(
+            EqLending::lender(&account_2, &asset::ETH).unwrap().value,
+            200
+        );
+        assert_eq!(EqLending::lender(&account_3, &asset::ETH), None);
+        assert_eq!(EqLending::lender(&account_4, &asset::ETH), None);
+        assert_eq!(EqLending::lender(&account_5, &asset::ETH), None);
+
+        assert_eq!(
+            EqLending::q_lender(&account_1, &asset::ETH).unwrap().value,
+            100
+        );
+        assert_eq!(EqLending::q_lender(&account_2, &asset::ETH), None);
+        assert_eq!(
+            EqLending::q_lender(&account_3, &asset::ETH).unwrap().value,
+            300
+        );
+        assert_eq!(
+            EqLending::q_lender(&account_4, &asset::ETH).unwrap().value,
+            400
+        );
+        assert_eq!(
+            EqLending::q_lender(&account_5, &asset::ETH).unwrap().value,
+            500
+        );
+
+        Pallet::<Test>::on_initialize(1);
+
+        assert_eq!(EqLending::lender(&account_1, &asset::ETH), None);
+        assert_eq!(EqLending::lender(&account_2, &asset::ETH), None);
+        assert_eq!(EqLending::lender(&account_3, &asset::ETH), None);
+        assert_eq!(EqLending::lender(&account_4, &asset::ETH), None);
+        assert_eq!(EqLending::lender(&account_5, &asset::ETH), None);
+
+        assert_eq!(
+            EqLending::q_lender(&account_1, &asset::ETH).unwrap().value,
+            100
+        );
+        assert_eq!(
+            EqLending::q_lender(&account_2, &asset::ETH).unwrap().value,
+            200
+        );
+        assert_eq!(
+            EqLending::q_lender(&account_3, &asset::ETH).unwrap().value,
+            300
+        );
+        assert_eq!(
+            EqLending::q_lender(&account_4, &asset::ETH).unwrap().value,
+            400
+        );
+        assert_eq!(
+            EqLending::q_lender(&account_5, &asset::ETH).unwrap().value,
+            500
+        );
     });
 }

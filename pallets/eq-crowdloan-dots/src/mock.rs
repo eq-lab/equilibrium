@@ -51,6 +51,7 @@ type Block = frame_system::mocking::MockBlock<Test>;
 parameter_types! {
     pub const MainAsset: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
     pub const ExistentialDeposit: Balance = 1;
+    pub const AccountsToMigratePerBlock: u32 = 2;
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
@@ -277,6 +278,7 @@ impl eq_lending::Config for Test {
     type EqCurrency = ModuleBalances;
     type BailsmanManager = BailsmanManagerMock;
     type UnixTime = TimeZeroDurationMock;
+    type AccountsToMigratePerBlock = AccountsToMigratePerBlock;
     type WeightInfo = ();
 }
 

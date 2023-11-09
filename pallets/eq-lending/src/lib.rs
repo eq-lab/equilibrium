@@ -109,6 +109,9 @@ pub mod pallet {
         /// Lending pool ModuleId
         #[pallet::constant]
         type ModuleId: Get<PalletId>;
+        /// The number of accounts to migrate to Q rewards per block
+        #[pallet::constant]
+        type AccountsToMigratePerBlock: Get<u32>;
         /// For deposits, withdrawal and payouts
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>;
         /// Bailsman pallet integration for operations with bailsman subaccount
@@ -131,6 +134,19 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn lender)]
     pub type Lenders<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        Asset,
+        LenderData<T::Balance>,
+        OptionQuery,
+    >;
+
+    /// Lenders deposits
+    #[pallet::storage]
+    #[pallet::getter(fn q_lender)]
+    pub type QLenders<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
@@ -236,16 +252,31 @@ pub mod pallet {
             who: T::AccountId,
         ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
-            let mut lender = <Lenders<T>>::get(&who, asset).ok_or(Error::<T>::NotALender)?;
+            let mut lender = Self::get_lender(&who, &asset).ok_or(Error::<T>::NotALender)?;
 
             Self::try_payout(&who, &mut lender, asset)?;
-            <Lenders<T>>::insert(&who, asset, lender);
+            Self::insert_lender(&who, &asset, &lender);
+
             Ok(().into())
         }
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
+            let take = T::AccountsToMigratePerBlock::get();
+
+            Lenders::<T>::iter()
+                .take(take as usize)
+                .for_each(|(who, asset, mut lender)| {
+                    let _ = Self::try_payout(&who, &mut lender, asset);
+                    QLenders::<T>::insert(&who, &asset, &lender);
+                    Lenders::<T>::remove(&who, &asset);
+                });
+
+            return T::DbWeight::get().reads_writes(take.into(), (take * 2).into());
+        }
+    }
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
@@ -288,6 +319,26 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+    fn get_lender(who: &T::AccountId, asset: &Asset) -> Option<LenderData<T::Balance>> {
+        QLenders::<T>::get(who, asset).or(Lenders::<T>::get(who, asset))
+    }
+
+    fn insert_lender(who: &T::AccountId, asset: &Asset, lender: &LenderData<T::Balance>) {
+        if QLenders::<T>::contains_key(who, asset) {
+            QLenders::<T>::insert(who, asset, lender);
+        } else {
+            Lenders::<T>::insert(who, asset, lender);
+        }
+    }
+
+    fn remove_lender(who: &T::AccountId, asset: &Asset) {
+        if QLenders::<T>::contains_key(who, asset) {
+            QLenders::<T>::remove(who, asset);
+        } else {
+            Lenders::<T>::remove(who, asset);
+        }
+    }
+
     fn do_deposit(who: &T::AccountId, asset: Asset, value: T::Balance) -> DispatchResult {
         let asset_data = T::AssetGetter::get_asset_data(&asset)?;
         ensure!(
@@ -295,7 +346,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::WrongAssetType
         );
 
-        let mut lender = <Lenders<T>>::get(who, asset)
+        let mut lender = Self::get_lender(who, &asset)
             .unwrap_or_else(|| LenderData::default_per_asset::<T>(asset));
 
         Self::try_payout(who, &mut lender, asset)?;
@@ -318,14 +369,14 @@ impl<T: Config> Pallet<T> {
             true,
         )?;
 
-        <Lenders<T>>::insert(who, asset, lender);
+        Self::insert_lender(who, &asset, &lender);
         <LendersAggregates<T>>::insert(asset, lenders_aggregate);
 
         Ok(())
     }
 
     fn do_withdraw(who: &T::AccountId, asset: Asset, value: T::Balance) -> DispatchResult {
-        let mut lender = <Lenders<T>>::get(who, asset).ok_or(Error::<T>::NotALender)?;
+        let mut lender = Self::get_lender(who, &asset).ok_or(Error::<T>::NotALender)?;
 
         Self::try_payout(who, &mut lender, asset)?;
 
@@ -344,9 +395,9 @@ impl<T: Config> Pallet<T> {
         )?;
 
         if lender.value.is_zero() {
-            <Lenders<T>>::remove(who, asset);
+            Self::remove_lender(who, &asset);
         } else {
-            <Lenders<T>>::insert(who, asset, lender);
+            Self::insert_lender(who, &asset, &lender);
         }
         <LendersAggregates<T>>::insert(asset, lenders_aggregate);
 
@@ -354,7 +405,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn do_remove_deposit(who: &T::AccountId, asset: &Asset) -> Result<T::Balance, DispatchError> {
-        let lender = Lenders::<T>::get(who, asset);
+        let lender = Self::get_lender(who, asset);
 
         if let Some(mut lender) = lender {
             Self::try_payout(who, &mut lender, *asset)?;
@@ -363,7 +414,7 @@ impl<T: Config> Pallet<T> {
                 .checked_sub(&lender.value)
                 .ok_or(ArithmeticError::Underflow)?;
 
-            Lenders::<T>::remove(who, asset);
+            Self::remove_lender(who, asset);
             LendersAggregates::<T>::insert(asset, lenders_aggregate);
 
             T::EqCurrency::withdraw(
@@ -390,7 +441,7 @@ impl<T: Config> Pallet<T> {
             Error::<T>::WrongAssetType
         );
 
-        let mut lender = Lenders::<T>::get(who, asset)
+        let mut lender = Self::get_lender(who, asset)
             .unwrap_or_else(|| LenderData::default_per_asset::<T>(*asset));
 
         Self::try_payout(who, &mut lender, *asset)?;
@@ -412,7 +463,7 @@ impl<T: Config> Pallet<T> {
             Some(DepositReason::CrowdloanDotSwap),
         )?;
 
-        Lenders::<T>::insert(who, asset, lender);
+        Self::insert_lender(who, asset, &lender);
         LendersAggregates::<T>::insert(asset, lenders_aggregate);
 
         Ok(())
@@ -697,6 +748,6 @@ impl<T: Config> eq_primitives::LendingAssetRemoval<T::AccountId> for Pallet<T> {
     }
 
     fn remove_from_lenders(asset: &Asset, account: &T::AccountId) {
-        Lenders::<T>::remove(account, asset);
+        Self::remove_lender(account, asset);
     }
 }
