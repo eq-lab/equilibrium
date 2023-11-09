@@ -433,23 +433,21 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::Overflow)?;
         let main_asset = T::AssetGetter::get_main_asset();
 
-        if main_asset == EQ {
-            <CumulatedReward<T>>::try_mutate(asset, |cumulated| -> DispatchResult {
+        match main_asset {
+            EQ => <CumulatedReward<T>>::try_mutate(asset, |cumulated| -> DispatchResult {
                 *cumulated = cumulated
                     .checked_add(&diff_reward)
                     .ok_or(Error::<T>::Overflow)?;
                 Ok(())
-            })?;
-        } else {
-            <QCumulatedReward<T>>::try_mutate(asset, |cumulated| -> DispatchResult {
+            }),
+            Q => <QCumulatedReward<T>>::try_mutate(asset, |cumulated| -> DispatchResult {
                 *cumulated = cumulated
                     .checked_add(&diff_reward)
                     .ok_or(Error::<T>::Overflow)?;
                 Ok(())
-            })?;
+            }),
+            _ => Err(Error::<T>::WrongAssetType.into()),
         }
-
-        Ok(())
     }
 
     fn try_payout(
@@ -487,15 +485,25 @@ impl<T: Config> Pallet<T> {
         asset: Asset,
         main_asset: Asset,
     ) -> Option<T::Balance> {
-        let curr_reward = if main_asset == EQ {
-            <CumulatedReward<T>>::get(asset)
-        } else {
-            <QCumulatedReward<T>>::get(asset)
+        let payout = match main_asset {
+            EQ => {
+                let curr_reward = <CumulatedReward<T>>::get(asset);
+                let payout = (curr_reward - lender.last_reward).saturating_mul_int(lender.value);
+
+                lender.last_reward = curr_reward;
+
+                payout
+            }
+            Q => {
+                let curr_reward = <QCumulatedReward<T>>::get(asset);
+                let payout = (curr_reward - lender.q_last_reward).saturating_mul_int(lender.value);
+
+                lender.q_last_reward = curr_reward;
+
+                payout
+            }
+            _ => T::Balance::zero(),
         };
-
-        let payout = (curr_reward - lender.last_reward).saturating_mul_int(lender.value);
-
-        lender.last_reward = curr_reward;
 
         (!payout.is_zero()).then(|| payout)
     }
@@ -684,7 +692,7 @@ impl<T: Config> eq_primitives::LendingAssetRemoval<T::AccountId> for Pallet<T> {
         match main_asset {
             EQ => CumulatedReward::<T>::remove(asset),
             Q => QCumulatedReward::<T>::remove(asset),
-            _ => {}
+            _ => panic!("Invalid main asset"),
         };
     }
 
