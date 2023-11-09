@@ -33,6 +33,7 @@ use sp_api::{CallApiAt, ProvideRuntimeApi};
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
 use eq_balances_rpc::*;
+use eq_xdot_pool_rpc::*;
 use equilibrium_curve_amm_rpc::*;
 use pallet_transaction_payment_rpc::*;
 use sc_rpc::dev::*;
@@ -79,6 +80,7 @@ where
     module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
     module.merge(Dev::new(client.clone(), deny_unsafe).into_rpc())?;
     module.merge(EquilibriumCurveAmm::new(client.clone()).into_rpc())?;
+    module.merge(EqXdotPool::new(client.clone()).into_rpc())?;
     module.merge(EqBalances::new(client.clone()).into_rpc())?;
 
     Ok(module)

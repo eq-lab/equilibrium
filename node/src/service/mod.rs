@@ -90,6 +90,7 @@ pub trait RuntimeApiCollection:
     + substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>
     + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
     + equilibrium_curve_amm_rpc::EquilibriumCurveAmmRuntimeApi<Block, Balance>
+    + eq_xdot_pool_rpc::EqXdotPoolRuntimeApi<Block, Balance>
     + eq_balances_rpc::EqBalancesRuntimeApi<Block, Balance, AccountId>
 {
 }
@@ -107,6 +108,7 @@ impl<Api> RuntimeApiCollection for Api where
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
         + equilibrium_curve_amm_rpc::EquilibriumCurveAmmRuntimeApi<Block, Balance>
         + eq_balances_rpc::EqBalancesRuntimeApi<Block, Balance, AccountId>
+        + eq_xdot_pool_rpc::EqXdotPoolRuntimeApi<Block, Balance>
 {
 }
 

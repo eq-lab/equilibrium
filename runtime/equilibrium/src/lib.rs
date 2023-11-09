@@ -2767,6 +2767,62 @@ impl_runtime_apis! {
         }
     }
 
+    impl eq_xdot_pool_rpc_runtime_api::EqXdotPoolApi<Block, Balance> for Runtime {
+        fn invariant(
+            _pool_id: eq_primitives::xdot_pool::PoolId
+        ) -> Option<u128> {
+            None
+        }
+
+        fn fy_token_out_for_base_in(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _base_amount: Balance
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_out_for_fy_token_in(
+           _pool_id: eq_primitives::xdot_pool::PoolId,
+           _fy_token_amount: Balance
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn fy_token_in_for_base_out(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _base_amount: Balance,
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_in_for_fy_token_out(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _fy_token_amount: Balance,
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_out_for_lp_in(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _lp_in: Balance
+        ) -> Option<Balance> {
+            None
+        }
+
+        fn base_and_fy_out_for_lp_in(
+            _pool_id: eq_primitives::xdot_pool::PoolId,
+            _lp_in: Balance
+        ) -> Option<(Balance, Balance)> {
+            None
+        }
+
+        fn max_base_xbase_in_and_out(
+            _pool_id: eq_primitives::xdot_pool::PoolId
+        ) -> Option<(Balance, Balance, Balance, Balance)> {
+            None
+        }
+    }
+
     impl eq_balances_rpc_runtime_api::EqBalancesApi<Block, Balance, AccountId> for Runtime {
         fn wallet_balance_in_usd(account_id: AccountId) -> Option<Balance> {
             use eq_primitives::balance::BalanceGetter;

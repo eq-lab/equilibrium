@@ -428,6 +428,12 @@ package = "eq-balances-rpc-runtime-api"
 path = "../../pallets/eq-balances/rpc/runtime-api"
 version = "0.1.0"
 
+[dependencies.eq-xdot-pool-rpc-runtime-api]
+default-features = false
+package = "eq-xdot-pool-rpc-runtime-api"
+path = "../../pallets/eq-xdot-pool/rpc/runtime-api"
+version = "0.1.0"
+
 [dev-dependencies]
 hex-literal = "0.3.1"
 
@@ -553,6 +559,7 @@ std = [
   "eq-market-maker/std",
   "eq-staking/std",
   "eq-balances-rpc-runtime-api/std",
+  "eq-xdot-pool-rpc-runtime-api/std",
 ]
 runtime-benchmarks = [
   # "hex-literal",

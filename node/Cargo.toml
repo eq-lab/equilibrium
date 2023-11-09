@@ -85,6 +85,11 @@ package = "chainbridge"
 path = "../pallets/chainbridge"
 version = "1.2.0"
 
+[dependencies.eq-xdot-pool-rpc]
+package = "eq-xdot-pool-rpc"
+path = "../pallets/eq-xdot-pool/rpc"
+version = "0.1.0"
+
 [dependencies.sp-block-builder]
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.42"
