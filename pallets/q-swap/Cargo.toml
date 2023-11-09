@@ -1,5 +1,5 @@
 [package]
-name = "eq-to-q-swap"
+name = "q-swap"
 authors = ["equilibrium"]
 edition = "2018"
 version = "0.1.0"

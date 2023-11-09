@@ -634,20 +634,22 @@ mod signed_extension {
             let account_id = 1u64;
 
             // call with wrong Asset
-            let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
-                asset: asset::EQ,
-                amount: Amount::Buyout(100 * ONE_TOKEN),
-            });
+            for asset in [asset::EQ, asset::GENS] {
+                let buyout_call = RuntimeCall::EqTreasury(crate::Call::buyout {
+                    asset: asset,
+                    amount: Amount::Buyout(100 * ONE_TOKEN),
+                });
 
-            let check = CheckBuyout::<Test>::new();
-            let info = info_from_weight(Weight::zero());
+                let check = CheckBuyout::<Test>::new();
+                let info = info_from_weight(Weight::zero());
 
-            assert_err!(
-                check.validate(&account_id, &buyout_call, &info, 1),
-                TransactionValidityError::Invalid(InvalidTransaction::Custom(
-                    ValidityError::Math.into()
-                ))
-            );
+                assert_err!(
+                    check.validate(&account_id, &buyout_call, &info, 1),
+                    TransactionValidityError::Invalid(InvalidTransaction::Custom(
+                        ValidityError::WrongAssetToBuyout.into()
+                    ))
+                );
+            }
         });
     }
 

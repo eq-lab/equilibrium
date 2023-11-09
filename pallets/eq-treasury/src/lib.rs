@@ -37,7 +37,7 @@ use codec::{Codec, Decode, Encode, MaxEncodedLen};
 use core::convert::{TryFrom, TryInto};
 use eq_balances::NegativeImbalance;
 use eq_primitives::{
-    asset::{Asset, AssetGetter},
+    asset::{Asset, AssetGetter, EQ, GENS},
     balance::{BalanceGetter, EqCurrency},
     balance_number::EqFixedU128,
     EqBuyout, PriceGetter, SignedBalance,
@@ -265,6 +265,15 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    fn ensure_not_eq_or_gens_buyout(asset: &Asset) -> DispatchResult {
+        ensure!(
+            asset != &EQ && asset != &GENS,
+            Error::<T>::WrongAssetToBuyout
+        );
+
+        Ok(())
+    }
+
     fn update_buyouts(account_id: &T::AccountId, buyout_amount: T::Balance) {
         if BuyoutLimit::<T>::get().is_some() {
             Buyouts::<T>::mutate(account_id, |(prev_buyouts, last)| {
@@ -354,9 +363,10 @@ impl<T: Config> Pallet<T> {
     }
 
     fn do_buyout(who: T::AccountId, asset: Asset, amount: Amount<T::Balance>) -> DispatchResult {
+        Self::ensure_not_eq_or_gens_buyout(&asset)?;
+        let basic_asset = T::AssetGetter::get_main_asset();
         let (buyout_amount, exchange_amount) = Self::split_to_buyout_and_exchange(asset, amount)?;
         Self::ensure_buyout_limit_not_exceeded(&who, buyout_amount)?;
-        let basic_asset = T::AssetGetter::get_main_asset();
         let self_account_id = Self::account_id();
 
         T::EqCurrency::exchange(
@@ -558,6 +568,8 @@ pub enum ValidityError {
     BuyoutLimitExceeded = 2,
     /// Amount to buyout less than min amount
     LessThanMinBuyoutAmount = 3,
+    /// Wrong asset
+    WrongAssetToBuyout = 4,
 }
 
 impl From<ValidityError> for u8 {
@@ -643,6 +655,10 @@ where
     ) -> TransactionValidity {
         if let Some(local_call) = call.is_sub_type() {
             if let Call::buyout { asset, amount } = local_call {
+                Pallet::<T>::ensure_not_eq_or_gens_buyout(asset).map_err(|_| {
+                    InvalidTransaction::Custom(ValidityError::WrongAssetToBuyout.into())
+                })?;
+
                 let (buyout_amount, exchange_amount) =
                     Pallet::<T>::split_to_buyout_and_exchange(*asset, *amount)
                         .map_err(|_| InvalidTransaction::Custom(ValidityError::Math.into()))?;

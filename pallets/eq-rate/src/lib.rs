@@ -1124,8 +1124,11 @@ impl<T: Config> Pallet<T> {
                 let current_native_asset_balance = T::BalanceGetter::get_balance(who, &basic_asset);
 
                 // eq_buyout and charge_fee fall simultaneously, so we expect Ok
-                if let SignedBalance::Negative(negative_current_native) = current_native_asset_balance {
-                    T::EqBuyout::eq_buyout(who, negative_current_native).expect("eq_buyout failure");
+                if let SignedBalance::Negative(negative_current_native) =
+                    current_native_asset_balance
+                {
+                    T::EqBuyout::eq_buyout(who, negative_current_native)
+                        .expect("eq_buyout failure");
                 }
 
                 Self::set_last_update(who);
