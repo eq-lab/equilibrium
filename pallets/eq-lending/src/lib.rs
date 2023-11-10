@@ -263,19 +263,19 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
-            let take = T::AccountsToMigratePerBlock::get();
+        // fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
+        //     let take = T::AccountsToMigratePerBlock::get();
 
-            Lenders::<T>::iter()
-                .take(take as usize)
-                .for_each(|(who, asset, mut lender)| {
-                    let _ = Self::try_payout(&who, &mut lender, asset);
-                    QLenders::<T>::insert(&who, &asset, &lender);
-                    Lenders::<T>::remove(&who, &asset);
-                });
+        //     Lenders::<T>::iter()
+        //         .take(take as usize)
+        //         .for_each(|(who, asset, mut lender)| {
+        //             let _ = Self::try_payout(&who, &mut lender, asset);
+        //             QLenders::<T>::insert(&who, &asset, &lender);
+        //             Lenders::<T>::remove(&who, &asset);
+        //         });
 
-            return T::DbWeight::get().reads_writes(take.into(), (take * 2).into());
-        }
+        //     return T::DbWeight::get().reads_writes(take.into(), (take * 2).into());
+        // }
     }
 
     #[pallet::genesis_config]

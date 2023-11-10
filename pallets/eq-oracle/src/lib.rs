@@ -103,7 +103,7 @@ use eq_primitives::{calculate_unsigned_priority, str_asset};
 use eq_primitives::{Aggregates, AggregatesAssetRemover, LendingAssetRemoval, UserGroup};
 use eq_utils::{
     eq_ensure,
-    fixed::{fixedi64_from_balance, fixedi64_to_i64f64, i64f64_to_fixedi64},
+    fixed::{fixedi64_from_balance, fixedi64_to_i64f64},
     ONE_TOKEN,
 };
 use eq_whitelists::CheckWhitelisted;
@@ -635,9 +635,8 @@ pub mod pallet {
             };
 
             let update_mxusdc_token_price = || -> DispatchResult {
-                let mxusdc_price = I64F64::from_num(0);
-                Self::set_the_only_price(asset::MXUSDC, i64f64_to_fixedi64(mxusdc_price));
-                T::OnPriceSet::on_price_set(asset::MXUSDC, mxusdc_price)?;
+                Self::set_the_only_price(asset::MXUSDC, FixedI64::zero());
+                T::OnPriceSet::on_price_set(asset::MXUSDC, I64F64::from_num(1))?;
                 Ok(())
             };
 
