@@ -161,13 +161,13 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_: BlockNumberFor<T>) -> Weight {
-            // Stakes::<T>::iter_keys()
-            //     .take(T::AccountsPerBlock::get() as usize)
-            //     .for_each(|account| {
-            //         T::EqCurrency::set_lock(STAKING_ID, &account, T::Balance::zero());
-            //         Stakes::<T>::remove(account.clone());
-            //         Rewards::<T>::remove(account);
-            //     });
+            Stakes::<T>::iter_keys()
+                .take(T::AccountsPerBlock::get() as usize)
+                .for_each(|account| {
+                    T::EqCurrency::set_lock(STAKING_ID, &account, T::Balance::zero());
+                    Stakes::<T>::remove(account.clone());
+                    Rewards::<T>::remove(account);
+                });
 
             T::DbWeight::get().writes(T::AccountsPerBlock::get() as u64)
         }

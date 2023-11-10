@@ -137,7 +137,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("Equilibrium-parachain"),
     impl_name: create_runtime_str!("Equilibrium-parachain"),
     authoring_version: 10,
-    spec_version: 37,
+    spec_version: 38,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -2515,8 +2515,35 @@ pub struct CustomOnRuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
-        use sp_runtime::traits::One;
-        FinancialPalletOnNewAsset::on_new_asset(asset::MXUSDC, vec![FixedI64::one(); 30]);
+        eq_vesting::AccountsPerBlock::<Runtime, VestingInstance1>::set(100);
+        eq_vesting::AccountsPerBlock::<Runtime, VestingInstance2>::set(100);
+
+        // unreserve
+        // preimage.preimageFor: (60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077, 0), (a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8, 0), (0xb480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb, 0)
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a448257c7dda85c9c297999fd02215e8c8f9de60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f0507700000000"));
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a448257c7dda85c9c297999fd02215e8c8f9dea62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe800000000"));
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a448257c7dda85c9c297999fd02215e8c8f9deb480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb00000000"));
+        // preimage.statusFor: 60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077, 2ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8, b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a4482555b1ae8eced5522f3c4049bc84eda4a860e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077"));
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a4482555b1ae8eced5522f3c4049bc84eda4a8a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8"));
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a4482555b1ae8eced5522f3c4049bc84eda4a8b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb"));
+
+        for acc in [
+            hex_literal::hex!("2a52c07e7626704a278ad7790f69f3786c5950e1e080c42c8c5616247e7aa800").into(),
+            hex_literal::hex!("46b3f15de652f676eecf882b01a7140f528882570c389f838faec3144172d64c").into(),
+            hex_literal::hex!("2e33c5e14a53e874caa8e7c6d30bd20f6c51cda7dafaad1c465ca004fe61a63e").into(),
+        ] {
+            EqBalances::unreserve(&acc, asset::EQ, eq_balances::Reserved::<Runtime>::get(&acc, asset::EQ));
+        }
+
+        // unlock
+        // next migration
+        // for acc in eq_balances::Locked::<Runtime>::iter_keys() {
+        //     EqBalances::remove_lock(b"democrac", &acc);
+        //     EqBalances::remove_lock(b"staking", &acc);
+        // }
+
+        // use sp_runtime::traits::One;
 
         // for (account, amount) in [
         //     (TreasuryAccount::get(), 1_000_000_000_000_000_000),
@@ -2526,48 +2553,6 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
         //     ),
         // ] {
         //     let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
-        // }
-
-        // eq_vesting::AccountsPerBlock::<Runtime, VestingInstance1>::set(100);
-        // eq_vesting::AccountsPerBlock::<Runtime, VestingInstance2>::set(100);
-
-        use codec::{Decode, MaxEncodedLen};
-        #[derive(
-            Clone, Debug, Encode, Decode, PartialEq, Eq, scale_info::TypeInfo, MaxEncodedLen,
-        )]
-        pub struct OldLenderData<Balance> {
-            /// deposit for current lender
-            pub value: Balance,
-            /// last reward for current lender
-            pub last_reward: EqFixedU128,
-        }
-
-        eq_lending::Lenders::<Runtime>::translate(|_, _, old_lender_data: OldLenderData<Balance>| {
-            Some(eq_lending::LenderData {
-                value: old_lender_data.value,
-                last_reward: old_lender_data.last_reward,
-                q_last_reward: EqFixedU128::zero(),
-            })
-        });
-
-        // // unreserve
-        // use frame_support::traits::StorePreimage;
-        // for hash in [
-        //     hex_literal::hex!("60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077")
-        //         .into(),
-        //     hex_literal::hex!("a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8")
-        //         .into(),
-        //     hex_literal::hex!("b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb")
-        //         .into(),
-        // ] {
-        //     <Preimage as StorePreimage>::unnote(&hash);
-        // }
-
-        // unlock
-        // next migration
-        // for acc in eq_balances::Locked::<Runtime>::iter_keys() {
-        //     EqBalances::remove_lock(b"democrac", &acc);
-        //     EqBalances::remove_lock(b"staking", &acc);
         // }
 
         // if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
