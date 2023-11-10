@@ -1473,14 +1473,21 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
     }
 
     fn set_lock(id: LockIdentifier, who: &T::AccountId, amount: T::Balance) {
-        let new_locked: T::Balance = Locked::<T>::mutate(who, |map| {
+        let (new_locked, remove): (T::Balance, bool) = Locked::<T>::mutate(who, |map| {
+            let rm;
             if !amount.is_zero() {
                 *map.entry(id).or_default() = amount;
+                rm = false;
             } else {
                 map.remove(&id);
+                rm = map.len() == 0;
             }
-            map.values().cloned().max().unwrap_or_default()
+            (map.values().cloned().max().unwrap_or_default(), rm)
         });
+
+        if remove {
+            Locked::<T>::remove(who);
+        }
 
         let _ = T::AccountStore::mutate(who, |balances| match balances {
             AccountData::V0 {
@@ -1515,10 +1522,14 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
     }
 
     fn remove_lock(id: LockIdentifier, who: &T::AccountId) {
-        let new_locked: T::Balance = Locked::<T>::mutate(who, |map| {
+        let (new_locked, remove): (T::Balance, bool) = Locked::<T>::mutate(who, |map| {
             map.remove(&id);
-            map.values().cloned().max().unwrap_or_default()
+            (map.values().cloned().max().unwrap_or_default(), map.len() == 0)
         });
+
+        if remove {
+            Locked::<T>::remove(who);
+        }
 
         let _ = T::AccountStore::mutate(who, |balances| match balances {
             AccountData::V0 {
