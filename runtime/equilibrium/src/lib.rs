@@ -42,7 +42,7 @@ use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::curve_number::{CurveNumber, CurveNumberConvert};
 use eq_primitives::subaccount::SubAccType;
 use eq_primitives::xcm_origins::{dot::*, RELAY};
-use eq_primitives::BlockNumberToBalance;
+use eq_primitives::{BlockNumberToBalance, AccountRefCounter};
 use eq_primitives::{Aggregates, TransferReason, UnsignedPriorityPair, UserGroup};
 pub use eq_rate;
 pub use eq_subaccounts;
@@ -306,7 +306,7 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
             ) => false,
             (false, RuntimeCall::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
             (false, RuntimeCall::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, RuntimeCall::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::VestingQSwap(eq_vesting::Call::force_vested_transfer { .. })) => false,
             // XCM disallowed
             (_, &RuntimeCall::PolkadotXcm(_)) => false,
             (false, _) => true,
@@ -450,9 +450,10 @@ pub const EXISTENTIAL_DEPOSIT_BASIC: Balance = 100 * ONE_TOKEN;
 
 parameter_types! {
     pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT_USD; // 0.1 USD
-    pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_BASIC; // 100 EQ
-    pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
+    pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_BASIC; // 100 EQ // TODO: Q
+    pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
     pub const QCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
+    pub const EqCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
 }
 
 impl eq_aggregates::Config for Runtime {
@@ -688,6 +689,12 @@ pub type QCurrency = eq_primitives::balance_adapter::BalanceAdapter<
     QCurrencyGet,
 >;
 
+pub type EqTokenCurrency = eq_primitives::balance_adapter::BalanceAdapter<
+    Balance,
+    eq_balances::Pallet<Runtime>,
+    EqCurrencyGet,
+>;
+
 parameter_types! {
     pub const TransactionByteFee: Balance = 1;
     pub const OperationalFeeMultiplier: u8 = 5;
@@ -856,27 +863,11 @@ type VestingInstance1 = eq_vesting::Instance1;
 impl eq_vesting::Config<VestingInstance1> for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
-    type Currency = BasicCurrency;
+    type Currency = EqTokenCurrency;
     type BlockNumberToBalance = BlockNumberToBalance;
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
     type PalletId = VestingModuleId;
-    type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
-}
-
-parameter_types! {
-    pub const Vesting2ModuleId: PalletId = PalletId(*b"eq/vest2");
-}
-
-type VestingInstance2 = eq_vesting::Instance2;
-impl eq_vesting::Config<VestingInstance2> for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type Balance = Balance;
-    type Currency = BasicCurrency;
-    type BlockNumberToBalance = BlockNumberToBalance;
-    type MinVestedTransfer = MinVestedTransfer;
-    type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
-    type PalletId = Vesting2ModuleId;
     type IsTransfersEnabled = eq_balances::Pallet<Runtime>;
 }
 
@@ -905,7 +896,7 @@ impl eq_claim::Config for Runtime {
     type VestingAccountId = VestingAccount;
     type WeightInfo = weights::pallet_claim::WeightInfo<Runtime>;
     type UnsignedPriority = ClaimUnsignedPriorityPair;
-    type Currency = BasicCurrency;
+    type Currency = EqTokenCurrency;
 }
 
 parameter_types! {
@@ -1157,6 +1148,10 @@ impl eq_subaccounts::Config for Runtime {
     type UpdateTimeManager = EqRate;
     type WeightInfo = weights::pallet_subaccounts::WeightInfo<Runtime>;
     type IsTransfersEnabled = EqBalances;
+}
+
+parameter_types! {
+    pub const AccountsPerBlock: u32 = 100;
 }
 
 impl eq_lending::Config for Runtime {
@@ -2322,45 +2317,6 @@ impl pallet_democracy::Config for Runtime {
     type WeightInfo = weights::pallet_democracy::WeightInfo<Runtime>;
 }
 
-parameter_types! {
-    pub const MaxStakesCount: u32 = 10;
-    pub const EqStakingModuleId: PalletId = PalletId(*b"eq/stkng");
-    pub const RewardsLockPeriod: eq_staking::StakePeriod = eq_staking::StakePeriod::Six;
-    pub const MaxRewardExternalIdsCount: u32 = 1000;
-    pub const AccountsPerBlock: u32 = 100;
-}
-
-pub struct LiquidityAccount;
-impl Get<AccountId> for LiquidityAccount {
-    fn get() -> AccountId {
-        EqStakingModuleId::get().into_account_truncating()
-    }
-}
-
-pub struct LiquidityAccountCustom;
-impl Get<AccountId> for LiquidityAccountCustom {
-    fn get() -> AccountId {
-        RepublicModuleId::get().into_account_truncating()
-    }
-}
-
-impl eq_staking::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type Balance = Balance;
-    type EqCurrency = EqBalances;
-    type BalanceGetter = EqBalances;
-    type LockGetter = EqBalances;
-    type UnixTime = EqRate;
-    type MaxStakesCount = MaxStakesCount;
-    type RewardManagementOrigin = EnsureRootOrTwoThirdsCouncil;
-    type LiquidityAccount = LiquidityAccount;
-    type LiquidityAccountCustom = LiquidityAccountCustom;
-    type RewardsLockPeriod = RewardsLockPeriod;
-    type MaxRewardExternalIdsCount = MaxRewardExternalIdsCount;
-    type AccountsPerBlock = AccountsPerBlock;
-    type WeightInfo = ();
-}
-
 impl eq_crowdloan_dots::Config for Runtime {
     type AllowCrowdloanOrigin = EnsureRootOrHalfTechnicalCommittee;
     type Balance = Balance;
@@ -2421,7 +2377,6 @@ construct_runtime!(
         EqLiquidityFarming: eq_distribution::<Instance4>::{Pallet, Call, Storage, Config} = 23,
 
         Vesting: eq_vesting::<Instance1>::{Pallet, Call, Storage, Event<T, Instance1>, Config<T, Instance1>} = 24,
-        Vesting2: eq_vesting::<Instance2>::{Pallet, Call, Storage, Event<T, Instance2>, Config<T, Instance2>} = 25,
         Claims: eq_claim::{Pallet, Call, Storage, Event<T>, Config<T>, ValidateUnsigned} = 26,
         EqAggregates: eq_aggregates::{Pallet, Storage} = 27,
         Subaccounts: eq_subaccounts::{Pallet, Call, Storage, Event<T>, Config<T>} = 28,
@@ -2457,7 +2412,6 @@ construct_runtime!(
 
         Democracy: pallet_democracy = 66,
 
-        EqStaking: eq_staking::{ Pallet, Call, Event<T>, Storage } = 67,
         EqCrowdLoanDots: eq_crowdloan_dots::{ Pallet, Call, Storage } = 68,
         QSwap: q_swap::{ Pallet, Call, Event<T>, Storage } = 69,
         VestingQSwap: eq_vesting::<Instance3>::{Pallet, Call, Storage, Event<T, Instance3>, Config<T, Instance3>} = 70,
@@ -2515,64 +2469,69 @@ pub struct CustomOnRuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
-        eq_vesting::AccountsPerBlock::<Runtime, VestingInstance1>::set(100);
-        eq_vesting::AccountsPerBlock::<Runtime, VestingInstance2>::set(100);
-
-        // unreserve
-        // preimage.preimageFor: (60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077, 0), (a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8, 0), (0xb480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb, 0)
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a448257c7dda85c9c297999fd02215e8c8f9de60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f0507700000000"));
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a448257c7dda85c9c297999fd02215e8c8f9dea62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe800000000"));
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a448257c7dda85c9c297999fd02215e8c8f9deb480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb00000000"));
-        // preimage.statusFor: 60e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077, 2ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8, b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a4482555b1ae8eced5522f3c4049bc84eda4a860e3ca6543f30a01d4f928bac132e06ee28a7ed41b75d879470e8eb3a5f05077"));
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a4482555b1ae8eced5522f3c4049bc84eda4a8a62ad8532f1cbe080654eb3c2255e5b2b15564b1f09e005a00bbb92505491fe8"));
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a4482555b1ae8eced5522f3c4049bc84eda4a8b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb"));
-
-        for acc in [
-            hex_literal::hex!("2a52c07e7626704a278ad7790f69f3786c5950e1e080c42c8c5616247e7aa800")
-                .into(),
-            hex_literal::hex!("46b3f15de652f676eecf882b01a7140f528882570c389f838faec3144172d64c")
-                .into(),
-            hex_literal::hex!("2e33c5e14a53e874caa8e7c6d30bd20f6c51cda7dafaad1c465ca004fe61a63e")
-                .into(),
-        ] {
-            EqBalances::unreserve(
-                &acc,
-                asset::EQ,
-                eq_balances::Reserved::<Runtime>::get(&acc, asset::EQ),
-            );
+        // unlock
+        for acc in eq_balances::Locked::<Runtime>::iter_keys() {
+            EqBalances::remove_lock(b"democrac", &acc);
+            EqBalances::remove_lock(b"staking", &acc);
         }
 
-        // unlock
-        // next migration
-        // for acc in eq_balances::Locked::<Runtime>::iter_keys() {
-        //     EqBalances::remove_lock(b"democrac", &acc);
-        //     EqBalances::remove_lock(b"staking", &acc);
-        // }
+        // clean eqStaking
+        frame_support::storage::unhashed::clear_prefix(
+            &hex_literal::hex!("9bab6e0c2c89a5c1717245c1ee968742"),
+            None,
+            None,
+        );
+        let eq_staking_acc = PalletId(*b"eq/stkng").into_account_truncating();
+        let _ = EqBalances::currency_transfer(
+            &eq_staking_acc,
+            &TreasuryAccount::get(),
+            asset::EQ,
+            EqBalances::total_balance(&eq_staking_acc, asset::EQ),
+            ExistenceRequirement::AllowDeath,
+            TransferReason::Common,
+            false,
+        );
+        frame_system::Pallet::<Runtime>::dec_providers(&eq_staking_acc);
 
-        // use sp_runtime::traits::One;
+        // clean vesting
+        let vesting2_acc = PalletId(*"eq/vest2").into_account_truncating();
+        let _ = EqBalances::currency_transfer(
+            &vesting2_acc,
+            &TreasuryAccount::get(),
+            asset::EQ,
+            EqBalances::total_balance(&vesting2_acc, asset::EQ),
+            ExistenceRequirement::AllowDeath,
+            TransferReason::Common,
+            false,
+        );
+        frame_system::Pallet::<T>::dec_consumers(&vesting2_acc);
+        frame_system::Pallet::<T>::dec_providers(&vesting2_acc);
+        frame_system::Pallet::<T>::dec_providers(&vesting2_acc);
+        frame_system::Pallet::<T>::dec_providers(&vesting2_acc);
 
-        // for (account, amount) in [
-        //     (TreasuryAccount::get(), 1_000_000_000_000_000_000),
-        //     (
-        //         LendingModuleId::get().into_account_truncating(),
-        //         1_000_000_000_000_000_000,
-        //     ),
-        // ] {
-        //     let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
-        // }
+        for (account, amount) in [
+            (TreasuryAccount::get(), 1_000_000_000_000_000_000),
+            (
+                LendingModuleId::get().into_account_truncating(),
+                1_000_000_000_000_000_000,
+            ),
+            // bridge relayers OR ChainBridge::fee_account_id() && redistribute fees
+            // msig accounts
+        ] {
+            let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
+        }
 
-        // if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
-        //     if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::Q)) {
-        //         assets[idx].asset_type = crate::AssetType::Native;
-        //     }
+        if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
+            if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::Q)) {
+                assets[idx].asset_type = crate::AssetType::Native;
+            }
 
-        //     if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::EQ)) {
-        //         assets[idx].asset_type = crate::AssetType::Physical;
-        //     }
+            if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::EQ)) {
+                assets[idx].asset_type = crate::AssetType::Physical;
+            }
 
-        //     eq_assets::Assets::<Runtime>::put(assets);
-        // }
+            eq_assets::Assets::<Runtime>::put(assets);
+        }
 
         Weight::from_parts(1, 0)
     }
@@ -2616,7 +2575,6 @@ mod benches {
         [pallet_collective, Council]
         [pallet_membership, CouncilMembership]
         [pallet_democracy, Democracy]
-        [eq_staking, EqStakingBench::<Runtime>]
     );
 }
 
@@ -2892,7 +2850,6 @@ impl_runtime_apis! {
             use eq_margin_call::benchmarking::Pallet as MarginBench;
             use eq_lending::benchmarking::Pallet as LendingBench;
             use eq_wrapped_dot::benchmarking::Pallet as WrappedDotBench;
-            use eq_staking::benchmarking::Pallet as EqStakingBench;
 
             let mut list = Vec::<BenchmarkList>::new();
             list_benchmarks!(list, extra);
@@ -2967,9 +2924,6 @@ impl_runtime_apis! {
 
             use eq_wrapped_dot::benchmarking::Pallet as WrappedDotBench;
             impl eq_wrapped_dot::benchmarking::Config for Runtime {}
-
-            use eq_staking::benchmarking::Pallet as EqStakingBench;
-            impl eq_staking::benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
                 // Block Number
