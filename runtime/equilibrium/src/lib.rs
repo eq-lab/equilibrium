@@ -2529,11 +2529,18 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
         frame_support::storage::unhashed::kill(&hex_literal::hex!("d8f314b7f4e6b095f0f8ee4656a4482555b1ae8eced5522f3c4049bc84eda4a8b480becae4a7c44dcbffa9af9cbd4dd84aaf0ae6d7a4f3c95b7402fbffbb51eb"));
 
         for acc in [
-            hex_literal::hex!("2a52c07e7626704a278ad7790f69f3786c5950e1e080c42c8c5616247e7aa800").into(),
-            hex_literal::hex!("46b3f15de652f676eecf882b01a7140f528882570c389f838faec3144172d64c").into(),
-            hex_literal::hex!("2e33c5e14a53e874caa8e7c6d30bd20f6c51cda7dafaad1c465ca004fe61a63e").into(),
+            hex_literal::hex!("2a52c07e7626704a278ad7790f69f3786c5950e1e080c42c8c5616247e7aa800")
+                .into(),
+            hex_literal::hex!("46b3f15de652f676eecf882b01a7140f528882570c389f838faec3144172d64c")
+                .into(),
+            hex_literal::hex!("2e33c5e14a53e874caa8e7c6d30bd20f6c51cda7dafaad1c465ca004fe61a63e")
+                .into(),
         ] {
-            EqBalances::unreserve(&acc, asset::EQ, eq_balances::Reserved::<Runtime>::get(&acc, asset::EQ));
+            EqBalances::unreserve(
+                &acc,
+                asset::EQ,
+                eq_balances::Reserved::<Runtime>::get(&acc, asset::EQ),
+            );
         }
 
         // unlock

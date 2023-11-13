@@ -1524,7 +1524,10 @@ impl<T: Config> EqCurrency<T::AccountId, T::Balance> for Pallet<T> {
     fn remove_lock(id: LockIdentifier, who: &T::AccountId) {
         let (new_locked, remove): (T::Balance, bool) = Locked::<T>::mutate(who, |map| {
             map.remove(&id);
-            (map.values().cloned().max().unwrap_or_default(), map.len() == 0)
+            (
+                map.values().cloned().max().unwrap_or_default(),
+                map.len() == 0,
+            )
         });
 
         if remove {
