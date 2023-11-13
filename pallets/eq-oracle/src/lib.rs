@@ -605,10 +605,6 @@ pub mod pallet {
                             let base_price = Self::get_price(&base_asset)?;
                             let xbase_price = xbase_virtual_price.saturating_mul(base_price);
                             Self::set_the_only_price(pool_info.xbase_asset(), xbase_price);
-                            // T::OnPriceSet::on_price_set(
-                            //     pool_info.xbase_asset(),
-                            //     fixedi64_to_i64f64(xbase_price),
-                            // )?;
                             let lp_virtual_price =
                                 T::XBasePrice::get_lp_virtual_price(&pool_info, None)?;
                             lp_virtual_price.saturating_mul(base_price)
@@ -640,12 +636,20 @@ pub mod pallet {
                 Ok(())
             };
 
+            let update_q_token_price = || -> DispatchResult {
+                let q_price = FixedI64::from_rational(1, 10);
+                Self::set_the_only_price(asset::Q, q_price);
+                T::OnPriceSet::on_price_set(asset::Q, fixedi64_to_i64f64(q_price))?;
+                Ok(())
+            };
+
             let block_timeout =
                 T::BlockNumber::unique_saturated_from(T::LpPriceBlockTimeout::get());
             let current_block = frame_system::Pallet::<T>::block_number();
             if (current_block % block_timeout).is_zero() {
                 let _ = update_lp_token_prices();
                 let _ = update_mxusdc_token_price();
+                let _ = update_q_token_price();
             }
 
             if (current_block % REMOVE_ASSET_PERIOD.into()).is_zero() {

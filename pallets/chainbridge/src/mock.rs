@@ -222,7 +222,7 @@ impl eq_balances::Config for Test {
 
 parameter_types! {
     pub const TestChainId: u8 = 5;
-    pub const BasicCurrencyGet: asset::Asset = asset::EQ;
+    pub const BasicCurrencyGet: asset::Asset = asset::Q;
 }
 
 pub type BasicCurrency = eq_primitives::balance_adapter::BalanceAdapter<
@@ -283,6 +283,7 @@ pub fn new_test_ext_params(relayers: Vec<AccountId>) -> sp_io::TestExternalities
         (asset::ETH, FixedI64::from_inner(1)),
         (asset::EQD, FixedI64::from_inner(1)),
         (asset::EQ, FixedI64::from_inner(1)),
+        (asset::Q, FixedI64::from_inner(1)),
     ]);
 
     let fee_id = FEE_MODULE_ID.into_account_truncating();
@@ -380,7 +381,7 @@ pub fn new_test_ext_params(relayers: Vec<AccountId>) -> sp_io::TestExternalities
                 Permill::one(),
             ),
             (
-                asset::EQ.get_id(),
+                asset::Q.get_id(),
                 EqFixedU128::from(0),
                 FixedI64::from(0),
                 Permill::zero(),
@@ -400,8 +401,8 @@ pub fn new_test_ext_params(relayers: Vec<AccountId>) -> sp_io::TestExternalities
 
     eq_balances::GenesisConfig::<Test> {
         balances: vec![
-            (fee_id, vec![(0, asset::EQ.get_id())]),
-            (bridge_id, vec![(ENDOWED_BALANCE, asset::EQ.get_id())]),
+            (fee_id, vec![(0, asset::Q.get_id())]),
+            (bridge_id, vec![(ENDOWED_BALANCE, asset::Q.get_id())]),
         ],
         is_transfers_enabled: true,
         is_xcm_enabled: Some(XcmMode::Xcm(false)),

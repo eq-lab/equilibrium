@@ -904,7 +904,7 @@ fn proposal_expires() {
 
 #[test]
 fn test_redistribute_fees() {
-    use eq_primitives::asset::EQ;
+    use eq_primitives::asset::Q;
     use eq_primitives::SignedBalance;
     use sp_runtime::traits::Zero;
     new_test_ext().execute_with(|| {
@@ -919,9 +919,9 @@ fn test_redistribute_fees() {
         // There are some relayers, but no fees (noop)
         assert_ok!(ChainBridge::do_redistribute_fees());
 
-        let a = <Test as Config>::BalanceGetter::get_balance(&RELAYER_A, &EQ);
-        let b = <Test as Config>::BalanceGetter::get_balance(&RELAYER_B, &EQ);
-        let c = <Test as Config>::BalanceGetter::get_balance(&RELAYER_C, &EQ);
+        let a = <Test as Config>::BalanceGetter::get_balance(&RELAYER_A, &Q);
+        let b = <Test as Config>::BalanceGetter::get_balance(&RELAYER_B, &Q);
+        let c = <Test as Config>::BalanceGetter::get_balance(&RELAYER_C, &Q);
         assert!(a.is_zero());
         assert!(b.is_zero());
         assert!(c.is_zero());
@@ -937,9 +937,9 @@ fn test_redistribute_fees() {
         // Real redistribution happens here
         assert_ok!(ChainBridge::do_redistribute_fees());
 
-        let a = <Test as Config>::BalanceGetter::get_balance(&RELAYER_A, &EQ);
-        let b = <Test as Config>::BalanceGetter::get_balance(&RELAYER_B, &EQ);
-        let c = <Test as Config>::BalanceGetter::get_balance(&RELAYER_C, &EQ);
+        let a = <Test as Config>::BalanceGetter::get_balance(&RELAYER_A, &Q);
+        let b = <Test as Config>::BalanceGetter::get_balance(&RELAYER_B, &Q);
+        let c = <Test as Config>::BalanceGetter::get_balance(&RELAYER_C, &Q);
         assert_eq!(a, SignedBalance::Positive(33));
         assert_eq!(b, SignedBalance::Positive(33));
         assert_eq!(c, SignedBalance::Positive(33));
