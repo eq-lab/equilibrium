@@ -550,11 +550,6 @@ fn xcm_transfer_eq_native() {
         ));
         System::set_block_number(1);
 
-        assert_ok!(EqBalances::allow_xcm_transfers_native_for(
-            RuntimeOrigin::root(),
-            vec![BRIDGE_MODULE_ID.into_account_truncating()]
-        ));
-
         assert_ok!(EqBridge::xcm_transfer(
             RuntimeOrigin::signed(BRIDGE_MODULE_ID.into_account_truncating()).into(),
             (2000, AccountType::Id32(USER_X.into())).encode(),
@@ -877,11 +872,6 @@ fn xcm_transfer_native_gens_is_preserved() {
             INITIAL_AMOUNT
         );
 
-        assert_ok!(EqBalances::allow_xcm_transfers_native_for(
-            RuntimeOrigin::root(),
-            vec![USER_X]
-        ));
-
         assert_noop!(
             <EqBalances as EqCurrency<_, _>>::xcm_transfer(
                 &USER_X,
@@ -923,11 +913,6 @@ fn xcm_transfer_self_reserved() {
             INITIAL_AMOUNT
         );
         assert_eq!(EqBalances::total_balance(&parallel_acc, asset::EQ), 0);
-
-        assert_ok!(EqBalances::allow_xcm_transfers_native_for(
-            RuntimeOrigin::root(),
-            vec![USER_X]
-        ));
 
         let to = MultiLocation {
             parents: 1,
