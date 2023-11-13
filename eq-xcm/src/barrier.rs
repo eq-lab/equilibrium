@@ -27,10 +27,11 @@ use xcm_executor::traits::ShouldExecute;
 pub struct AllowReserveAssetDepositedFrom<EqAssets, AllowedOrigins>(
     PhantomData<(EqAssets, AllowedOrigins)>,
 );
-impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldExecute
-    for AllowReserveAssetDepositedFrom<EqAssets, AllowedOrigins>
+
+impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>>
+    AllowReserveAssetDepositedFrom<EqAssets, AllowedOrigins>
 {
-    fn should_execute<RuntimeCall>(
+    fn check<RuntimeCall>(
         origin: &MultiLocation,
         instructions: &mut [Instruction<RuntimeCall>],
         max_weight: Weight,
@@ -84,6 +85,23 @@ impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldEx
             }
         } else {
             Err(ProcessMessageError::Unsupported)
+        }
+    }
+}
+
+impl<EqAssets: AssetXcmGetter, AllowedOrigins: Contains<MultiLocation>> ShouldExecute
+    for AllowReserveAssetDepositedFrom<EqAssets, AllowedOrigins>
+{
+    fn should_execute<RuntimeCall>(
+        origin: &MultiLocation,
+        instructions: &mut [Instruction<RuntimeCall>],
+        max_weight: Weight,
+        _weight_credit: &mut Weight,
+    ) -> Result<(), ProcessMessageError> {
+        if let Some((SetTopic(_), rest)) = instructions.split_last_mut() {
+            Self::check(origin, rest, max_weight, _weight_credit)
+        } else {
+            Self::check(origin, instructions, max_weight, _weight_credit)
         }
     }
 }
