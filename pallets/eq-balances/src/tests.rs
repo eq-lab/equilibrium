@@ -20,7 +20,7 @@
 
 use super::*;
 use crate::mock::{
-    new_test_ext, BalancesModuleId, ModuleBalances, OracleMock, RuntimeOrigin, SlashMock, Test,
+    new_test_ext, BalancesModuleId, ModuleBalances, OracleMock, RuntimeOrigin, SlashMock, Test, EqBalances, ExistentialDepositEq, ExistentialDeposit, ExistentialDepositBasic,
 };
 use crate::mock::{Balance, FAIL_ACC};
 use eq_primitives::asset::*;
@@ -805,7 +805,7 @@ fn no_delete_with_balance_more_than_minimal_collateral() {
 }
 
 #[test]
-fn minimal_existential_deposit_basic() {
+fn minimal_existential_deposit_eq() {
     new_test_ext().execute_with(|| {
         let account_with_minimal_balance: u64 = 15;
         // has 15 EQ from genesis
@@ -832,6 +832,81 @@ fn minimal_existential_deposit_basic() {
         );
 
         assert_ok!(ModuleBalances::delete_account(&account_ready_to_delete));
+    });
+}
+
+#[test]
+fn minimal_existential_deposit_basic() {
+    new_test_ext().execute_with(|| {
+        let account_with_minimal_balance: u64 = 40;
+        // has 10 Q
+        assert_ok!(EqBalances::deposit_creating(&account_with_minimal_balance, asset::Q, 10, false, None));
+        // ExistentialDeposit = 20 USD or
+        // ExistentialDepositBasic = 10 Q
+        // ExistentialDepositEq = 15 EQ
+
+        let account_ready_to_delete: u64 = 41;
+        // has 9 Q
+        assert_ok!(EqBalances::deposit_creating(&account_ready_to_delete, asset::Q, 9, false, None));
+
+        let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(1));
+        OracleMock::remove(&asset::EQ);
+        assert_eq!(
+            ModuleBalances::can_be_deleted(&account_with_minimal_balance).unwrap(),
+            false
+        );
+
+        assert_err!(
+            ModuleBalances::delete_account(&account_with_minimal_balance),
+            Error::<Test>::NotAllowedToDeleteAccount
+        );
+
+        assert_eq!(
+            ModuleBalances::can_be_deleted(&account_ready_to_delete).unwrap(),
+            true
+        );
+
+        assert_ok!(ModuleBalances::delete_account(&account_ready_to_delete));
+    });
+}
+
+#[test]
+fn existencial_deposit_with_and_without_prices() {
+    new_test_ext().execute_with(|| {
+        // ExistentialDeposit:      20
+        // ExistentialDepositEq:    15
+        // ExistentialDepositBasic: 10
+
+        // both eq and q prices AND Eq is the least
+        let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(3));
+        let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(1));
+        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositEq::get());
+        // both eq and q prices AND Q is the least
+        let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(1));
+        let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(2));
+        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositBasic::get());
+        // both eq and q prices AND ExistentialDeposit is the least
+        let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(3));
+        let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(2));
+        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDeposit::get());
+
+        // eq only price AND Eq less than ED
+        let _ = OracleMock::remove(&asset::Q);
+        let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(1));
+        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositEq::get());
+        // eq only price AND Eq more than ED
+        let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(2));
+        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDeposit::get());
+
+        // q only price AND Q less than ED
+        let _ = OracleMock::remove(&asset::EQ);
+        let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(1));
+        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositBasic::get());
+        // q only price AND Q more than ED
+        let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(3));
+        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDeposit::get());
+
+        // both no prices for EQ & Q
     });
 }
 
@@ -1349,7 +1424,7 @@ fn locked_balance_ensure_can_transfer() {
         let acc1 = &0;
         assert_ok!(ModuleBalances::deposit_creating(
             acc1,
-            EQ,
+            Q,
             11 * ONE_TOKEN,
             true,
             None
@@ -1359,7 +1434,7 @@ fn locked_balance_ensure_can_transfer() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 6 * ONE_TOKEN + 1,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1368,7 +1443,7 @@ fn locked_balance_ensure_can_transfer() {
         );
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::TRANSFER,
             0
@@ -1382,7 +1457,7 @@ fn locked_balance_transaction_payment() {
         let acc1 = &0;
         assert_ok!(ModuleBalances::deposit_creating(
             acc1,
-            EQ,
+            Q,
             11 * ONE_TOKEN,
             true,
             None
@@ -1392,7 +1467,7 @@ fn locked_balance_transaction_payment() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 6 * ONE_TOKEN,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1401,21 +1476,21 @@ fn locked_balance_transaction_payment() {
         );
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::TRANSACTION_PAYMENT,
             0
         ));
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::FEE,
             0
         ));
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::TIP,
             0
@@ -1429,7 +1504,7 @@ fn locked_balance_extend_lock() {
         let acc1 = &0;
         assert_ok!(ModuleBalances::deposit_creating(
             acc1,
-            EQ,
+            Q,
             11 * ONE_TOKEN,
             true,
             None
@@ -1438,7 +1513,7 @@ fn locked_balance_extend_lock() {
         ModuleBalances::set_lock([0; 8], acc1, 5 * ONE_TOKEN);
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::TRANSFER,
             0
@@ -1448,7 +1523,7 @@ fn locked_balance_extend_lock() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 6 * ONE_TOKEN,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1460,7 +1535,7 @@ fn locked_balance_extend_lock() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 6 * ONE_TOKEN,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1471,7 +1546,7 @@ fn locked_balance_extend_lock() {
         ModuleBalances::set_lock([0; 8], acc1, 5 * ONE_TOKEN);
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::TRANSFER,
             0
@@ -1486,7 +1561,7 @@ fn locked_balance_less_than_lock() {
         let acc2 = &1;
         assert_ok!(ModuleBalances::deposit_creating(
             acc1,
-            EQ,
+            Q,
             11 * ONE_TOKEN,
             true,
             None
@@ -1497,7 +1572,7 @@ fn locked_balance_less_than_lock() {
             ModuleBalances::currency_transfer(
                 acc1,
                 acc2,
-                EQ,
+                Q,
                 1,
                 ExistenceRequirement::AllowDeath,
                 TransferReason::Common,
@@ -1508,7 +1583,7 @@ fn locked_balance_less_than_lock() {
         assert_ok!(ModuleBalances::currency_transfer(
             acc2,
             acc1,
-            EQ,
+            Q,
             ONE_TOKEN,
             ExistenceRequirement::AllowDeath,
             TransferReason::Common,
@@ -1523,7 +1598,7 @@ fn locked_balance_multiple_locks() {
         let acc1 = &0;
         assert_ok!(ModuleBalances::deposit_creating(
             acc1,
-            EQ,
+            Q,
             11 * ONE_TOKEN,
             true,
             None
@@ -1534,7 +1609,7 @@ fn locked_balance_multiple_locks() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 6 * ONE_TOKEN + 1,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1543,7 +1618,7 @@ fn locked_balance_multiple_locks() {
         );
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::TRANSFER,
             0
@@ -1554,7 +1629,7 @@ fn locked_balance_multiple_locks() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 6 * ONE_TOKEN + 1,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1564,7 +1639,7 @@ fn locked_balance_multiple_locks() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 1 * ONE_TOKEN + 1,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1573,7 +1648,7 @@ fn locked_balance_multiple_locks() {
         );
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             1 * ONE_TOKEN,
             WithdrawReasons::TRANSFER,
             0
@@ -1587,7 +1662,7 @@ fn locked_balance_remove_lock() {
         let acc1 = &0;
         assert_ok!(ModuleBalances::deposit_creating(
             acc1,
-            EQ,
+            Q,
             11 * ONE_TOKEN,
             true,
             None
@@ -1599,7 +1674,7 @@ fn locked_balance_remove_lock() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 1 * ONE_TOKEN + 1,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1608,7 +1683,7 @@ fn locked_balance_remove_lock() {
         );
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             1 * ONE_TOKEN,
             WithdrawReasons::TRANSFER,
             0
@@ -1619,7 +1694,7 @@ fn locked_balance_remove_lock() {
         assert_err!(
             ModuleBalances::ensure_can_withdraw(
                 acc1,
-                EQ,
+                Q,
                 6 * ONE_TOKEN + 1,
                 WithdrawReasons::TRANSFER,
                 0
@@ -1628,7 +1703,7 @@ fn locked_balance_remove_lock() {
         );
         assert_ok!(ModuleBalances::ensure_can_withdraw(
             acc1,
-            EQ,
+            Q,
             6 * ONE_TOKEN,
             WithdrawReasons::TRANSFER,
             0

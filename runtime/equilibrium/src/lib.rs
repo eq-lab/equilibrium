@@ -42,7 +42,7 @@ use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::curve_number::{CurveNumber, CurveNumberConvert};
 use eq_primitives::subaccount::SubAccType;
 use eq_primitives::xcm_origins::{dot::*, RELAY};
-use eq_primitives::{BlockNumberToBalance, AccountRefCounter};
+use eq_primitives::BlockNumberToBalance;
 use eq_primitives::{Aggregates, TransferReason, UnsignedPriorityPair, UserGroup};
 pub use eq_rate;
 pub use eq_subaccounts;
@@ -137,7 +137,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("Equilibrium-parachain"),
     impl_name: create_runtime_str!("Equilibrium-parachain"),
     authoring_version: 10,
-    spec_version: 38,
+    spec_version: 39,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -409,7 +409,6 @@ impl eq_multisig_sudo::Config for Runtime {
 }
 //------------ eq-margin-call -------------------
 parameter_types! {
-    // TODO: change values
     pub InitialMargin: EqFixedU128 = EqFixedU128::saturating_from_rational(2, 10);
     pub MaintenanceMargin: EqFixedU128 = EqFixedU128::saturating_from_rational(1, 10);
     pub CriticalMargin: EqFixedU128 = EqFixedU128::saturating_from_rational(5, 100);
@@ -446,11 +445,13 @@ impl timestamp::Config for Runtime {
 }
 
 pub const EXISTENTIAL_DEPOSIT_USD: Balance = ONE_TOKEN / 10;
-pub const EXISTENTIAL_DEPOSIT_BASIC: Balance = 100 * ONE_TOKEN;
+pub const EXISTENTIAL_DEPOSIT_BASIC: Balance = ONE_TOKEN;
+pub const EXISTENTIAL_DEPOSIT_EQ: Balance = 100 * ONE_TOKEN;
 
 parameter_types! {
     pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT_USD; // 0.1 USD
-    pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_BASIC; // 100 EQ // TODO: Q
+    pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_BASIC; // 1 Q
+    pub const ExistentialDepositEq: Balance = EXISTENTIAL_DEPOSIT_EQ; // 100 EQ
     pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
     pub const QCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
     pub const EqCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
@@ -658,6 +659,7 @@ impl eq_balances::Config for Runtime {
 
     type ExistentialDeposit = ExistentialDeposit;
     type ExistentialDepositBasic = ExistentialDepositBasic;
+    type ExistentialDepositEq = ExistentialDepositEq;
     type PriceGetter = Oracle;
     type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
     type Aggregates = eq_aggregates::Pallet<Runtime>;
@@ -742,8 +744,8 @@ pub mod fee {
             smallvec![WeightToFeeCoefficient {
                 degree: 1,
                 negative: false,
-                coeff_frac: Perbill::from_percent(10),
-                coeff_integer: 0,
+                coeff_frac: Perbill::from_parts(268861), // TODO: Q token
+                coeff_integer: 2,
             }]
         }
     }
@@ -772,7 +774,7 @@ impl transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type OnChargeTransaction = transaction_payment::CurrencyAdapter<BasicCurrency, DealWithFees>;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
-    type WeightToFee = fee::WeightToFee;
+    type WeightToFee = fee::WeightToFee; // TODO: Q token
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
@@ -1528,7 +1530,6 @@ mod curve_utils {
                 lp_price_log.push(fixedi64_to_i64f64(calculate_mean_price(prices)));
             }
 
-            // TODO: Check historical prices not empty
             PriceLogs::<Runtime>::insert(
                 pool.pool_asset,
                 PriceLog {
@@ -2471,12 +2472,12 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
     fn on_runtime_upgrade() -> Weight {
         // unlock
         for acc in eq_balances::Locked::<Runtime>::iter_keys() {
-            EqBalances::remove_lock(b"democrac", &acc);
-            EqBalances::remove_lock(b"staking", &acc);
+            EqBalances::remove_lock(*b"democrac", &acc);
+            EqBalances::remove_lock(*b"staking ", &acc);
         }
 
         // clean eqStaking
-        frame_support::storage::unhashed::clear_prefix(
+        let _ = frame_support::storage::unhashed::clear_prefix(
             &hex_literal::hex!("9bab6e0c2c89a5c1717245c1ee968742"),
             None,
             None,
@@ -2491,10 +2492,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             TransferReason::Common,
             false,
         );
-        frame_system::Pallet::<Runtime>::dec_providers(&eq_staking_acc);
+        let _ = frame_system::Pallet::<Runtime>::dec_providers(&eq_staking_acc);
 
         // clean vesting
-        let vesting2_acc = PalletId(*"eq/vest2").into_account_truncating();
+        let vesting2_acc = PalletId(*b"eq/vest2").into_account_truncating();
         let _ = EqBalances::currency_transfer(
             &vesting2_acc,
             &TreasuryAccount::get(),
@@ -2504,10 +2505,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             TransferReason::Common,
             false,
         );
-        frame_system::Pallet::<T>::dec_consumers(&vesting2_acc);
-        frame_system::Pallet::<T>::dec_providers(&vesting2_acc);
-        frame_system::Pallet::<T>::dec_providers(&vesting2_acc);
-        frame_system::Pallet::<T>::dec_providers(&vesting2_acc);
+        frame_system::Pallet::<Runtime>::dec_consumers(&vesting2_acc);
+        let _ = frame_system::Pallet::<Runtime>::dec_providers(&vesting2_acc);
+        let _ = frame_system::Pallet::<Runtime>::dec_providers(&vesting2_acc);
+        let _ = frame_system::Pallet::<Runtime>::dec_providers(&vesting2_acc);
 
         for (account, amount) in [
             (TreasuryAccount::get(), 1_000_000_000_000_000_000),

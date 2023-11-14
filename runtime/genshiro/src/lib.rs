@@ -495,6 +495,7 @@ pub const EXISTENSIAL_DEPOSIT_BASIC: Balance = 100 * ONE_TOKEN;
 parameter_types! {
     pub const ExistentialDeposit: Balance = EXISTENSIAL_DEPOSIT; // 0.1 USD
     pub const ExistentialDepositBasic: Balance = EXISTENSIAL_DEPOSIT_BASIC; // 100 GENS
+    pub const ExistentialDepositEq: Balance = EXISTENSIAL_DEPOSIT_BASIC; // Temporary value for compatibility
     pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::GENS;
     pub const RelayCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::KSM;
 }
@@ -664,6 +665,7 @@ impl eq_balances::Config for Runtime {
 
     type ExistentialDeposit = ExistentialDeposit;
     type ExistentialDepositBasic = ExistentialDepositBasic;
+    type ExistentialDepositEq = ExistentialDepositEq;
     type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
     type Aggregates = eq_aggregates::Pallet<Runtime>;
     type TreasuryModuleId = TreasuryModuleId;

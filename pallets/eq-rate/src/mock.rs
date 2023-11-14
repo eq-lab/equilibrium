@@ -148,6 +148,7 @@ impl eq_balances::Config for Test {
     type Balance = Balance;
     type ExistentialDeposit = ExistentialDeposit;
     type ExistentialDepositBasic = ExistentialDepositBasic;
+    type ExistentialDepositEq = ExistentialDeposit;
     type BalanceChecker = eq_bailsman::Pallet<Test>;
     type PriceGetter = OracleMock;
     type RuntimeEvent = RuntimeEvent;

@@ -3212,7 +3212,6 @@ dependencies = [
  "eq-primitives",
  "eq-rate",
  "eq-session-manager",
- "eq-staking",
  "eq-subaccounts",
  "eq-treasury",
  "eq-utils",

@@ -1444,13 +1444,9 @@ impl<T: Config> OrderManagement for Pallet<T> {
                 .map(|o| o.price)
                 .next()
         }
-        log::error!("find_order");
         let order = Self::find_order(&asset, order_id, price).ok_or(Error::<T>::OrderNotFound)?;
-        log::error!("asset_data");
         let asset_data = T::AssetGetter::get_asset_data(asset)?;
-        log::error!("chunk_key");
         let chunk_key = Self::get_chunk_key(order.price, asset_data.price_step)?;
-        log::error!("mutate_exists");
         OrdersByAssetAndChunkKey::<T>::mutate_exists(
             asset,
             chunk_key,

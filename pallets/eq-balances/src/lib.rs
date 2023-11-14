@@ -131,13 +131,16 @@ pub mod pallet {
             + TryFrom<eq_primitives::balance::Balance>
             + Into<eq_primitives::balance::Balance>;
         /// Minimum account balance in usd. Accounts with deposit less than
-        /// Min(`ExistentialDeposit`,`ExistentialDepositBasic`) must be killed
+        /// Min(`ExistentialDeposit`,`ExistentialDepositBasic`, `ExistentialDepositEq`) must be killed
         #[pallet::constant]
         type ExistentialDeposit: Get<Self::Balance>;
         /// Minimum account balance in basic currency. Accounts with deposit less than
-        /// Min(`ExistentialDeposit`,`ExistentialDepositBasic`) must be killed
+        /// Min(`ExistentialDeposit`,`ExistentialDepositBasic`, `ExistentialDepositEq`) must be killed
         #[pallet::constant]
         type ExistentialDepositBasic: Get<Self::Balance>;
+        /// Minimum account balance in Eq. Will be discarded soon.
+        #[pallet::constant]
+        type ExistentialDepositEq: Get<Self::Balance>;
         /// Strategy for checking that transfer can be made
         type BalanceChecker: BalanceChecker<
             Self::Balance,
@@ -1644,12 +1647,32 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// Get minimum (T::ExistentialDeposit, T::ExistentialDepositBasic) worth in USD.
+    /// Get minimum (T::ExistentialDeposit, T::ExistentialDepositBasic, T::ExistentialDepositEq) worth in USD.
     fn get_min_existential_deposit() -> T::Balance {
         let existential_deposit_usd = T::ExistentialDeposit::get();
 
-        match T::PriceGetter::get_price::<EqFixedU128>(&T::AssetGetter::get_main_asset()) {
-            Ok(basic_asset_price) => {
+        let maybe_eq_price = T::PriceGetter::get_price::<EqFixedU128>(&eq_primitives::asset::EQ);
+        let maybe_basic_price = T::PriceGetter::get_price::<EqFixedU128>(&T::AssetGetter::get_main_asset());
+        match (maybe_eq_price, maybe_basic_price)  {
+            (Ok(eq_price), Ok(basic_asset_price)) => {
+                let mb_eq_ed = eq_price.checked_mul_int(T::ExistentialDepositEq::get());
+                let mb_q_ed = basic_asset_price.checked_mul_int(T::ExistentialDepositBasic::get());
+                match mb_eq_ed.and_then(|eq_ed| mb_q_ed.map(|q_ed| (eq_ed, q_ed))) {
+                    Some((eq_ed, q_ed)) => {
+                        existential_deposit_usd.min(q_ed).min(eq_ed)
+                    },
+                    _ => existential_deposit_usd
+                }
+            }
+            (Ok(eq_price), _) => {
+                match eq_price.checked_mul_int(T::ExistentialDepositEq::get()) {
+                    Some(existential_deposit_basic_in_usd) => {
+                        existential_deposit_usd.min(existential_deposit_basic_in_usd)
+                    }
+                    _ => existential_deposit_usd,
+                }
+            }
+            (_, Ok(basic_asset_price)) => {
                 match basic_asset_price.checked_mul_int(T::ExistentialDepositBasic::get()) {
                     Some(existential_deposit_basic_in_usd) => {
                         existential_deposit_usd.min(existential_deposit_basic_in_usd)

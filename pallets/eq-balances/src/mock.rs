@@ -51,7 +51,8 @@ parameter_types! {
     pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(16);
     pub const TotalIssuance: Balance = 1_000_000_000;
     pub const ExistentialDeposit: Balance = 20;
-    pub const ExistentialDepositBasic: Balance = 15;
+    pub const ExistentialDepositBasic: Balance = 10;
+    pub const ExistentialDepositEq: Balance = 15;
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/resrv");
@@ -97,7 +98,7 @@ parameter_types! {
     pub const BlockHashCount: u32 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
         frame_system::limits::BlockWeights::simple_max(Weight::from_parts(1024, 0));
-    pub const MainAsset: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
+    pub const MainAsset: eq_primitives::asset::Asset = eq_primitives::asset::Q;
 }
 
 impl frame_system::Config for Test {
@@ -268,6 +269,7 @@ impl Config for Test {
     type Balance = Balance;
     type ExistentialDeposit = ExistentialDeposit;
     type ExistentialDepositBasic = ExistentialDepositBasic;
+    type ExistentialDepositEq = ExistentialDepositEq;
 
     type BalanceChecker = (
         BalanceCheckerMock,
@@ -474,6 +476,20 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             ),
             (
                 asset::EQ.get_id(),
+                EqFixedU128::from(0),
+                FixedI64::from(0),
+                Permill::zero(),
+                Permill::zero(),
+                vec![],
+                Permill::zero(),
+                u64::MAX,
+                AssetType::Physical,
+                true,
+                Percent::one(),
+                Permill::one(),
+            ),
+            (
+                asset::Q.get_id(),
                 EqFixedU128::from(0),
                 FixedI64::from(0),
                 Permill::zero(),

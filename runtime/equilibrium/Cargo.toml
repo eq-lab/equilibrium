@@ -417,11 +417,6 @@ default-features = false
 git = "https://github.com/paritytech/substrate"
 branch = "polkadot-v0.9.42"
 
-[dependencies.eq-staking]
-default-features = false
-path = "../../pallets/eq-staking"
-version = "0.1.0"
-
 [dependencies.eq-balances-rpc-runtime-api]
 default-features = false
 package = "eq-balances-rpc-runtime-api"
@@ -466,7 +461,6 @@ try-runtime = [
   "eq-market-maker/try-runtime",
   "eq-migration/try-runtime",
   "eq-wrapped-dot/try-runtime",
-  "eq-staking/try-runtime",
   "eq-crowdloan-dots/try-runtime",
   "q-swap/try-runtime",
 ]
@@ -557,7 +551,6 @@ std = [
   "eq-xcm/std",
   "eq-wrapped-dot/std",
   "eq-market-maker/std",
-  "eq-staking/std",
   "eq-balances-rpc-runtime-api/std",
   "eq-xdot-pool-rpc-runtime-api/std",
 ]
@@ -599,7 +592,6 @@ runtime-benchmarks = [
   "equilibrium-curve-amm/runtime-benchmarks",
   "eq-lending/runtime-benchmarks",
   "eq-wrapped-dot/runtime-benchmarks",
-  "eq-staking/runtime-benchmarks",
   "q-swap/runtime-benchmarks",
 ]
 production = [
@@ -613,7 +605,6 @@ production = [
   "eq-margin-call/production",
   "eq-subaccounts/production",
   "eq-primitives/production",
-  "eq-staking/production",
   "q-swap/production",
 ]
 logging = ["eq-utils/logging"]
