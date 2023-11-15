@@ -306,7 +306,9 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
             ) => false,
             (false, RuntimeCall::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
             (false, RuntimeCall::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, RuntimeCall::VestingQSwap(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::VestingQSwap(eq_vesting::Call::force_vested_transfer { .. })) => {
+                false
+            }
             // XCM disallowed
             (_, &RuntimeCall::PolkadotXcm(_)) => false,
             (false, _) => true,
@@ -818,7 +820,7 @@ parameter_types! {
 parameter_types! {
     pub BuyFee: Permill = PerThing::from_rational::<u32>(1, 100);
     pub SellFee: Permill = PerThing::from_rational::<u32>(15, 100);
-    pub const MinAmountToBuyout: Balance = 100 * ONE_TOKEN; // 100 Eq
+    pub const MinAmountToBuyout: Balance = ONE_TOKEN; // 1 Q
 }
 
 impl eq_treasury::Config for Runtime {
@@ -2522,32 +2524,43 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
         }
 
-        q_swap::QSwapConfigurations::<Runtime>::insert(asset::EQ, q_swap::SwapConfiguration {
-            enabled: true,
-            min_amount: 2000 * ONE_TOKEN,
-            q_ratio: 1000 * ONE_TOKEN,
-            vesting_share: Percent::from_percent(90),
-            vesting_starting_block: 3300,
-            vesting_duration_blocks: 1000,
-        });
+        eq_treasury::BuyoutLimit::<Runtime>::set(Some(100));
 
-        q_swap::QSwapConfigurations::<Runtime>::insert(asset::GENS, q_swap::SwapConfiguration {
-            enabled: true,
-            min_amount: 2000 * ONE_TOKEN,
-            q_ratio: 1000 * ONE_TOKEN,
-            vesting_share: Percent::from_percent(90),
-            vesting_starting_block: 3300,
-            vesting_duration_blocks: 1000,
-        });
+        q_swap::QSwapConfigurations::<Runtime>::insert(
+            asset::EQ,
+            q_swap::SwapConfiguration {
+                enabled: true,
+                min_amount: 100 * ONE_TOKEN,
+                q_ratio: ONE_TOKEN / 100,
+                vesting_share: Percent::from_percent(90),
+                vesting_starting_block: 3300,
+                vesting_duration_blocks: 1000,
+            },
+        );
 
-        q_swap::QSwapConfigurations::<Runtime>::insert(asset::DOT, q_swap::SwapConfiguration {
-            enabled: true,
-            min_amount: 400000,
-            q_ratio: 18450184,
-            vesting_share: Percent::from_percent(90),
-            vesting_starting_block: 3300,
-            vesting_duration_blocks: 1000,
-        });
+        q_swap::QSwapConfigurations::<Runtime>::insert(
+            asset::GENS,
+            q_swap::SwapConfiguration {
+                enabled: true,
+                min_amount: 100 * ONE_TOKEN,
+                q_ratio: ONE_TOKEN / 100,
+                vesting_share: Percent::from_percent(90),
+                vesting_starting_block: 3300,
+                vesting_duration_blocks: 1000,
+            },
+        );
+
+        q_swap::QSwapConfigurations::<Runtime>::insert(
+            asset::DOT,
+            q_swap::SwapConfiguration {
+                enabled: true,
+                min_amount: 400000,
+                q_ratio: 54_400_000_000,
+                vesting_share: Percent::from_percent(90),
+                vesting_starting_block: 3300,
+                vesting_duration_blocks: 1000,
+            },
+        );
 
         if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
             if let Ok(idx_q) = assets.binary_search_by(|x| x.id.cmp(&asset::Q)) {
