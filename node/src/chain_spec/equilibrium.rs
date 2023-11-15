@@ -33,8 +33,8 @@ use eq_node_runtime::{
     EqLiquidityFarmingConfig, EqMultisigSudoConfig, EqTreasuryConfig, FinancialConfig, FixedI64,
     GenesisConfig, OracleConfig, ParachainInfoConfig, PolkadotXcmConfig, RepublicConfig,
     SessionConfig, SubaccountsConfig, SystemConfig, TechnicalCommitteeConfig,
-    TechnicalCommitteeMembershipConfig, VestingConfig, VestingQSwapConfig,
-    WhitelistsConfig, WASM_BINARY,
+    TechnicalCommitteeMembershipConfig, VestingConfig, VestingQSwapConfig, WhitelistsConfig,
+    WASM_BINARY,
 };
 use sp_runtime::{traits::CheckedConversion, BoundedVec, Percent};
 

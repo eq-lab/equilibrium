@@ -20,7 +20,8 @@
 
 use super::*;
 use crate::mock::{
-    new_test_ext, BalancesModuleId, ModuleBalances, OracleMock, RuntimeOrigin, SlashMock, Test, EqBalances, ExistentialDepositEq, ExistentialDeposit, ExistentialDepositBasic,
+    new_test_ext, BalancesModuleId, EqBalances, ExistentialDeposit, ExistentialDepositBasic,
+    ExistentialDepositEq, ModuleBalances, OracleMock, RuntimeOrigin, SlashMock, Test,
 };
 use crate::mock::{Balance, FAIL_ACC};
 use eq_primitives::asset::*;
@@ -840,14 +841,26 @@ fn minimal_existential_deposit_basic() {
     new_test_ext().execute_with(|| {
         let account_with_minimal_balance: u64 = 40;
         // has 10 Q
-        assert_ok!(EqBalances::deposit_creating(&account_with_minimal_balance, asset::Q, 10, false, None));
+        assert_ok!(EqBalances::deposit_creating(
+            &account_with_minimal_balance,
+            asset::Q,
+            10,
+            false,
+            None
+        ));
         // ExistentialDeposit = 20 USD or
         // ExistentialDepositBasic = 10 Q
         // ExistentialDepositEq = 15 EQ
 
         let account_ready_to_delete: u64 = 41;
         // has 9 Q
-        assert_ok!(EqBalances::deposit_creating(&account_ready_to_delete, asset::Q, 9, false, None));
+        assert_ok!(EqBalances::deposit_creating(
+            &account_ready_to_delete,
+            asset::Q,
+            9,
+            false,
+            None
+        ));
 
         let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(1));
         OracleMock::remove(&asset::EQ);
@@ -880,31 +893,52 @@ fn existencial_deposit_with_and_without_prices() {
         // both eq and q prices AND Eq is the least
         let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(3));
         let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(1));
-        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositEq::get());
+        assert_eq!(
+            EqBalances::minimum_balance_value(),
+            ExistentialDepositEq::get()
+        );
         // both eq and q prices AND Q is the least
         let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(1));
         let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(2));
-        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositBasic::get());
+        assert_eq!(
+            EqBalances::minimum_balance_value(),
+            ExistentialDepositBasic::get()
+        );
         // both eq and q prices AND ExistentialDeposit is the least
         let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(3));
         let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(2));
-        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDeposit::get());
+        assert_eq!(
+            EqBalances::minimum_balance_value(),
+            ExistentialDeposit::get()
+        );
 
         // eq only price AND Eq less than ED
         let _ = OracleMock::remove(&asset::Q);
         let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(1));
-        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositEq::get());
+        assert_eq!(
+            EqBalances::minimum_balance_value(),
+            ExistentialDepositEq::get()
+        );
         // eq only price AND Eq more than ED
         let _ = OracleMock::set_price(1, asset::EQ, FixedI64::saturating_from_integer(2));
-        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDeposit::get());
+        assert_eq!(
+            EqBalances::minimum_balance_value(),
+            ExistentialDeposit::get()
+        );
 
         // q only price AND Q less than ED
         let _ = OracleMock::remove(&asset::EQ);
         let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(1));
-        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDepositBasic::get());
+        assert_eq!(
+            EqBalances::minimum_balance_value(),
+            ExistentialDepositBasic::get()
+        );
         // q only price AND Q more than ED
         let _ = OracleMock::set_price(1, asset::Q, FixedI64::saturating_from_integer(3));
-        assert_eq!(EqBalances::minimum_balance_value(), ExistentialDeposit::get());
+        assert_eq!(
+            EqBalances::minimum_balance_value(),
+            ExistentialDeposit::get()
+        );
 
         // both no prices for EQ & Q
     });
