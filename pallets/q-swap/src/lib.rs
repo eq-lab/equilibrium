@@ -39,8 +39,6 @@ use eq_utils::eq_ensure;
 use frame_support::pallet_prelude::DispatchResult;
 use frame_support::traits::{ExistenceRequirement, Get, IsSubType};
 use frame_support::transactional;
-use frame_support::weights::Weight;
-use frame_system::pallet_prelude::BlockNumberFor;
 use scale_info::TypeInfo;
 use sp_runtime::traits::{
     AtLeast32BitUnsigned, CheckedAdd, DispatchInfoOf, Saturating, SignedExtension, Zero,
@@ -141,26 +139,6 @@ pub mod pallet {
         NotEnoughBalance,
         /// Specified amount is too small to perform swap
         AmountTooSmall,
-    }
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            let mut reads = 0;
-            let mut writes = 0;
-
-            for (asset, mut config) in QSwapConfigurations::<T>::iter() {
-                if config.enabled && config.vesting_starting_block.le(&now) {
-                    config.enabled = false;
-                    writes += 1;
-
-                    QSwapConfigurations::<T>::insert(asset, config);
-                }
-                reads += 1;
-            }
-
-            return T::DbWeight::get().reads_writes(reads, writes);
-        }
     }
 
     #[pallet::call]
