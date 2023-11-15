@@ -801,7 +801,7 @@ parameter_types! {
     pub const PriceTimeout: u64 = PRICE_TIMEOUT_IN_SECONDS;
     pub const MinimalCollateral: Balance = 1000 * ONE_TOKEN; // 1000 USD
     pub const OracleUnsignedPriority: UnsignedPriorityPair = (TransactionPriority::min_value(), 10_000);
-    pub const MinSurplus: Balance =  100 * ONE_TOKEN; // 100 Eq
+    pub const MinSurplus: Balance =  ONE_TOKEN; // 1 Q
     pub const MinTempBalanceUsd: Balance = 50 * ONE_TOKEN; // 50 USD
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
@@ -2522,13 +2522,39 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
         }
 
-        if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
-            if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::Q)) {
-                assets[idx].asset_type = crate::AssetType::Native;
-            }
+        q_swap::QSwapConfigurations::<Runtime>::insert(asset::EQ, q_swap::SwapConfiguration {
+            enabled: true,
+            min_amount: 2000 * ONE_TOKEN,
+            q_ratio: 1000 * ONE_TOKEN,
+            vesting_share: Percent::from_percent(90),
+            vesting_starting_block: 3300,
+            vesting_duration_blocks: 1000,
+        });
 
-            if let Ok(idx) = assets.binary_search_by(|x| x.id.cmp(&asset::EQ)) {
-                assets[idx].asset_type = crate::AssetType::Physical;
+        q_swap::QSwapConfigurations::<Runtime>::insert(asset::GENS, q_swap::SwapConfiguration {
+            enabled: true,
+            min_amount: 2000 * ONE_TOKEN,
+            q_ratio: 1000 * ONE_TOKEN,
+            vesting_share: Percent::from_percent(90),
+            vesting_starting_block: 3300,
+            vesting_duration_blocks: 1000,
+        });
+
+        q_swap::QSwapConfigurations::<Runtime>::insert(asset::DOT, q_swap::SwapConfiguration {
+            enabled: true,
+            min_amount: 400000,
+            q_ratio: 18450184,
+            vesting_share: Percent::from_percent(90),
+            vesting_starting_block: 3300,
+            vesting_duration_blocks: 1000,
+        });
+
+        if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
+            if let Ok(idx_q) = assets.binary_search_by(|x| x.id.cmp(&asset::Q)) {
+                assets[idx_q].asset_type = crate::AssetType::Native;
+                if let Ok(idx_eq) = assets.binary_search_by(|x| x.id.cmp(&asset::EQ)) {
+                    assets[idx_eq].asset_type = crate::AssetType::Physical;
+                }
             }
 
             eq_assets::Assets::<Runtime>::put(assets);
