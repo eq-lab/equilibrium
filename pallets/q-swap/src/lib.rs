@@ -339,7 +339,7 @@ impl<T: Config> Pallet<T> {
             T::EqCurrency::currency_transfer(
                 who,
                 &asset_holder_account_id,
-                *asset,
+                configuration.secondary_asset,
                 asset_2_amount,
                 ExistenceRequirement::AllowDeath,
                 eq_primitives::TransferReason::QSwap,
@@ -458,15 +458,6 @@ impl<T: Config> Pallet<T> {
         //     vesting #2:
         //       q_vesting_amount = q_total_amount * (1 - coeff) = 1.4Q
 
-        println!(
-            "main_asset_q_discounted_price = {:?}",
-            configuration.main_asset_q_discounted_price
-        );
-        println!(
-            "main_asset_q_price = {:?}",
-            configuration.main_asset_q_price
-        );
-
         let main_asset_q_price_fixed = eq_fixedu128_from_balance(configuration.main_asset_q_price);
         let main_asset_q_discounted_price_fixed =
             eq_fixedu128_from_balance(configuration.main_asset_q_discounted_price);
@@ -476,32 +467,22 @@ impl<T: Config> Pallet<T> {
             .checked_div(&main_asset_q_price_fixed)
             .ok_or(ArithmeticError::DivisionByZero)?;
 
-        println!("vesting_1_coeff = {:?}", vesting_1_coeff_fixed);
-
         let q_total_amount_fixed = amount_fixed
             .checked_div(&main_asset_q_discounted_price_fixed)
             .ok_or(ArithmeticError::DivisionByZero)?;
-
-        println!("q_total_amount = {:?}", q_total_amount_fixed);
 
         let vesting_1_amount_fixed = q_total_amount_fixed
             .checked_mul(&vesting_1_coeff_fixed)
             .ok_or(ArithmeticError::Overflow)?;
 
-        println!("vesting_1_amount = {:?}", vesting_1_amount_fixed);
-
         let vesting_1_amount =
             balance_from_eq_fixedu128(vesting_1_amount_fixed).ok_or(ArithmeticError::Overflow)?;
         let q_instant_swap = configuration.vesting_share.mul_floor(vesting_1_amount);
-
-        println!("q_instant_swap = {:?}", q_instant_swap);
 
         let q_received = QReceivedAmounts::<T>::get(who);
         let q_received_after = q_received
             .checked_add(&q_instant_swap)
             .ok_or(ArithmeticError::Overflow)?;
-
-        println!("q_received_after = {:?}", q_received_after);
 
         let (q_instant_swap, q_received_after) = if q_received_after.le(&max_q_amount) {
             (q_instant_swap, q_received_after)
@@ -515,13 +496,9 @@ impl<T: Config> Pallet<T> {
 
         let vesting_1_amount = vesting_1_amount.sub(q_instant_swap);
 
-        println!("vesting_1_amount = {:?}", vesting_1_amount);
-
         let q_total_amount: T::Balance =
             balance_from_eq_fixedu128(q_total_amount_fixed).ok_or(ArithmeticError::Overflow)?;
         let vesting_2_amount = q_total_amount.sub(vesting_1_amount).sub(q_instant_swap);
-
-        println!("vesting_2_amount = {:?}", vesting_2_amount);
 
         Ok((
             *amount,
@@ -566,28 +543,11 @@ impl<T: Config> Pallet<T> {
         //     vesting #2:
         //       q_vesting_amount = q_total_amount * (1 - coeff) = 0.6Q
 
-        println!(
-            "main_asset_q_discounted_price = {:?}",
-            configuration.main_asset_q_discounted_price
-        );
-        println!(
-            "main_asset_q_price = {:?}",
-            configuration.main_asset_q_price
-        );
-        println!(
-            "secondary_asset_q_discounted_price = {:?}",
-            configuration.secondary_asset_q_discounted_price
-        );
-        println!(
-            "secondary_asset_q_price = {:?}",
-            configuration.secondary_asset_q_price
-        );
-
         let main_asset_q_price_fixed = eq_fixedu128_from_balance(configuration.main_asset_q_price);
         let secondary_asset_q_price_fixed =
             eq_fixedu128_from_balance(configuration.secondary_asset_q_price);
         let secondary_asset_q_discounted_price_fixed =
-            eq_fixedu128_from_balance(configuration.main_asset_q_discounted_price);
+            eq_fixedu128_from_balance(configuration.secondary_asset_q_discounted_price);
         let amount_fixed = eq_fixedu128_from_balance(*amount);
 
         let one_q_fixed = secondary_asset_q_discounted_price_fixed
@@ -597,8 +557,6 @@ impl<T: Config> Pallet<T> {
         let vesting_1_coeff_fixed = one_q_fixed
             .checked_div(&secondary_asset_q_price_fixed)
             .ok_or(ArithmeticError::DivisionByZero)?;
-
-        println!("vesting_1_coeff = {:?}", vesting_1_coeff_fixed);
 
         let eq_amount_fixed = amount_fixed
             .checked_div(&main_asset_q_price_fixed)
@@ -612,16 +570,11 @@ impl<T: Config> Pallet<T> {
         let balance = T::EqCurrency::get_balance(who, &EQ);
         Self::ensure_enough_balance(&balance, &eq_amount)?;
 
-        println!("eq_amount = {:?}", eq_amount_fixed);
-        println!("dot_amount = {:?}", amount);
-
         let eq_to_dot_amount_fixed = amount_fixed
             .checked_mul(&secondary_asset_q_discounted_price_fixed)
             .ok_or(ArithmeticError::Overflow)?
             .checked_div(&main_asset_q_price_fixed)
             .ok_or(ArithmeticError::DivisionByZero)?;
-
-        println!("eq_to_dot_amount_fixed = {:?}", eq_to_dot_amount_fixed);
 
         let q_total_amount_fixed = (eq_amount_fixed
             .checked_add(&eq_to_dot_amount_fixed)
@@ -629,26 +582,18 @@ impl<T: Config> Pallet<T> {
         .checked_div(&one_q_fixed)
         .ok_or(ArithmeticError::DivisionByZero)?;
 
-        println!("q_total_amount = {:?}", q_total_amount_fixed);
-
         let vesting_1_amount_fixed = q_total_amount_fixed
             .checked_mul(&vesting_1_coeff_fixed)
             .ok_or(ArithmeticError::Overflow)?;
-
-        println!("vesting_1_amount = {:?}", vesting_1_amount_fixed);
 
         let vesting_1_amount =
             balance_from_eq_fixedu128(vesting_1_amount_fixed).ok_or(ArithmeticError::Overflow)?;
         let q_instant_swap = configuration.vesting_share.mul_floor(vesting_1_amount);
 
-        println!("q_instant_swap = {:?}", q_instant_swap);
-
         let q_received = QReceivedAmounts::<T>::get(who);
         let q_received_after = q_received
             .checked_add(&q_instant_swap)
             .ok_or(ArithmeticError::Overflow)?;
-
-        println!("q_received_after = {:?}", q_received_after);
 
         let (q_instant_swap, q_received_after) = if q_received_after.le(&max_q_amount) {
             (q_instant_swap, q_received_after)
@@ -662,17 +607,13 @@ impl<T: Config> Pallet<T> {
 
         let vesting_1_amount = vesting_1_amount.sub(q_instant_swap);
 
-        println!("vesting_1_amount = {:?}", vesting_1_amount);
-
         let q_total_amount: T::Balance =
             balance_from_eq_fixedu128(q_total_amount_fixed).ok_or(ArithmeticError::Overflow)?;
         let vesting_2_amount = q_total_amount.sub(vesting_1_amount).sub(q_instant_swap);
 
-        println!("vesting_2_amount = {:?}", vesting_2_amount);
-
         Ok((
-            eq_amount,
             *amount,
+            eq_amount,
             q_instant_swap,
             q_received_after,
             vesting_1_amount,
@@ -804,6 +745,7 @@ pub struct SwapConfiguration<Balance, BlockNumber> {
     pub min_amount: Balance,
     pub main_asset_q_price: Balance,
     pub main_asset_q_discounted_price: Balance,
+    pub secondary_asset: Asset,
     pub secondary_asset_q_price: Balance,
     pub secondary_asset_q_discounted_price: Balance,
     pub vesting_share: Percent,
@@ -827,6 +769,10 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
 
         if let Some(main_asset_q_discounted_price) = config.mb_main_asset_q_discounted_price {
             self.main_asset_q_discounted_price = main_asset_q_discounted_price;
+        }
+
+        if let Some(secondary_asset) = config.mb_secondary_asset {
+            self.secondary_asset = secondary_asset;
         }
 
         if let Some(secondary_asset_q_price) = config.mb_secondary_asset_q_price {
@@ -863,6 +809,7 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
                 && self.main_asset_q_discounted_price <= self.main_asset_q_price
                 && (self.secondary_asset_q_price.is_zero()
                     || !self.secondary_asset_q_discounted_price.is_zero()
+                        && !self.secondary_asset.get_id() > 0
                         && !self.secondary_asset_q_price.is_zero()
                         && self.secondary_asset_q_discounted_price <= self.secondary_asset_q_price
                         && !self.main_asset_q_price.is_zero())
@@ -875,6 +822,7 @@ pub struct SwapConfigurationInput<Balance, BlockNumber> {
     pub mb_min_amount: Option<Balance>,
     pub mb_main_asset_q_price: Option<Balance>,
     pub mb_main_asset_q_discounted_price: Option<Balance>,
+    pub mb_secondary_asset: Option<Asset>,
     pub mb_secondary_asset_q_price: Option<Balance>,
     pub mb_secondary_asset_q_discounted_price: Option<Balance>,
     pub mb_vesting_share: Option<Percent>,
