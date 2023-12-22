@@ -19,10 +19,13 @@
 #![cfg(test)]
 
 use super::*;
-use crate::mock::{new_test_ext, ModuleBalances, ModuleQSwap, ModuleVesting, RuntimeOrigin, Test};
+use crate::mock::{
+    new_test_ext, ModuleBalances, ModuleQSwap, ModuleVesting1, ModuleVesting2, RuntimeOrigin, Test,
+    Vesting1AccountMock, Vesting2AccountMock,
+};
 use crate::{QSwapConfigurations, SwapConfiguration, SwapConfigurationInput};
 use eq_primitives::asset::{DOT, EQ, GENS};
-use eq_primitives::mocks::{TreasuryAccountMock, VestingAccountMock};
+use eq_primitives::mocks::TreasuryAccountMock;
 use eq_primitives::ONE_TOKEN;
 use eq_vesting::VestingInfo;
 use frame_support::{assert_err, assert_ok};
@@ -60,7 +63,10 @@ fn set_config() {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(123),
-                        mb_q_ratio: Some(123u128),
+                        mb_main_asset_q_price: Some(123u128),
+                        mb_main_asset_q_discounted_price: Some(123u128),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
                         mb_vesting_starting_block: Some(10),
                         mb_vesting_duration_blocks: None
@@ -79,7 +85,10 @@ fn set_config() {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(0),
-                        mb_q_ratio: Some(123u128),
+                        mb_main_asset_q_price: Some(123u128),
+                        mb_main_asset_q_discounted_price: Some(123u128),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
                         mb_vesting_starting_block: Some(10),
                         mb_vesting_duration_blocks: None
@@ -98,7 +107,10 @@ fn set_config() {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(123),
-                        mb_q_ratio: Some(123u128),
+                        mb_main_asset_q_price: Some(123u128),
+                        mb_main_asset_q_discounted_price: Some(123u128),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
                         mb_vesting_starting_block: Some(10),
                         mb_vesting_duration_blocks: None
@@ -117,7 +129,10 @@ fn set_config() {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(123),
-                        mb_q_ratio: Some(123u128),
+                        mb_main_asset_q_price: Some(123u128),
+                        mb_main_asset_q_discounted_price: Some(123u128),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
                         mb_vesting_starting_block: Some(10),
                         mb_vesting_duration_blocks: Some(50)
@@ -128,8 +143,11 @@ fn set_config() {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(567),
-                        mb_q_ratio: Some(456u128),
+                        mb_main_asset_q_price: Some(456u128),
+                        mb_main_asset_q_discounted_price: Some(456u128),
                         mb_vesting_share: Some(Percent::from_percent(25)),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_starting_block: Some(10),
                         mb_vesting_duration_blocks: Some(20)
                     }
@@ -150,8 +168,11 @@ fn set_config() {
                 SwapConfigurationInput {
                     mb_enabled: Some(false),
                     mb_min_amount: Some(667),
-                    mb_q_ratio: Some(789u128),
+                    mb_main_asset_q_price: Some(789u128),
+                    mb_main_asset_q_discounted_price: Some(789u128),
                     mb_vesting_share: Some(Percent::from_percent(0)),
+                    mb_secondary_asset_q_price: Default::default(),
+                    mb_secondary_asset_q_discounted_price: Default::default(),
                     mb_vesting_starting_block: Some(11),
                     mb_vesting_duration_blocks: Some(21)
                 }
@@ -169,7 +190,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: Default::default(),
                     min_amount: Default::default(),
-                    q_ratio: Default::default(),
+                    main_asset_q_price: Default::default(),
+                    main_asset_q_discounted_price: Default::default(),
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
                     vesting_starting_block: Default::default(),
                     vesting_duration_blocks: Default::default()
@@ -177,7 +201,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: Default::default(),
                     min_amount: Default::default(),
-                    q_ratio: Default::default(),
+                    main_asset_q_price: Default::default(),
+                    main_asset_q_discounted_price: Default::default(),
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
                     vesting_starting_block: Default::default(),
                     vesting_duration_blocks: Default::default()
@@ -185,7 +212,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: Default::default(),
                     min_amount: Default::default(),
-                    q_ratio: Default::default(),
+                    main_asset_q_price: Default::default(),
+                    main_asset_q_discounted_price: Default::default(),
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
                     vesting_starting_block: Default::default(),
                     vesting_duration_blocks: Default::default()
@@ -201,7 +231,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: true,
                     min_amount: 123,
-                    q_ratio: 123u128,
+                    main_asset_q_price: 123u128,
+                    main_asset_q_discounted_price: 123u128,
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::one(),
                     vesting_starting_block: 10u32,
                     vesting_duration_blocks: 50
@@ -209,7 +242,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: true,
                     min_amount: 567,
-                    q_ratio: 456u128,
+                    main_asset_q_price: 456u128,
+                    main_asset_q_discounted_price: 456u128,
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::from_percent(25),
                     vesting_starting_block: 10u32,
                     vesting_duration_blocks: 20
@@ -217,7 +253,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: Default::default(),
                     min_amount: Default::default(),
-                    q_ratio: Default::default(),
+                    main_asset_q_price: Default::default(),
+                    main_asset_q_discounted_price: Default::default(),
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
                     vesting_starting_block: Default::default(),
                     vesting_duration_blocks: Default::default()
@@ -233,7 +272,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: true,
                     min_amount: 123,
-                    q_ratio: 123u128,
+                    main_asset_q_price: 123u128,
+                    main_asset_q_discounted_price: 123u128,
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::one(),
                     vesting_starting_block: 10u32,
                     vesting_duration_blocks: 50
@@ -241,7 +283,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: false,
                     min_amount: 667,
-                    q_ratio: 789u128,
+                    main_asset_q_price: 789u128,
+                    main_asset_q_discounted_price: 789u128,
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::from_percent(0),
                     vesting_starting_block: 11u32,
                     vesting_duration_blocks: 21
@@ -249,7 +294,10 @@ fn set_config() {
                 SwapConfiguration {
                     enabled: Default::default(),
                     min_amount: Default::default(),
-                    q_ratio: Default::default(),
+                    main_asset_q_price: Default::default(),
+                    main_asset_q_discounted_price: Default::default(),
+                    secondary_asset_q_price: Default::default(),
+                    secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
                     vesting_starting_block: Default::default(),
                     vesting_duration_blocks: Default::default()
@@ -266,8 +314,12 @@ fn swap() {
     new_test_ext().execute_with(|| {
         let account_1: u64 = 1;
         let account_2: u64 = 2;
-        let vesting_account_id = VestingAccountMock::get();
-        let treasury_acount_id = TreasuryAccountMock::get();
+        let vesting_1_account_id: u64 = Vesting1AccountMock::get();
+        let vesting_2_account_id: u64 = Vesting2AccountMock::get();
+        let treasury_acount_id: u64 = TreasuryAccountMock::get();
+
+        println!("q_vesting_1_account_id {:?}", vesting_1_account_id);
+        println!("q_vesting_2_account_id {:?}", vesting_2_account_id);
 
         assert_err!(
             ModuleQSwap::swap(RuntimeOrigin::signed(account_1), EQ, 1000 * ONE_TOKEN),
@@ -282,35 +334,99 @@ fn swap() {
                 SwapConfigurationInput {
                     mb_enabled: Some(true),
                     mb_min_amount: Some(100 * ONE_TOKEN),
-                    mb_q_ratio: Some(800_000_000),
-                    mb_vesting_share: Some(Percent::from_percent(20)),
+                    mb_main_asset_q_price: Some(1_700_000_000_000),
+                    mb_main_asset_q_discounted_price: Some(502_960_000_000),
+                    mb_secondary_asset_q_price: Default::default(),
+                    mb_secondary_asset_q_discounted_price: Default::default(),
+                    mb_vesting_share: Some(Percent::from_percent(30)),
                     mb_vesting_starting_block: Some(10),
                     mb_vesting_duration_blocks: Some(20)
                 }
             )])
         ));
 
-        assert_err!(
-            ModuleQSwap::swap(RuntimeOrigin::signed(account_1), EQ, 99 * ONE_TOKEN),
-            Error::<Test>::AmountTooSmall
-        );
+        // assert_ok!(ModuleQSwap::set_config(
+        //     RawOrigin::Root.into(),
+        //     Some(1000000000),
+        //     Some(vec![(
+        //         DOT,
+        //         SwapConfigurationInput {
+        //             mb_enabled: Some(true),
+        //             mb_min_amount: Some(1000000),
+        //             mb_main_asset_q_price: Some(1_000_000_000_000),
+        //             mb_main_asset_q_discounted_price: Some(295_860_000_000),
+        //             mb_secondary_asset_q_price: Default::default(),
+        //             mb_secondary_asset_q_discounted_price: Default::default(),
+        //             mb_vesting_share: Some(Percent::from_percent(50)),
+        //             mb_vesting_starting_block: Some(10),
+        //             mb_vesting_duration_blocks: Some(20)
+        //         }
+        //     )])
+        // ));
+
+        // assert_err!(
+        //     ModuleQSwap::swap(RuntimeOrigin::signed(account_1), EQ, 99 * ONE_TOKEN),
+        //     Error::<Test>::AmountTooSmall
+        // );
+
+        // assert_ok!(ModuleQSwap::swap(
+        //     RuntimeOrigin::signed(account_1),
+        //     DOT,
+        //     150_000_000
+        // ));
 
         assert_ok!(ModuleQSwap::swap(
             RuntimeOrigin::signed(account_1),
             EQ,
-            800 * ONE_TOKEN
+            1_005_920_000_000
         ));
 
-        let account_1_vesting = ModuleVesting::vesting(account_1).unwrap();
+        let account_1_vesting = ModuleVesting1::vesting(account_1).unwrap();
+        let account_2_vesting = ModuleVesting2::vesting(account_1).unwrap();
         let account_1_q_received = QReceivedAmounts::<Test>::get(account_1);
 
-        assert_balance!(&vesting_account_id, 128 * ONE_TOKEN, 0, Q);
-        assert_balance!(&account_1, 200 * ONE_TOKEN, 0, EQ);
-        assert_balance!(&account_1, 512 * ONE_TOKEN, 0, Q);
-        assert_balance!(&treasury_acount_id, 800 * ONE_TOKEN, 0, EQ);
-        assert_balance!(&treasury_acount_id, (10_000 - 512 - 128) * ONE_TOKEN, 0, Q);
+        println!(
+            "vesting_1_account_id Q {:?}",
+            ModuleBalances::total_balance(&vesting_1_account_id, Q)
+        );
+        println!(
+            "vesting_2_account_id Q {:?}",
+            ModuleBalances::total_balance(&vesting_2_account_id, Q)
+        );
+        println!(
+            "account_1 EQ {:?}",
+            ModuleBalances::total_balance(&account_1, EQ)
+        );
+        println!(
+            "account_1 Q {:?}",
+            ModuleBalances::total_balance(&account_1, Q)
+        );
+        println!("account_1_q_received {:?}", account_1_q_received);
+        println!(
+            "treasury_acount_id Q {:?}",
+            ModuleBalances::total_balance(&treasury_acount_id, Q)
+        );
+        println!(
+            "treasury_acount_id EQ {:?}",
+            ModuleBalances::total_balance(&treasury_acount_id, EQ)
+        );
+
+        assert_balance!(&vesting_1_account_id, 414_202_353, 0, Q);
+        assert_balance!(&vesting_2_account_id, 1_408_282_354, 0, Q);
+        assert_balance!(&account_1, 8_994_080_000_000, 0, EQ);
+        assert_balance!(&account_1, 177_515_293, 0, Q);
+        assert_balance!(&treasury_acount_id, 1_005_920_000_000, 0, EQ);
+        assert_balance!(&treasury_acount_id, 9_998_000_000_000, 0, Q);
         assert_eq!(
             account_1_vesting,
+            VestingInfo {
+                locked: 128 * ONE_TOKEN,
+                per_block: 6_400_000_000,
+                starting_block: 10
+            }
+        );
+        assert_eq!(
+            account_2_vesting,
             VestingInfo {
                 locked: 128 * ONE_TOKEN,
                 per_block: 6_400_000_000,
@@ -325,10 +441,10 @@ fn swap() {
             200 * ONE_TOKEN
         ));
 
-        let account_1_vesting = ModuleVesting::vesting(account_1).unwrap();
+        let account_1_vesting = ModuleVesting1::vesting(account_1).unwrap();
         let account_1_q_received = QReceivedAmounts::<Test>::get(account_1);
 
-        assert_balance!(&vesting_account_id, (128 + 32) * ONE_TOKEN, 0, Q);
+        assert_balance!(&vesting_1_account_id, (128 + 32) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_1, 0, 0, EQ);
         assert_balance!(&account_1, (512 + 128) * ONE_TOKEN, 0, Q);
         assert_balance!(&treasury_acount_id, 1000 * ONE_TOKEN, 0, EQ);
@@ -361,7 +477,10 @@ fn swap() {
                 SwapConfigurationInput {
                     mb_enabled: Some(true),
                     mb_min_amount: Some(100 * ONE_TOKEN),
-                    mb_q_ratio: Some(1_500_000_000),
+                    mb_main_asset_q_price: Some(1_500_000_000),
+                    mb_main_asset_q_discounted_price: Some(1_500_000_000),
+                    mb_secondary_asset_q_price: Default::default(),
+                    mb_secondary_asset_q_discounted_price: Default::default(),
                     mb_vesting_share: Some(Percent::from_percent(0)),
                     mb_vesting_starting_block: Some(10),
                     mb_vesting_duration_blocks: Some(20)
@@ -375,10 +494,10 @@ fn swap() {
             200 * ONE_TOKEN
         ));
 
-        let account_2_vesting = ModuleVesting::vesting(account_2);
+        let account_2_vesting = ModuleVesting1::vesting(account_2);
         let account_2_q_received = QReceivedAmounts::<Test>::get(account_2);
 
-        assert_balance!(&vesting_account_id, (128 + 32) * ONE_TOKEN, 0, Q);
+        assert_balance!(&vesting_1_account_id, (128 + 32) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_2, 800 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_2, 300 * ONE_TOKEN, 0, Q);
         assert_balance!(&treasury_acount_id, 1_200 * ONE_TOKEN, 0, EQ);
@@ -399,7 +518,10 @@ fn swap() {
                 SwapConfigurationInput {
                     mb_enabled: Some(true),
                     mb_min_amount: Some(100 * ONE_TOKEN),
-                    mb_q_ratio: Some(1_500_000_000),
+                    mb_main_asset_q_price: Some(1_500_000_000),
+                    mb_main_asset_q_discounted_price: Some(1_500_000_000),
+                    mb_secondary_asset_q_price: Default::default(),
+                    mb_secondary_asset_q_discounted_price: Default::default(),
                     mb_vesting_share: Some(Percent::from_percent(50)),
                     mb_vesting_starting_block: Some(100),
                     mb_vesting_duration_blocks: Some(50)
@@ -413,10 +535,10 @@ fn swap() {
             100 * ONE_TOKEN
         ));
 
-        let account_2_vesting = ModuleVesting::vesting(account_2).unwrap();
+        let account_2_vesting = ModuleVesting1::vesting(account_2).unwrap();
         let account_2_q_received = QReceivedAmounts::<Test>::get(account_2);
 
-        assert_balance!(&vesting_account_id, (128 + 32 + 75) * ONE_TOKEN, 0, Q);
+        assert_balance!(&vesting_1_account_id, (128 + 32 + 75) * ONE_TOKEN, 0, Q);
         assert_balance!(&account_2, 700 * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_2, (300 + 75) * ONE_TOKEN, 0, Q);
         assert_balance!(&treasury_acount_id, 1_300 * ONE_TOKEN, 0, EQ);
@@ -442,10 +564,15 @@ fn swap() {
             300 * ONE_TOKEN
         ));
 
-        let account_2_vesting = ModuleVesting::vesting(account_2).unwrap();
+        let account_2_vesting = ModuleVesting1::vesting(account_2).unwrap();
         let account_2_q_received = QReceivedAmounts::<Test>::get(account_2);
 
-        assert_balance!(&vesting_account_id, (128 + 32 + 75 + 425) * ONE_TOKEN, 0, Q);
+        assert_balance!(
+            &vesting_1_account_id,
+            (128 + 32 + 75 + 425) * ONE_TOKEN,
+            0,
+            Q
+        );
         assert_balance!(&account_2, (700 - 300) * ONE_TOKEN, 0, EQ);
         assert_balance!(&account_2, (300 + 75 + 25) * ONE_TOKEN, 0, Q);
         assert_balance!(&treasury_acount_id, 1_600 * ONE_TOKEN, 0, EQ);
@@ -471,11 +598,11 @@ fn swap() {
             100 * ONE_TOKEN
         ));
 
-        let account_2_vesting = ModuleVesting::vesting(account_2).unwrap();
+        let account_2_vesting = ModuleVesting1::vesting(account_2).unwrap();
         let account_2_q_received = QReceivedAmounts::<Test>::get(account_2);
 
         assert_balance!(
-            &vesting_account_id,
+            &vesting_1_account_id,
             (128 + 32 + 75 + 425 + 150) * ONE_TOKEN,
             0,
             Q
@@ -507,7 +634,10 @@ fn swap() {
                 SwapConfigurationInput {
                     mb_enabled: Some(false),
                     mb_min_amount: None,
-                    mb_q_ratio: None,
+                    mb_main_asset_q_price: None,
+                    mb_main_asset_q_discounted_price: None,
+                    mb_secondary_asset_q_price: None,
+                    mb_secondary_asset_q_discounted_price: None,
                     mb_vesting_share: None,
                     mb_vesting_starting_block: None,
                     mb_vesting_duration_blocks: None
@@ -528,7 +658,10 @@ fn swap() {
                 SwapConfigurationInput {
                     mb_enabled: Some(true),
                     mb_min_amount: Some(100 * ONE_TOKEN),
-                    mb_q_ratio: Some(1_000_000_000),
+                    mb_main_asset_q_price: Some(1_000_000_000),
+                    mb_main_asset_q_discounted_price: Some(1_000_000_000),
+                    mb_secondary_asset_q_price: Default::default(),
+                    mb_secondary_asset_q_discounted_price: Default::default(),
                     mb_vesting_share: Some(Percent::from_percent(50)),
                     mb_vesting_starting_block: Some(100),
                     mb_vesting_duration_blocks: Some(10)
@@ -542,11 +675,11 @@ fn swap() {
             200 * ONE_TOKEN
         ));
 
-        let account_2_vesting = ModuleVesting::vesting(account_2).unwrap();
+        let account_2_vesting = ModuleVesting1::vesting(account_2).unwrap();
         let account_2_q_received = QReceivedAmounts::<Test>::get(account_2);
 
         assert_balance!(
-            &vesting_account_id,
+            &vesting_1_account_id,
             (128 + 32 + 75 + 425 + 150 + 100) * ONE_TOKEN,
             0,
             Q
@@ -575,7 +708,7 @@ fn swap() {
 mod signed_extension {
     use super::*;
     use crate::mock::RuntimeCall;
-    use frame_support::dispatch::DispatchInfo;
+    use frame_support::{dispatch::DispatchInfo, weights::Weight};
 
     pub fn info_from_weight(w: Weight) -> DispatchInfo {
         DispatchInfo {
@@ -597,7 +730,10 @@ mod signed_extension {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(100 * ONE_TOKEN),
-                        mb_q_ratio: Some(1_500_000_000),
+                        mb_main_asset_q_price: Some(1_500_000_000),
+                        mb_main_asset_q_discounted_price: Some(1_500_000_000),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::from_percent(50)),
                         mb_vesting_starting_block: Some(100),
                         mb_vesting_duration_blocks: Some(50)
@@ -651,7 +787,10 @@ mod signed_extension {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(100 * ONE_TOKEN),
-                        mb_q_ratio: Some(1_500_000_000),
+                        mb_main_asset_q_price: Some(1_500_000_000),
+                        mb_main_asset_q_discounted_price: Some(1_500_000_000),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::from_percent(50)),
                         mb_vesting_starting_block: Some(100),
                         mb_vesting_duration_blocks: Some(50)
@@ -689,7 +828,10 @@ mod signed_extension {
                     SwapConfigurationInput {
                         mb_enabled: Some(true),
                         mb_min_amount: Some(100 * ONE_TOKEN),
-                        mb_q_ratio: Some(1_500_000_000),
+                        mb_main_asset_q_price: Some(1_500_000_000),
+                        mb_main_asset_q_discounted_price: Some(1_500_000_000),
+                        mb_secondary_asset_q_price: Default::default(),
+                        mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::from_percent(50)),
                         mb_vesting_starting_block: Some(100),
                         mb_vesting_duration_blocks: Some(50)

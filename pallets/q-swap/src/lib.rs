@@ -30,23 +30,23 @@ pub mod weights;
 
 use codec::{Decode, Encode};
 use core::ops::{Div, Sub};
-use eq_primitives::asset::{Asset, Q};
+use eq_primitives::asset::{Asset, EQ, Q};
 use eq_primitives::balance::{BalanceGetter, EqCurrency};
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::vestings::EqVestingSchedule;
 use eq_primitives::{SignedBalance, Vesting};
-use eq_utils::eq_ensure;
+use eq_utils::{balance_from_eq_fixedu128, eq_ensure, eq_fixedu128_from_balance};
 use frame_support::pallet_prelude::DispatchResult;
 use frame_support::traits::{ExistenceRequirement, Get, IsSubType};
 use frame_support::transactional;
 use scale_info::TypeInfo;
 use sp_runtime::traits::{
-    AtLeast32BitUnsigned, CheckedAdd, DispatchInfoOf, Saturating, SignedExtension, Zero,
+    AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, DispatchInfoOf, SignedExtension, Zero,
 };
 use sp_runtime::transaction_validity::{
     InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
 };
-use sp_runtime::{ArithmeticError, FixedPointNumber, FixedPointOperand, Percent};
+use sp_runtime::{ArithmeticError, FixedPointOperand, Percent};
 use sp_std::convert::{TryFrom, TryInto};
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
@@ -82,14 +82,19 @@ pub mod pallet {
             + Into<eq_primitives::balance::Balance>;
         /// Origin for setting configuration
         type SetQSwapConfigurationOrigin: EnsureOrigin<Self::RuntimeOrigin>;
-        // Used for managing vestings
-        type Vesting: Vesting<Self::AccountId>
+        // Used for managing vestings #1
+        type Vesting1: Vesting<Self::AccountId> // eq + dot, gens
+            + EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
+        // Used for managing vestings #2
+        type Vesting2: Vesting<Self::AccountId> // eq + dot, gens
             + EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
         /// Used for managing balances and currencies
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>
             + BalanceGetter<Self::AccountId, Self::Balance>;
-        /// Returns vesting account
-        type VestingAccountId: Get<Self::AccountId>;
+        /// Returns vesting #1 account
+        type Vesting1AccountId: Get<Self::AccountId>;
+        /// Returns vesting #2 account
+        type Vesting2AccountId: Get<Self::AccountId>;
         /// Returns Q holder account
         type QHolderAccountId: Get<Self::AccountId>;
         /// Returns Asset holder account
@@ -122,11 +127,20 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Transfer event. Included values are:
         /// - from `AccountId`
-        /// - requested amount
+        /// - requested amount (asset #1)
+        /// - requested amount (asset #2)
         /// - Q received amount
-        /// - Q vested amount
-        /// \[from, amount_1, amount_2, amount_3\]
-        QSwap(T::AccountId, T::Balance, T::Balance, T::Balance),
+        /// - Q vested amount #1
+        /// - Q vested amount #2
+        /// \[from, amount_1, amount_2, amount_3, amount_4, amount_5\]
+        QSwap(
+            T::AccountId,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+        ),
     }
 
     #[pallet::error]
@@ -273,98 +287,397 @@ impl<T: Config> Pallet<T> {
         max_q_amount: &T::Balance,
         configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
     ) -> DispatchResult {
-        let balance = T::EqCurrency::get_balance(who, asset);
-        Self::ensure_enough_balance(&balance, amount)?;
-
-        let q_total_amount = EqFixedU128::from_inner(configuration.q_ratio)
-            .checked_mul_int(*amount)
-            .ok_or(ArithmeticError::Overflow)?;
+        let (
+            asset_1_amount,
+            asset_2_amount,
+            q_instant_swap,
+            q_received_after,
+            vesting_1_amount,
+            vesting_2_amount,
+        ) = if !configuration.secondary_asset_q_price.is_zero() {
+            Self::get_multi_asset_swap_data(
+                who,
+                &asset.clone(),
+                amount,
+                max_q_amount,
+                configuration,
+            )?
+        } else {
+            Self::get_single_asset_swap_data(who, asset, amount, max_q_amount, configuration)?
+        };
 
         let q_holder_account_id = T::QHolderAccountId::get();
         let asset_holder_account_id = T::AssetHolderAccountId::get();
+        let q_vesting_1_account_id = T::Vesting1AccountId::get();
+        let q_vesting_2_account_id = T::Vesting2AccountId::get();
 
-        let vesting_amount = (!configuration.vesting_share.is_zero())
-            .then(|| configuration.vesting_share.mul_floor(q_total_amount))
-            .unwrap_or(T::Balance::zero());
-
-        let q_amount = q_total_amount.sub(vesting_amount);
-
-        let q_received = QReceivedAmounts::<T>::get(who);
-        let q_received_after = q_received
-            .checked_add(&q_amount)
-            .ok_or(ArithmeticError::Underflow)?;
-
-        let (vesting_amount, q_amount, q_received_after) = if q_received_after.le(&max_q_amount) {
-            (vesting_amount, q_amount, q_received_after)
-        } else {
-            let q_surplus = q_received_after.sub(*max_q_amount);
-            let q_received_after = *max_q_amount;
-            let vesting_amount = vesting_amount.saturating_add(q_surplus);
-            let q_amount = q_amount.saturating_sub(q_surplus);
-
-            (vesting_amount, q_amount, q_received_after)
-        };
-
-        T::EqCurrency::currency_transfer(
-            who,
-            &asset_holder_account_id,
-            *asset,
-            *amount,
-            ExistenceRequirement::AllowDeath,
-            eq_primitives::TransferReason::QSwap,
-            true,
-        )?;
-
-        if !vesting_amount.is_zero() {
+        if !q_instant_swap.is_zero() {
             T::EqCurrency::currency_transfer(
                 &q_holder_account_id,
-                &T::VestingAccountId::get(),
+                who,
                 Q,
-                vesting_amount,
+                q_instant_swap,
+                ExistenceRequirement::AllowDeath,
+                eq_primitives::TransferReason::QSwap,
+                true,
+            )?;
+        }
+
+        if !asset_1_amount.is_zero() {
+            T::EqCurrency::currency_transfer(
+                who,
+                &asset_holder_account_id,
+                *asset,
+                asset_1_amount,
+                ExistenceRequirement::AllowDeath,
+                eq_primitives::TransferReason::QSwap,
+                true,
+            )?;
+        }
+
+        if !asset_2_amount.is_zero() {
+            T::EqCurrency::currency_transfer(
+                who,
+                &asset_holder_account_id,
+                *asset,
+                asset_2_amount,
+                ExistenceRequirement::AllowDeath,
+                eq_primitives::TransferReason::QSwap,
+                true,
+            )?;
+        }
+
+        if !vesting_1_amount.is_zero() {
+            T::EqCurrency::currency_transfer(
+                &q_holder_account_id,
+                &q_vesting_1_account_id,
+                Q,
+                vesting_1_amount,
                 ExistenceRequirement::AllowDeath,
                 eq_primitives::TransferReason::QSwap,
                 true,
             )?;
 
-            if T::Vesting::has_vesting_schedule(who.clone()) {
-                T::Vesting::update_vesting_schedule(
+            if T::Vesting1::has_vesting_schedule(who.clone()) {
+                T::Vesting1::update_vesting_schedule(
                     who,
-                    vesting_amount,
+                    vesting_1_amount,
                     configuration.vesting_duration_blocks,
                 )?;
             } else {
                 let per_block = configuration
                     .vesting_duration_blocks
-                    .lt(&vesting_amount)
-                    .then(|| vesting_amount.div(configuration.vesting_duration_blocks))
-                    .unwrap_or(vesting_amount.div(vesting_amount));
+                    .lt(&vesting_1_amount)
+                    .then(|| vesting_1_amount.div(configuration.vesting_duration_blocks))
+                    .unwrap_or(vesting_1_amount.div(vesting_1_amount));
 
-                T::Vesting::add_vesting_schedule(
+                T::Vesting1::add_vesting_schedule(
                     who,
-                    vesting_amount,
+                    vesting_1_amount,
                     per_block,
                     configuration.vesting_starting_block,
                 )?;
             }
         }
 
-        if !q_amount.is_zero() {
+        if !vesting_2_amount.is_zero() {
             T::EqCurrency::currency_transfer(
                 &q_holder_account_id,
-                who,
+                &q_vesting_2_account_id,
                 Q,
-                q_amount,
+                vesting_2_amount,
                 ExistenceRequirement::AllowDeath,
                 eq_primitives::TransferReason::QSwap,
                 true,
             )?;
+
+            if T::Vesting2::has_vesting_schedule(who.clone()) {
+                T::Vesting2::update_vesting_schedule(
+                    who,
+                    vesting_2_amount,
+                    configuration.vesting_duration_blocks,
+                )?;
+            } else {
+                let per_block = configuration
+                    .vesting_duration_blocks
+                    .lt(&vesting_2_amount)
+                    .then(|| vesting_2_amount.div(configuration.vesting_duration_blocks))
+                    .unwrap_or(vesting_2_amount.div(vesting_2_amount));
+
+                T::Vesting2::add_vesting_schedule(
+                    who,
+                    vesting_2_amount,
+                    per_block,
+                    configuration.vesting_starting_block,
+                )?;
+            }
         }
 
         QReceivedAmounts::<T>::insert(who, q_received_after);
 
-        Self::deposit_event(Event::QSwap(who.clone(), *amount, q_amount, vesting_amount));
+        Self::deposit_event(Event::QSwap(
+            who.clone(),
+            asset_1_amount,
+            asset_2_amount,
+            q_instant_swap,
+            vesting_1_amount,
+            vesting_2_amount,
+        ));
 
         Ok(())
+    }
+
+    fn get_single_asset_swap_data(
+        who: &T::AccountId,
+        asset: &Asset,
+        amount: &T::Balance,
+        max_q_amount: &T::Balance,
+        configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
+    ) -> Result<
+        (
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+        ),
+        sp_runtime::DispatchError,
+    > {
+        let balance = T::EqCurrency::get_balance(who, asset);
+        Self::ensure_enough_balance(&balance, amount)?;
+
+        // EQ to Q, GENS to Q, etc.
+        // Example #1: 1Q = 1700EQ (502.96 discounted EQ), vesting_share = 0.5
+        //   swap(1005.92EQ)
+        //     vesting #1:
+        //       coeff = 502.96EQ / 1700EQ ~ 0.3
+        //       q_total_amount = 1005.92EQ / 502.96EQ = 2Q
+        //       q_instant_swap_amount = q_total_amount * coeff * vesting_share = 0.3Q
+        //       q_vesting_amount = q_total_amount * coeff - q_instant_swap_amount = 0.3Q
+        //     vesting #2:
+        //       q_vesting_amount = q_total_amount * (1 - coeff) = 1.4Q
+
+        println!(
+            "main_asset_q_discounted_price = {:?}",
+            configuration.main_asset_q_discounted_price
+        );
+        println!(
+            "main_asset_q_price = {:?}",
+            configuration.main_asset_q_price
+        );
+
+        let main_asset_q_price_fixed = eq_fixedu128_from_balance(configuration.main_asset_q_price);
+        let main_asset_q_discounted_price_fixed =
+            eq_fixedu128_from_balance(configuration.main_asset_q_discounted_price);
+        let amount_fixed = eq_fixedu128_from_balance(*amount);
+
+        let vesting_1_coeff_fixed = main_asset_q_discounted_price_fixed
+            .checked_div(&main_asset_q_price_fixed)
+            .ok_or(ArithmeticError::DivisionByZero)?;
+
+        println!("vesting_1_coeff = {:?}", vesting_1_coeff_fixed);
+
+        let q_total_amount_fixed = amount_fixed
+            .checked_div(&main_asset_q_discounted_price_fixed)
+            .ok_or(ArithmeticError::DivisionByZero)?;
+
+        println!("q_total_amount = {:?}", q_total_amount_fixed);
+
+        let vesting_1_amount_fixed = q_total_amount_fixed
+            .checked_mul(&vesting_1_coeff_fixed)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        println!("vesting_1_amount = {:?}", vesting_1_amount_fixed);
+
+        let vesting_1_amount =
+            balance_from_eq_fixedu128(vesting_1_amount_fixed).ok_or(ArithmeticError::Overflow)?;
+        let q_instant_swap = configuration.vesting_share.mul_floor(vesting_1_amount);
+
+        println!("q_instant_swap = {:?}", q_instant_swap);
+
+        let q_received = QReceivedAmounts::<T>::get(who);
+        let q_received_after = q_received
+            .checked_add(&q_instant_swap)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        println!("q_received_after = {:?}", q_received_after);
+
+        let (q_instant_swap, q_received_after) = if q_received_after.le(&max_q_amount) {
+            (q_instant_swap, q_received_after)
+        } else {
+            let q_surplus = q_received_after.sub(*max_q_amount);
+            let q_received_after = *max_q_amount;
+            let q_instant_swap = q_instant_swap.sub(q_surplus);
+
+            (q_instant_swap, q_received_after)
+        };
+
+        let vesting_1_amount = vesting_1_amount.sub(q_instant_swap);
+
+        println!("vesting_1_amount = {:?}", vesting_1_amount);
+
+        let q_total_amount: T::Balance =
+            balance_from_eq_fixedu128(q_total_amount_fixed).ok_or(ArithmeticError::Overflow)?;
+        let vesting_2_amount = q_total_amount.sub(vesting_1_amount).sub(q_instant_swap);
+
+        println!("vesting_2_amount = {:?}", vesting_2_amount);
+
+        Ok((
+            *amount,
+            T::Balance::zero(),
+            q_instant_swap,
+            q_received_after,
+            vesting_1_amount,
+            vesting_2_amount,
+        ))
+    }
+
+    fn get_multi_asset_swap_data(
+        who: &T::AccountId,
+        asset: &Asset,
+        amount: &T::Balance,
+        max_q_amount: &T::Balance,
+        configuration: &SwapConfiguration<T::Balance, T::BlockNumber>,
+    ) -> Result<
+        (
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+            T::Balance,
+        ),
+        sp_runtime::DispatchError,
+    > {
+        let balance = T::EqCurrency::get_balance(who, asset);
+        Self::ensure_enough_balance(&balance, amount)?;
+
+        // Example #2: 1Q = 1000EQ (295.86 discounted EQ) + 0.1DOT, vesting_share = 0.5
+        //   swap(0.15DOT)
+        //     vesting #1:
+        //       one_q = 295.86EQ / 0.1DOT * 0.1DOT + 295.86EQ = 591.72EQ
+        //       coeff = one_q / 1000EQ ~ 0.6
+        //       eq_amount = (0.15DOT / 0.1DOT) * 295.86EQ = 443.79EQ
+        //       dot_amount = 0.15DOT
+        //       q_total_amount = (eq_amount + dot_amount * (295.86EQ / 0.1DOT)) / one_q = 1.5Q
+        //       q_instant_swap = q_total_amount * coeff * vesting_share = 0.45Q
+        //       q_vesting_amount = q_total_amount * coeff - q_instant_swap = 0.45Q
+        //     vesting #2:
+        //       q_vesting_amount = q_total_amount * (1 - coeff) = 0.6Q
+
+        println!(
+            "main_asset_q_discounted_price = {:?}",
+            configuration.main_asset_q_discounted_price
+        );
+        println!(
+            "main_asset_q_price = {:?}",
+            configuration.main_asset_q_price
+        );
+        println!(
+            "secondary_asset_q_discounted_price = {:?}",
+            configuration.secondary_asset_q_discounted_price
+        );
+        println!(
+            "secondary_asset_q_price = {:?}",
+            configuration.secondary_asset_q_price
+        );
+
+        let main_asset_q_price_fixed = eq_fixedu128_from_balance(configuration.main_asset_q_price);
+        let secondary_asset_q_price_fixed =
+            eq_fixedu128_from_balance(configuration.secondary_asset_q_price);
+        let secondary_asset_q_discounted_price_fixed =
+            eq_fixedu128_from_balance(configuration.main_asset_q_discounted_price);
+        let amount_fixed = eq_fixedu128_from_balance(*amount);
+
+        let one_q_fixed = secondary_asset_q_discounted_price_fixed
+            .checked_mul(&EqFixedU128::from(2u128))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let vesting_1_coeff_fixed = one_q_fixed
+            .checked_div(&secondary_asset_q_price_fixed)
+            .ok_or(ArithmeticError::DivisionByZero)?;
+
+        println!("vesting_1_coeff = {:?}", vesting_1_coeff_fixed);
+
+        let eq_amount_fixed = amount_fixed
+            .checked_div(&main_asset_q_price_fixed)
+            .ok_or(ArithmeticError::DivisionByZero)?
+            .checked_mul(&secondary_asset_q_discounted_price_fixed)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let eq_amount: T::Balance =
+            balance_from_eq_fixedu128(eq_amount_fixed).ok_or(ArithmeticError::Overflow)?;
+
+        let balance = T::EqCurrency::get_balance(who, &EQ);
+        Self::ensure_enough_balance(&balance, &eq_amount)?;
+
+        println!("eq_amount = {:?}", eq_amount_fixed);
+        println!("dot_amount = {:?}", amount);
+
+        let eq_to_dot_amount_fixed = amount_fixed
+            .checked_mul(&secondary_asset_q_discounted_price_fixed)
+            .ok_or(ArithmeticError::Overflow)?
+            .checked_div(&main_asset_q_price_fixed)
+            .ok_or(ArithmeticError::DivisionByZero)?;
+
+        println!("eq_to_dot_amount_fixed = {:?}", eq_to_dot_amount_fixed);
+
+        let q_total_amount_fixed = (eq_amount_fixed
+            .checked_add(&eq_to_dot_amount_fixed)
+            .ok_or(ArithmeticError::Overflow)?)
+        .checked_div(&one_q_fixed)
+        .ok_or(ArithmeticError::DivisionByZero)?;
+
+        println!("q_total_amount = {:?}", q_total_amount_fixed);
+
+        let vesting_1_amount_fixed = q_total_amount_fixed
+            .checked_mul(&vesting_1_coeff_fixed)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        println!("vesting_1_amount = {:?}", vesting_1_amount_fixed);
+
+        let vesting_1_amount =
+            balance_from_eq_fixedu128(vesting_1_amount_fixed).ok_or(ArithmeticError::Overflow)?;
+        let q_instant_swap = configuration.vesting_share.mul_floor(vesting_1_amount);
+
+        println!("q_instant_swap = {:?}", q_instant_swap);
+
+        let q_received = QReceivedAmounts::<T>::get(who);
+        let q_received_after = q_received
+            .checked_add(&q_instant_swap)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        println!("q_received_after = {:?}", q_received_after);
+
+        let (q_instant_swap, q_received_after) = if q_received_after.le(&max_q_amount) {
+            (q_instant_swap, q_received_after)
+        } else {
+            let q_surplus = q_received_after.sub(*max_q_amount);
+            let q_received_after = *max_q_amount;
+            let q_instant_swap = q_instant_swap.sub(q_surplus);
+
+            (q_instant_swap, q_received_after)
+        };
+
+        let vesting_1_amount = vesting_1_amount.sub(q_instant_swap);
+
+        println!("vesting_1_amount = {:?}", vesting_1_amount);
+
+        let q_total_amount: T::Balance =
+            balance_from_eq_fixedu128(q_total_amount_fixed).ok_or(ArithmeticError::Overflow)?;
+        let vesting_2_amount = q_total_amount.sub(vesting_1_amount).sub(q_instant_swap);
+
+        println!("vesting_2_amount = {:?}", vesting_2_amount);
+
+        Ok((
+            eq_amount,
+            *amount,
+            q_instant_swap,
+            q_received_after,
+            vesting_1_amount,
+            vesting_2_amount,
+        ))
     }
 }
 
@@ -489,7 +802,10 @@ impl From<ValidityError> for u8 {
 pub struct SwapConfiguration<Balance, BlockNumber> {
     pub enabled: bool,
     pub min_amount: Balance,
-    pub q_ratio: u128,
+    pub main_asset_q_price: Balance,
+    pub main_asset_q_discounted_price: Balance,
+    pub secondary_asset_q_price: Balance,
+    pub secondary_asset_q_discounted_price: Balance,
     pub vesting_share: Percent,
     pub vesting_starting_block: BlockNumber,
     pub vesting_duration_blocks: Balance,
@@ -505,8 +821,22 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
             self.min_amount = min_amount;
         }
 
-        if let Some(q_ratio) = config.mb_q_ratio {
-            self.q_ratio = q_ratio;
+        if let Some(main_asset_q_price) = config.mb_main_asset_q_price {
+            self.main_asset_q_price = main_asset_q_price;
+        }
+
+        if let Some(main_asset_q_discounted_price) = config.mb_main_asset_q_discounted_price {
+            self.main_asset_q_discounted_price = main_asset_q_discounted_price;
+        }
+
+        if let Some(secondary_asset_q_price) = config.mb_secondary_asset_q_price {
+            self.secondary_asset_q_price = secondary_asset_q_price;
+        }
+
+        if let Some(secondary_asset_q_discounted_price) =
+            config.mb_secondary_asset_q_discounted_price
+        {
+            self.secondary_asset_q_discounted_price = secondary_asset_q_discounted_price;
         }
 
         if let Some(vesting_share) = config.mb_vesting_share {
@@ -525,9 +855,17 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
     fn is_valid(&self) -> bool {
         !self.enabled
             || self.min_amount.gt(&Balance::zero())
-                && !self.q_ratio.is_zero()
+                && !self.main_asset_q_price.is_zero()
+                && !self.main_asset_q_discounted_price.is_zero()
+                && !self.vesting_share.is_zero()
                 && !self.vesting_starting_block.is_zero()
                 && !self.vesting_duration_blocks.is_zero()
+                && self.main_asset_q_discounted_price <= self.main_asset_q_price
+                && (self.secondary_asset_q_price.is_zero()
+                    || !self.secondary_asset_q_discounted_price.is_zero()
+                        && !self.secondary_asset_q_price.is_zero()
+                        && self.secondary_asset_q_discounted_price <= self.secondary_asset_q_price
+                        && !self.main_asset_q_price.is_zero())
     }
 }
 
@@ -535,7 +873,10 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
 pub struct SwapConfigurationInput<Balance, BlockNumber> {
     pub mb_enabled: Option<bool>,
     pub mb_min_amount: Option<Balance>,
-    pub mb_q_ratio: Option<u128>,
+    pub mb_main_asset_q_price: Option<Balance>,
+    pub mb_main_asset_q_discounted_price: Option<Balance>,
+    pub mb_secondary_asset_q_price: Option<Balance>,
+    pub mb_secondary_asset_q_discounted_price: Option<Balance>,
     pub mb_vesting_share: Option<Percent>,
     pub mb_vesting_starting_block: Option<BlockNumber>,
     pub mb_vesting_duration_blocks: Option<Balance>,

@@ -93,7 +93,7 @@ mod http_client {
     ) -> Result<String, http::Error> {
         let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(5_000));
 
-        let url = request.url.clone();
+        let url = request.url;
         let pending = request.deadline(deadline).send().map_err(|e| {
             log::error!(
                 "{}:{}. Error sending request. Request: {:?}, deadline: {:?}.",
