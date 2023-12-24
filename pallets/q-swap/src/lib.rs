@@ -362,20 +362,20 @@ impl<T: Config> Pallet<T> {
                 T::Vesting1::update_vesting_schedule(
                     who,
                     vesting_1_amount,
-                    configuration.vesting_duration_blocks,
+                    configuration.first_vesting_duration_blocks,
                 )?;
             } else {
                 let per_block = configuration
-                    .vesting_duration_blocks
+                    .first_vesting_duration_blocks
                     .lt(&vesting_1_amount)
-                    .then(|| vesting_1_amount.div(configuration.vesting_duration_blocks))
+                    .then(|| vesting_1_amount.div(configuration.first_vesting_duration_blocks))
                     .unwrap_or(vesting_1_amount.div(vesting_1_amount));
 
                 T::Vesting1::add_vesting_schedule(
                     who,
                     vesting_1_amount,
                     per_block,
-                    configuration.vesting_starting_block,
+                    configuration.first_vesting_starting_block,
                 )?;
             }
         }
@@ -395,20 +395,20 @@ impl<T: Config> Pallet<T> {
                 T::Vesting2::update_vesting_schedule(
                     who,
                     vesting_2_amount,
-                    configuration.vesting_duration_blocks,
+                    configuration.second_vesting_duration_blocks,
                 )?;
             } else {
                 let per_block = configuration
-                    .vesting_duration_blocks
+                    .second_vesting_duration_blocks
                     .lt(&vesting_2_amount)
-                    .then(|| vesting_2_amount.div(configuration.vesting_duration_blocks))
+                    .then(|| vesting_2_amount.div(configuration.second_vesting_duration_blocks))
                     .unwrap_or(vesting_2_amount.div(vesting_2_amount));
 
                 T::Vesting2::add_vesting_schedule(
                     who,
                     vesting_2_amount,
                     per_block,
-                    configuration.vesting_starting_block,
+                    configuration.second_vesting_starting_block,
                 )?;
             }
         }
@@ -456,7 +456,7 @@ impl<T: Config> Pallet<T> {
         //       q_instant_swap_amount = q_total_amount * coeff * vesting_share = 0.3Q
         //       q_vesting_amount = q_total_amount * coeff - q_instant_swap_amount = 0.3Q
         //     vesting #2:
-        //       q_vesting_amount = q_total_amount * (1 - coeff) = 1.4Q
+        //       q_vesting_amount = q_total_amount - q_instant_swap_amount - q_vesting_amount = 1.4Q
 
         let main_asset_q_price_fixed = eq_fixedu128_from_balance(configuration.main_asset_q_price);
         let main_asset_q_discounted_price_fixed =
@@ -534,14 +534,14 @@ impl<T: Config> Pallet<T> {
         //   swap(0.15DOT)
         //     vesting #1:
         //       one_q = 295.86EQ / 0.1DOT * 0.1DOT + 295.86EQ = 591.72EQ
-        //       coeff = one_q / 1000EQ ~ 0.6
+        //       coeff = 295.86EQ / 1000EQ ~ 0.3
         //       eq_amount = (0.15DOT / 0.1DOT) * 295.86EQ = 443.79EQ
         //       dot_amount = 0.15DOT
         //       q_total_amount = (eq_amount + dot_amount * (295.86EQ / 0.1DOT)) / one_q = 1.5Q
-        //       q_instant_swap = q_total_amount * coeff * vesting_share = 0.45Q
-        //       q_vesting_amount = q_total_amount * coeff - q_instant_swap = 0.45Q
+        //       q_instant_swap_amount = q_total_amount * coeff * vesting_share = 0.225Q
+        //       q_vesting_amount = q_total_amount * coeff - q_instant_swap = 0.225Q
         //     vesting #2:
-        //       q_vesting_amount = q_total_amount * (1 - coeff) = 0.6Q
+        //       q_vesting_amount = q_total_amount - q_instant_swap_amount - q_vesting_amount = 1Q
 
         let main_asset_q_price_fixed = eq_fixedu128_from_balance(configuration.main_asset_q_price);
         let secondary_asset_q_price_fixed =
@@ -554,7 +554,7 @@ impl<T: Config> Pallet<T> {
             .checked_mul(&EqFixedU128::from(2u128))
             .ok_or(ArithmeticError::Overflow)?;
 
-        let vesting_1_coeff_fixed = one_q_fixed
+        let vesting_1_coeff_fixed = secondary_asset_q_discounted_price_fixed
             .checked_div(&secondary_asset_q_price_fixed)
             .ok_or(ArithmeticError::DivisionByZero)?;
 
@@ -749,8 +749,10 @@ pub struct SwapConfiguration<Balance, BlockNumber> {
     pub secondary_asset_q_price: Balance,
     pub secondary_asset_q_discounted_price: Balance,
     pub vesting_share: Percent,
-    pub vesting_starting_block: BlockNumber,
-    pub vesting_duration_blocks: Balance,
+    pub first_vesting_starting_block: BlockNumber,
+    pub first_vesting_duration_blocks: Balance,
+    pub second_vesting_starting_block: BlockNumber,
+    pub second_vesting_duration_blocks: Balance,
 }
 
 impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, BlockNumber> {
@@ -789,12 +791,20 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
             self.vesting_share = vesting_share;
         }
 
-        if let Some(vesting_starting_block) = config.mb_vesting_starting_block {
-            self.vesting_starting_block = vesting_starting_block;
+        if let Some(first_vesting_starting_block) = config.mb_first_vesting_starting_block {
+            self.first_vesting_starting_block = first_vesting_starting_block;
         }
 
-        if let Some(vesting_duration_blocks) = config.mb_vesting_duration_blocks {
-            self.vesting_duration_blocks = vesting_duration_blocks;
+        if let Some(first_vesting_duration_blocks) = config.mb_first_vesting_duration_blocks {
+            self.first_vesting_duration_blocks = first_vesting_duration_blocks;
+        }
+
+        if let Some(second_vesting_starting_block) = config.mb_second_vesting_starting_block {
+            self.second_vesting_starting_block = second_vesting_starting_block;
+        }
+
+        if let Some(second_vesting_duration_blocks) = config.mb_second_vesting_duration_blocks {
+            self.second_vesting_duration_blocks = second_vesting_duration_blocks;
         }
     }
 
@@ -804,8 +814,12 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
                 && !self.main_asset_q_price.is_zero()
                 && !self.main_asset_q_discounted_price.is_zero()
                 && !self.vesting_share.is_zero()
-                && !self.vesting_starting_block.is_zero()
-                && !self.vesting_duration_blocks.is_zero()
+                && !self.first_vesting_starting_block.is_zero()
+                && !self.first_vesting_duration_blocks.is_zero()
+                && ((!self.second_vesting_starting_block.is_zero()
+                    || !self.second_vesting_duration_blocks.is_zero())
+                    && !self.second_vesting_starting_block.is_zero()
+                    && !self.second_vesting_duration_blocks.is_zero())
                 && self.main_asset_q_discounted_price <= self.main_asset_q_price
                 && (self.secondary_asset_q_price.is_zero()
                     || !self.secondary_asset_q_discounted_price.is_zero()
@@ -826,6 +840,8 @@ pub struct SwapConfigurationInput<Balance, BlockNumber> {
     pub mb_secondary_asset_q_price: Option<Balance>,
     pub mb_secondary_asset_q_discounted_price: Option<Balance>,
     pub mb_vesting_share: Option<Percent>,
-    pub mb_vesting_starting_block: Option<BlockNumber>,
-    pub mb_vesting_duration_blocks: Option<Balance>,
+    pub mb_first_vesting_starting_block: Option<BlockNumber>,
+    pub mb_first_vesting_duration_blocks: Option<Balance>,
+    pub mb_second_vesting_starting_block: Option<BlockNumber>,
+    pub mb_second_vesting_duration_blocks: Option<Balance>,
 }

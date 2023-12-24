@@ -2554,11 +2554,16 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             q_swap::SwapConfiguration {
                 enabled: true,
                 min_amount: 100 * ONE_TOKEN,
-                q_ratio: ONE_TOKEN / 100,
-                q_discounted_ratio: ,
+                main_asset_q_price: 1_700 * ONE_TOKEN,
+                main_asset_q_discounted_price: 502_960_000_000,
+                secondary_asset: Default::default(),
+                secondary_asset_q_price: Default::default(),
+                secondary_asset_q_discounted_price: Default::default(),
                 vesting_share: Percent::from_percent(90),
-                vesting_starting_block: 3300,
-                vesting_duration_blocks: 1000,
+                first_vesting_starting_block:,
+                first_vesting_duration_blocks:,
+                second_vesting_starting_block:,
+                second_vesting_duration_blocks:
             },
         );
 
@@ -2567,11 +2572,16 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             q_swap::SwapConfiguration {
                 enabled: true,
                 min_amount: 100 * ONE_TOKEN,
-                q_ratio: ONE_TOKEN / 100,
-                q_discounted_ratio: ,
+                main_asset_q_price: 4_000 * ONE_TOKEN,
+                main_asset_q_discounted_price: 4_000 * ONE_TOKEN,
+                secondary_asset: Default::default(),
+                secondary_asset_q_price: Default::default(),
+                secondary_asset_q_discounted_price: Default::default(),
                 vesting_share: Percent::from_percent(90),
-                vesting_starting_block: 3300,
-                vesting_duration_blocks: 1000,
+                first_vesting_starting_block:,
+                first_vesting_duration_blocks:,
+                second_vesting_starting_block:,
+                second_vesting_duration_blocks:
             },
         );
 
@@ -2580,11 +2590,16 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             q_swap::SwapConfiguration {
                 enabled: true,
                 min_amount: 400000,
-                q_ratio: 54_400_000_000,
-                q_discounted_ratio: ,
+                main_asset_q_price: 100_000_000,
+                main_asset_q_discounted_price: 100_000_000,
+                secondary_asset: EQ,
+                secondary_asset_q_price: 1000 * ONE_TOKEN,
+                secondary_asset_q_discounted_price: 295_860_000_000,
                 vesting_share: Percent::from_percent(90),
-                vesting_starting_block: 3300,
-                vesting_duration_blocks: 1000,
+                first_vesting_starting_block:,
+                first_vesting_duration_blocks:,
+                second_vesting_starting_block:,
+                second_vesting_duration_blocks:
             },
         );
 

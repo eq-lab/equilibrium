@@ -337,7 +337,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                 true,
                 Percent::one(),
                 Permill::one(),
-            ),(
+            ),
+            (
                 asset::Q.get_id(),
                 EqFixedU128::from(0),
                 FixedI64::from(0),
@@ -347,6 +348,20 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                 Permill::zero(),
                 u64::MAX,
                 AssetType::Native,
+                true,
+                Percent::one(),
+                Permill::one(),
+            ),
+            (
+                asset::GENS.get_id(),
+                EqFixedU128::from(0),
+                FixedI64::from(0),
+                Permill::zero(),
+                Permill::zero(),
+                vec![],
+                Permill::zero(),
+                u64::MAX,
+                AssetType::Physical,
                 true,
                 Percent::one(),
                 Permill::one(),
@@ -377,6 +392,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                 vec![
                     (10_000 * ONE_TOKEN as Balance, asset::EQ.get_id()),
                     (10_000 * ONE_TOKEN as Balance, asset::DOT.get_id()),
+                    (10_000 * ONE_TOKEN as Balance, asset::GENS.get_id()),
                 ],
             ),
             (
@@ -385,6 +401,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                     (10_000 * ONE_TOKEN as Balance, asset::EQ.get_id()),
                     (10_000 * ONE_TOKEN as Balance, asset::DOT.get_id()),
                 ],
+            ),
+            (
+                3,
+                vec![(10_000 * ONE_TOKEN as Balance, asset::GENS.get_id())],
             ),
             (
                 TreasuryAccountMock::get(),

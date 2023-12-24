@@ -69,8 +69,10 @@ fn set_config() {
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
-                        mb_vesting_starting_block: Some(10),
-                        mb_vesting_duration_blocks: None
+                        mb_first_vesting_starting_block: Some(10),
+                        mb_first_vesting_duration_blocks: None,
+                        mb_second_vesting_starting_block: Some(10),
+                        mb_second_vesting_duration_blocks: None,
                     }
                 )])
             ),
@@ -92,8 +94,10 @@ fn set_config() {
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
-                        mb_vesting_starting_block: Some(10),
-                        mb_vesting_duration_blocks: None
+                        mb_first_vesting_starting_block: Some(10),
+                        mb_first_vesting_duration_blocks: None,
+                        mb_second_vesting_starting_block: Some(10),
+                        mb_second_vesting_duration_blocks: None,
                     }
                 )])
             ),
@@ -115,8 +119,10 @@ fn set_config() {
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
-                        mb_vesting_starting_block: Some(10),
-                        mb_vesting_duration_blocks: None
+                        mb_first_vesting_starting_block: Some(10),
+                        mb_first_vesting_duration_blocks: None,
+                        mb_second_vesting_starting_block: Some(10),
+                        mb_second_vesting_duration_blocks: None,
                     }
                 )])
             ),
@@ -138,8 +144,10 @@ fn set_config() {
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::one()),
-                        mb_vesting_starting_block: Some(10),
-                        mb_vesting_duration_blocks: Some(50)
+                        mb_first_vesting_starting_block: Some(10),
+                        mb_first_vesting_duration_blocks: Some(50),
+                        mb_second_vesting_starting_block: Some(10),
+                        mb_second_vesting_duration_blocks: Some(50),
                     }
                 ),
                 (
@@ -153,8 +161,10 @@ fn set_config() {
                         mb_secondary_asset: Default::default(),
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
-                        mb_vesting_starting_block: Some(10),
-                        mb_vesting_duration_blocks: Some(20)
+                        mb_first_vesting_starting_block: Some(10),
+                        mb_first_vesting_duration_blocks: Some(20),
+                        mb_second_vesting_starting_block: Some(10),
+                        mb_second_vesting_duration_blocks: Some(20),
                     }
                 )
             ])
@@ -179,8 +189,10 @@ fn set_config() {
                     mb_secondary_asset: Default::default(),
                     mb_secondary_asset_q_price: Default::default(),
                     mb_secondary_asset_q_discounted_price: Default::default(),
-                    mb_vesting_starting_block: Some(11),
-                    mb_vesting_duration_blocks: Some(21)
+                    mb_first_vesting_starting_block: Some(11),
+                    mb_first_vesting_duration_blocks: Some(21),
+                    mb_second_vesting_starting_block: Some(11),
+                    mb_second_vesting_duration_blocks: Some(21),
                 }
             )])
         ));
@@ -202,8 +214,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
-                    vesting_starting_block: Default::default(),
-                    vesting_duration_blocks: Default::default()
+                    first_vesting_starting_block: Default::default(),
+                    first_vesting_duration_blocks: Default::default(),
+                    second_vesting_starting_block: Default::default(),
+                    second_vesting_duration_blocks: Default::default(),
                 },
                 SwapConfiguration {
                     enabled: Default::default(),
@@ -214,8 +228,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
-                    vesting_starting_block: Default::default(),
-                    vesting_duration_blocks: Default::default()
+                    first_vesting_starting_block: Default::default(),
+                    first_vesting_duration_blocks: Default::default(),
+                    second_vesting_starting_block: Default::default(),
+                    second_vesting_duration_blocks: Default::default(),
                 },
                 SwapConfiguration {
                     enabled: Default::default(),
@@ -226,8 +242,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
-                    vesting_starting_block: Default::default(),
-                    vesting_duration_blocks: Default::default()
+                    first_vesting_starting_block: Default::default(),
+                    first_vesting_duration_blocks: Default::default(),
+                    second_vesting_starting_block: Default::default(),
+                    second_vesting_duration_blocks: Default::default(),
                 }
             ]
         );
@@ -246,8 +264,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::one(),
-                    vesting_starting_block: 10u32,
-                    vesting_duration_blocks: 50
+                    first_vesting_starting_block: 10u32,
+                    first_vesting_duration_blocks: 50,
+                    second_vesting_starting_block: 10u32,
+                    second_vesting_duration_blocks: 50,
                 },
                 SwapConfiguration {
                     enabled: true,
@@ -258,8 +278,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::from_percent(25),
-                    vesting_starting_block: 10u32,
-                    vesting_duration_blocks: 20
+                    first_vesting_starting_block: 10u32,
+                    first_vesting_duration_blocks: 20,
+                    second_vesting_starting_block: 10u32,
+                    second_vesting_duration_blocks: 20,
                 },
                 SwapConfiguration {
                     enabled: Default::default(),
@@ -270,8 +292,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
-                    vesting_starting_block: Default::default(),
-                    vesting_duration_blocks: Default::default()
+                    first_vesting_starting_block: Default::default(),
+                    first_vesting_duration_blocks: Default::default(),
+                    second_vesting_starting_block: Default::default(),
+                    second_vesting_duration_blocks: Default::default(),
                 }
             ]
         );
@@ -290,8 +314,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::one(),
-                    vesting_starting_block: 10u32,
-                    vesting_duration_blocks: 50
+                    first_vesting_starting_block: 10u32,
+                    first_vesting_duration_blocks: 50,
+                    second_vesting_starting_block: 10u32,
+                    second_vesting_duration_blocks: 50,
                 },
                 SwapConfiguration {
                     enabled: false,
@@ -302,8 +328,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Percent::from_percent(0),
-                    vesting_starting_block: 11u32,
-                    vesting_duration_blocks: 21
+                    first_vesting_starting_block: 11u32,
+                    first_vesting_duration_blocks: 21,
+                    second_vesting_starting_block: 11u32,
+                    second_vesting_duration_blocks: 21,
                 },
                 SwapConfiguration {
                     enabled: Default::default(),
@@ -314,8 +342,10 @@ fn set_config() {
                     secondary_asset_q_price: Default::default(),
                     secondary_asset_q_discounted_price: Default::default(),
                     vesting_share: Default::default(),
-                    vesting_starting_block: Default::default(),
-                    vesting_duration_blocks: Default::default()
+                    first_vesting_starting_block: Default::default(),
+                    first_vesting_duration_blocks: Default::default(),
+                    second_vesting_starting_block: Default::default(),
+                    second_vesting_duration_blocks: Default::default(),
                 }
             ]
         );
@@ -329,6 +359,7 @@ fn swap() {
     new_test_ext().execute_with(|| {
         let account_1: u64 = 1;
         let account_2: u64 = 2;
+        let account_3: u64 = 3;
         let vesting_1_account_id: u64 = Vesting1AccountMock::get();
         let vesting_2_account_id: u64 = Vesting2AccountMock::get();
         let treasury_acount_id: u64 = TreasuryAccountMock::get();
@@ -352,8 +383,10 @@ fn swap() {
                     mb_secondary_asset_q_price: Default::default(),
                     mb_secondary_asset_q_discounted_price: Default::default(),
                     mb_vesting_share: Some(Percent::from_percent(30)),
-                    mb_vesting_starting_block: Some(10),
-                    mb_vesting_duration_blocks: Some(20)
+                    mb_first_vesting_starting_block: Some(10),
+                    mb_first_vesting_duration_blocks: Some(20),
+                    mb_second_vesting_starting_block: Some(10),
+                    mb_second_vesting_duration_blocks: Some(20),
                 }
             )])
         ));
@@ -407,8 +440,10 @@ fn swap() {
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::from_percent(30)),
-                        mb_vesting_starting_block: Some(10),
-                        mb_vesting_duration_blocks: Some(20)
+                        mb_first_vesting_starting_block: Some(10),
+                        mb_first_vesting_duration_blocks: Some(20),
+                        mb_second_vesting_starting_block: Some(10),
+                        mb_second_vesting_duration_blocks: Some(20),
                     }
                 ),
                 (
@@ -422,8 +457,10 @@ fn swap() {
                         mb_secondary_asset_q_price: Some(1000_000_000_000),
                         mb_secondary_asset_q_discounted_price: Some(295_860_000_000),
                         mb_vesting_share: Some(Percent::from_percent(50)),
-                        mb_vesting_starting_block: Some(10),
-                        mb_vesting_duration_blocks: Some(20)
+                        mb_first_vesting_starting_block: Some(10),
+                        mb_first_vesting_duration_blocks: Some(20),
+                        mb_second_vesting_starting_block: Some(10),
+                        mb_second_vesting_duration_blocks: Some(20),
                     }
                 )
             ])
@@ -449,31 +486,31 @@ fn swap() {
         let account_1_vesting_2 = ModuleVesting2::vesting(account_1).unwrap();
         let account_1_q_received = QReceivedAmounts::<Test>::get(account_1);
 
-        assert_balance!(&vesting_1_account_id, 857_992_353, 0, Q);
-        assert_balance!(&vesting_2_account_id, 2_020_702_354, 0, Q);
+        assert_balance!(&vesting_1_account_id, 636_097_353, 0, Q);
+        assert_balance!(&vesting_2_account_id, 2_464_492_354, 0, Q);
         assert_balance!(&account_1, 8_550_290_000_000, 0, EQ);
         assert_balance!(&account_1, 9_999_850_000_000, 0, DOT);
-        assert_balance!(&account_1, 621_305_293, 0, Q);
+        assert_balance!(&account_1, 399_410_293, 0, Q);
         assert_balance!(&treasury_acount_id, 1_449_710_000_000, 0, EQ);
         assert_balance!(&treasury_acount_id, 150_000_000, 0, DOT);
         assert_balance!(&treasury_acount_id, 9_996_500_000_000, 0, Q);
         assert_eq!(
             account_1_vesting_1,
             VestingInfo {
-                locked: 857_992_353,
-                per_block: 42_899_617,
+                locked: 636_097_353,
+                per_block: 31_804_867,
                 starting_block: 10
             }
         );
         assert_eq!(
             account_1_vesting_2,
             VestingInfo {
-                locked: 2_020_702_354,
-                per_block: 101_035_117,
+                locked: 2_464_492_354,
+                per_block: 123_224_617,
                 starting_block: 10
             }
         );
-        assert_eq!(account_1_q_received, 621_305_293);
+        assert_eq!(account_1_q_received, 399_410_293);
 
         assert_err!(
             ModuleQSwap::swap(RuntimeOrigin::signed(account_1), EQ, 0),
@@ -497,50 +534,170 @@ fn swap() {
         assert_balance!(&treasury_acount_id, 1_893_500_000_000, 0, EQ);
         assert_balance!(&treasury_acount_id, 300_000_000, 0, DOT);
         assert_balance!(&treasury_acount_id, 9_995_000_000_000, 0, Q);
-        assert_balance!(&vesting_1_account_id, 1_301_782_353, 0, Q);
-        assert_balance!(&vesting_2_account_id, 2_633_122_354, 0, Q);
+        assert_balance!(&vesting_1_account_id, 857_992_353, 0, Q);
+        assert_balance!(&vesting_2_account_id, 3_520_702_354, 0, Q);
 
         assert_balance!(&account_1, 8_550_290_000_000, 0, EQ);
         assert_balance!(&account_1, 9_999_850_000_000, 0, DOT);
-        assert_balance!(&account_1, 621_305_293, 0, Q);
+        assert_balance!(&account_1, 399_410_293, 0, Q);
         assert_eq!(
             account_1_vesting_1,
             VestingInfo {
-                locked: 857_992_353,
-                per_block: 42_899_617,
+                locked: 636_097_353,
+                per_block: 31_804_867,
                 starting_block: 10
             }
         );
         assert_eq!(
             account_1_vesting_2,
             VestingInfo {
-                locked: 2_020_702_354,
-                per_block: 101_035_117,
+                locked: 2_464_492_354,
+                per_block: 123_224_617,
                 starting_block: 10
             }
         );
-        assert_eq!(account_1_q_received, 621_305_293);
+        assert_eq!(account_1_q_received, 399_410_293);
 
         assert_balance!(&account_2, 9_556_210_000_000, 0, EQ);
         assert_balance!(&account_2, 9_999_850_000_000, 0, DOT);
-        assert_balance!(&account_2, 443_790_000, 0, Q);
+        assert_balance!(&account_2, 221_895_000, 0, Q);
         assert_eq!(
             account_2_vesting_1,
             VestingInfo {
-                locked: 443_790_000,
-                per_block: 22_189_500,
+                locked: 221_895_000,
+                per_block: 11_094_750,
                 starting_block: 10
             }
         );
         assert_eq!(
             account_2_vesting_2,
             VestingInfo {
-                locked: 612_420_000,
-                per_block: 30_621_000,
+                locked: 1_056_210_000,
+                per_block: 52_810_500,
                 starting_block: 10
             }
         );
-        assert_eq!(account_2_q_received, 443_790_000);
+        assert_eq!(account_2_q_received, 221_895_000);
+
+        assert_ok!(ModuleQSwap::set_config(
+            RawOrigin::Root.into(),
+            Some(1000000000),
+            Some(vec![(
+                GENS,
+                SwapConfigurationInput {
+                    mb_enabled: Some(true),
+                    mb_min_amount: Some(100 * ONE_TOKEN),
+                    mb_main_asset_q_price: Some(4_000_000_000_000),
+                    mb_main_asset_q_discounted_price: Some(4_000_000_000_000),
+                    mb_secondary_asset: Default::default(),
+                    mb_secondary_asset_q_price: Default::default(),
+                    mb_secondary_asset_q_discounted_price: Default::default(),
+                    mb_vesting_share: Some(Percent::from_percent(50)),
+                    mb_first_vesting_starting_block: Some(10),
+                    mb_first_vesting_duration_blocks: Some(20),
+                    mb_second_vesting_starting_block: Some(10),
+                    mb_second_vesting_duration_blocks: Some(20),
+                }
+            )])
+        ));
+
+        assert_ok!(ModuleQSwap::swap(
+            RuntimeOrigin::signed(account_1),
+            GENS,
+            1000 * ONE_TOKEN
+        ));
+
+        let account_1_vesting_1 = ModuleVesting1::vesting(account_1).unwrap();
+        let account_1_vesting_2 = ModuleVesting2::vesting(account_1).unwrap();
+        let account_1_q_received = QReceivedAmounts::<Test>::get(account_1);
+
+        assert_balance!(&treasury_acount_id, 1_893_500_000_000, 0, EQ);
+        assert_balance!(&treasury_acount_id, 300_000_000, 0, DOT);
+        assert_balance!(&treasury_acount_id, 1000_000_000_000, 0, GENS);
+        assert_balance!(&treasury_acount_id, 9_994_750_000_000, 0, Q);
+        assert_balance!(&vesting_1_account_id, 982_992_353, 0, Q);
+        assert_balance!(&vesting_2_account_id, 3_520_702_354, 0, Q);
+
+        assert_balance!(&account_1, 8_550_290_000_000, 0, EQ);
+        assert_balance!(&account_1, 9_999_850_000_000, 0, DOT);
+        assert_balance!(&account_1, 9_000_000_000_000, 0, GENS);
+        assert_balance!(&account_1, 524_410_293, 0, Q);
+        assert_eq!(
+            account_1_vesting_1,
+            VestingInfo {
+                locked: 761_097_353,
+                per_block: 38_054_867,
+                starting_block: 10
+            }
+        );
+        assert_eq!(
+            account_1_vesting_2,
+            VestingInfo {
+                locked: 2_464_492_354,
+                per_block: 123_224_617,
+                starting_block: 10
+            }
+        );
+        assert_eq!(account_1_q_received, 524_410_293);
+
+        assert_ok!(ModuleQSwap::set_config(
+            RawOrigin::Root.into(),
+            Some(1000000000),
+            Some(vec![(
+                GENS,
+                SwapConfigurationInput {
+                    mb_enabled: Some(true),
+                    mb_min_amount: Some(100 * ONE_TOKEN),
+                    mb_main_asset_q_price: Some(4_000_000_000_000),
+                    mb_main_asset_q_discounted_price: Some(2_000_000_000_000),
+                    mb_secondary_asset: Default::default(),
+                    mb_secondary_asset_q_price: Default::default(),
+                    mb_secondary_asset_q_discounted_price: Default::default(),
+                    mb_vesting_share: Some(Percent::from_percent(50)),
+                    mb_first_vesting_starting_block: Some(10),
+                    mb_first_vesting_duration_blocks: Some(20),
+                    mb_second_vesting_starting_block: Some(50),
+                    mb_second_vesting_duration_blocks: Some(100),
+                }
+            )])
+        ));
+
+        assert_ok!(ModuleQSwap::swap(
+            RuntimeOrigin::signed(account_3),
+            GENS,
+            1000 * ONE_TOKEN
+        ));
+
+        let account_3_vesting_1 = ModuleVesting1::vesting(account_3).unwrap();
+        let account_3_vesting_2 = ModuleVesting2::vesting(account_3).unwrap();
+        let account_3_q_received = QReceivedAmounts::<Test>::get(account_3);
+
+        assert_balance!(&treasury_acount_id, 1_893_500_000_000, 0, EQ);
+        assert_balance!(&treasury_acount_id, 300_000_000, 0, DOT);
+        assert_balance!(&treasury_acount_id, 2000_000_000_000, 0, GENS);
+        assert_balance!(&treasury_acount_id, 9_994_250_000_000, 0, Q);
+        assert_balance!(&vesting_1_account_id, 1_107_992_353, 0, Q);
+        assert_balance!(&vesting_2_account_id, 3_770_702_354, 0, Q);
+
+        assert_balance!(&account_3, 9_000_000_000_000, 0, GENS);
+        assert_balance!(&account_3, 125_000_000, 0, Q);
+        assert_eq!(
+            account_3_vesting_1,
+            VestingInfo {
+                locked: 125000000,
+                per_block: 6_250_000,
+                starting_block: 10
+            }
+        );
+        assert_eq!(
+            account_3_vesting_2,
+            VestingInfo {
+                locked: 250_000_000,
+                per_block: 2_500_000,
+                starting_block: 50
+            }
+        );
+        assert_eq!(account_3_q_received, 125_000_000);
     });
 }
 
@@ -575,8 +732,10 @@ mod signed_extension {
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::from_percent(50)),
-                        mb_vesting_starting_block: Some(100),
-                        mb_vesting_duration_blocks: Some(50)
+                        mb_first_vesting_starting_block: Some(100),
+                        mb_first_vesting_duration_blocks: Some(50),
+                        mb_second_vesting_starting_block: Some(100),
+                        mb_second_vesting_duration_blocks: Some(50),
                     }
                 )])
             ));
@@ -633,8 +792,10 @@ mod signed_extension {
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_secondary_asset: Default::default(),
                         mb_vesting_share: Some(Percent::from_percent(50)),
-                        mb_vesting_starting_block: Some(100),
-                        mb_vesting_duration_blocks: Some(50)
+                        mb_first_vesting_starting_block: Some(100),
+                        mb_first_vesting_duration_blocks: Some(50),
+                        mb_second_vesting_starting_block: Some(100),
+                        mb_second_vesting_duration_blocks: Some(50),
                     }
                 )])
             ));
@@ -675,8 +836,10 @@ mod signed_extension {
                         mb_secondary_asset_q_price: Default::default(),
                         mb_secondary_asset_q_discounted_price: Default::default(),
                         mb_vesting_share: Some(Percent::from_percent(50)),
-                        mb_vesting_starting_block: Some(100),
-                        mb_vesting_duration_blocks: Some(50)
+                        mb_first_vesting_starting_block: Some(100),
+                        mb_first_vesting_duration_blocks: Some(50),
+                        mb_second_vesting_starting_block: Some(100),
+                        mb_second_vesting_duration_blocks: Some(50),
                     }
                 )])
             ));
