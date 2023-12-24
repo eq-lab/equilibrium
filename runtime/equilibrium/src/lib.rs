@@ -306,7 +306,10 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
             ) => false,
             (false, RuntimeCall::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
             (false, RuntimeCall::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, RuntimeCall::VestingQSwap(eq_vesting::Call::force_vested_transfer { .. })) => {
+            (false, RuntimeCall::Vesting1QSwap(eq_vesting::Call::force_vested_transfer { .. })) => {
+                false
+            }
+            (false, RuntimeCall::Vesting2QSwap(eq_vesting::Call::force_vested_transfer { .. })) => {
                 false
             }
             // XCM disallowed
@@ -2560,10 +2563,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 secondary_asset_q_price: Default::default(),
                 secondary_asset_q_discounted_price: Default::default(),
                 vesting_share: Percent::from_percent(90),
-                first_vesting_starting_block:,
-                first_vesting_duration_blocks:,
-                second_vesting_starting_block:,
-                second_vesting_duration_blocks:
+                first_vesting_starting_block: Default::default(), // TODO: set missing value
+                first_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                second_vesting_starting_block: Default::default(), // TODO: set missing value
+                second_vesting_duration_blocks: Default::default(), // TODO: set missing value
             },
         );
 
@@ -2578,10 +2581,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 secondary_asset_q_price: Default::default(),
                 secondary_asset_q_discounted_price: Default::default(),
                 vesting_share: Percent::from_percent(90),
-                first_vesting_starting_block:,
-                first_vesting_duration_blocks:,
-                second_vesting_starting_block:,
-                second_vesting_duration_blocks:
+                first_vesting_starting_block: Default::default(), // TODO: set missing value
+                first_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                second_vesting_starting_block: Default::default(), // TODO: set missing value
+                second_vesting_duration_blocks: Default::default(), // TODO: set missing value
             },
         );
 
@@ -2592,14 +2595,14 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 min_amount: 400000,
                 main_asset_q_price: 100_000_000,
                 main_asset_q_discounted_price: 100_000_000,
-                secondary_asset: EQ,
+                secondary_asset: asset::EQ,
                 secondary_asset_q_price: 1000 * ONE_TOKEN,
                 secondary_asset_q_discounted_price: 295_860_000_000,
                 vesting_share: Percent::from_percent(90),
-                first_vesting_starting_block:,
-                first_vesting_duration_blocks:,
-                second_vesting_starting_block:,
-                second_vesting_duration_blocks:
+                first_vesting_starting_block: Default::default(), // TODO: set missing value
+                first_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                second_vesting_starting_block: Default::default(), // TODO: set missing value
+                second_vesting_duration_blocks: Default::default(), // TODO: set missing value
             },
         );
 
