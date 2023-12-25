@@ -306,15 +306,9 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
             ) => false,
             (false, RuntimeCall::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
             (false, RuntimeCall::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, RuntimeCall::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => {
-                false
-            }
-            (false, RuntimeCall::Vesting3(eq_vesting::Call::force_vested_transfer { .. })) => {
-                false
-            }
-            (false, RuntimeCall::Vesting4(eq_vesting::Call::force_vested_transfer { .. })) => {
-                false
-            }
+            (false, RuntimeCall::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::Vesting3(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::Vesting4(eq_vesting::Call::force_vested_transfer { .. })) => false,
             // XCM disallowed
             (_, &RuntimeCall::PolkadotXcm(_)) => false,
             (false, _) => true,
@@ -2576,11 +2570,13 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
 
         eq_treasury::BuyoutLimit::<Runtime>::set(Some(100));
 
+        q_swap::QReceivingThreshold::<Runtime>::insert(497 * ONE_TOKEN);
+
         q_swap::QSwapConfigurations::<Runtime>::insert(
             asset::EQ,
             q_swap::SwapConfiguration {
                 enabled: true,
-                min_amount: 100 * ONE_TOKEN,
+                min_amount: 502_960_000_000,
                 main_asset_q_price: 1_700 * ONE_TOKEN,
                 main_asset_q_discounted_price: 502_960_000_000,
                 secondary_asset: Default::default(),
@@ -2589,10 +2585,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 vesting_share: Percent::from_percent(90),
                 main_vesting_number: 1,
                 secondary_vesting_number: 2,
-                main_vesting_starting_block: Default::default(), // TODO: set missing value
-                main_vesting_duration_blocks: Default::default(), // TODO: set missing value
-                secondary_vesting_starting_block: Default::default(), // TODO: set missing value
-                secondary_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                main_vesting_starting_block: 4_774_456, // slot_ends(4_126_456) + 90 days cliff
+                main_vesting_duration_blocks: 1_944_000, // 270 days
+                secondary_vesting_starting_block: 6_761_656, // slot_ends(4_126_456) + 1 year cliff (366 days)
+                secondary_vesting_duration_blocks: 5_263_200, // 2 years (366 days + 365 days)
             },
         );
 
@@ -2600,7 +2596,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             asset::GENS,
             q_swap::SwapConfiguration {
                 enabled: true,
-                min_amount: 100 * ONE_TOKEN,
+                min_amount: 4_000 * ONE_TOKEN,
                 main_asset_q_price: 4_000 * ONE_TOKEN,
                 main_asset_q_discounted_price: 4_000 * ONE_TOKEN,
                 secondary_asset: Default::default(),
@@ -2609,10 +2605,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 vesting_share: Percent::from_percent(90),
                 main_vesting_number: 3,
                 secondary_vesting_number: Default::default(),
-                main_vesting_starting_block: Default::default(), // TODO: set missing value
-                main_vesting_duration_blocks: Default::default(), // TODO: set missing value
-                secondary_vesting_starting_block: Default::default(), // TODO: set missing value
-                secondary_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                main_vesting_starting_block: 5_422_456, // slot_ends(4_126_456) + 180 days cliff
+                main_vesting_duration_blocks: 2_592_000, // 360 days
+                secondary_vesting_starting_block: Default::default(),
+                secondary_vesting_duration_blocks: Default::default(),
             },
         );
 
@@ -2620,7 +2616,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             asset::DOT,
             q_swap::SwapConfiguration {
                 enabled: true,
-                min_amount: 400000,
+                min_amount: 100_000_000,
                 main_asset_q_price: 100_000_000,
                 main_asset_q_discounted_price: 100_000_000,
                 secondary_asset: asset::EQ,
@@ -2629,10 +2625,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 vesting_share: Percent::from_percent(90),
                 main_vesting_number: 1,
                 secondary_vesting_number: 2,
-                main_vesting_starting_block: Default::default(), // TODO: set missing value
-                main_vesting_duration_blocks: Default::default(), // TODO: set missing value
-                secondary_vesting_starting_block: Default::default(), // TODO: set missing value
-                secondary_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                main_vesting_starting_block: 4_774_456, // slot_ends(4_126_456) + 90 days cliff
+                main_vesting_duration_blocks: 1_944_000, // 270 days
+                secondary_vesting_starting_block: 6_761_656, // slot_ends(4_126_456) + 1 year cliff (366 days)
+                secondary_vesting_duration_blocks: 5_263_200, // 2 years (366 days + 365 days)
             },
         );
 
