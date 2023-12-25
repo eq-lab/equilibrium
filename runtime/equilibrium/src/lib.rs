@@ -2377,7 +2377,7 @@ impl eq_crowdloan_dots::Config for Runtime {
 impl q_swap::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
-    type SetQSwapConfigurationOrigin = EnsureRootOrHalfTechnicalCommittee;
+    type SetQSwapConfigurationOrigin = EnsureRootOrHalfCouncil;
     type Vesting1 = Vesting2;
     type Vesting2 = Vesting3;
     type Vesting3 = Vesting4;
