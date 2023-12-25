@@ -693,7 +693,7 @@ fn swap() {
 
         assert_ok!(ModuleQSwap::set_config(
             RawOrigin::Root.into(),
-            Some(1000000000),
+            Some(100_000_000),
             Some(vec![(
                 GENS,
                 SwapConfigurationInput {
@@ -731,10 +731,10 @@ fn swap() {
         assert_balance!(&treasury_acount_id, 9_994_250_000_000, 0, Q);
         assert_balance!(&vesting_1_account_id, 857_992_353, 0, Q);
         assert_balance!(&vesting_2_account_id, 3_770_702_354, 0, Q);
-        assert_balance!(&vesting_3_account_id, 250_000_000, 0, Q);
+        assert_balance!(&vesting_3_account_id, 275_000_000, 0, Q);
 
         assert_balance!(&account_3, 9_000_000_000_000, 0, GENS);
-        assert_balance!(&account_3, 125_000_000, 0, Q);
+        assert_balance!(&account_3, 100_000_000, 0, Q);
         assert_eq!(
             account_3_vesting_2,
             VestingInfo {
@@ -746,12 +746,50 @@ fn swap() {
         assert_eq!(
             account_3_vesting_3,
             VestingInfo {
-                locked: 125_000_000,
-                per_block: 6_250_000,
+                locked: 150_000_000,
+                per_block: 7_500_000,
                 starting_block: 10
             }
         );
-        assert_eq!(account_3_q_received, 125_000_000);
+        assert_eq!(account_3_q_received, 100_000_000);
+
+        assert_ok!(ModuleQSwap::swap(
+            RuntimeOrigin::signed(account_3),
+            GENS,
+            1000 * ONE_TOKEN
+        ));
+
+        let account_3_vesting_2 = ModuleVesting2::vesting(account_3).unwrap();
+        let account_3_vesting_3 = ModuleVesting3::vesting(account_3).unwrap();
+        let account_3_q_received = QReceivedAmounts::<Test>::get(account_3);
+
+        assert_balance!(&treasury_acount_id, 1_893_500_000_000, 0, EQ);
+        assert_balance!(&treasury_acount_id, 300_000_000, 0, DOT);
+        assert_balance!(&treasury_acount_id, 3_000_000_000_000, 0, GENS);
+        assert_balance!(&treasury_acount_id, 9_993_750_000_000, 0, Q);
+        assert_balance!(&vesting_1_account_id, 857_992_353, 0, Q);
+        assert_balance!(&vesting_2_account_id, 4_020_702_354, 0, Q);
+        assert_balance!(&vesting_3_account_id, 525_000_000, 0, Q);
+
+        assert_balance!(&account_3, 8_000_000_000_000, 0, GENS);
+        assert_balance!(&account_3, 100_000_000, 0, Q);
+        assert_eq!(
+            account_3_vesting_2,
+            VestingInfo {
+                locked: 500_000_000,
+                per_block: 5_000_000,
+                starting_block: 50
+            }
+        );
+        assert_eq!(
+            account_3_vesting_3,
+            VestingInfo {
+                locked: 400_000_000,
+                per_block: 20_000_000,
+                starting_block: 10
+            }
+        );
+        assert_eq!(account_3_q_received, 100_000_000);
     });
 }
 
