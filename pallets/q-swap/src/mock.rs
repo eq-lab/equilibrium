@@ -49,6 +49,7 @@ pub type ModuleBalances = eq_balances::Pallet<Test>;
 pub type ModuleQSwap = Pallet<Test>;
 pub type ModuleVesting1 = EqVesting1;
 pub type ModuleVesting2 = EqVesting2;
+pub type ModuleVesting3 = EqVesting3;
 
 type DummyValidatorId = AccountId;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -63,8 +64,9 @@ parameter_types! {
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
-    pub const Vesting1ModuleId: PalletId = PalletId(*b"eq/vest3");
-    pub const Vesting2ModuleId: PalletId = PalletId(*b"eq/vest4");
+    pub const Vesting1ModuleId: PalletId = PalletId(*b"eq/vest2");
+    pub const Vesting2ModuleId: PalletId = PalletId(*b"eq/vest3");
+    pub const Vesting3ModuleId: PalletId = PalletId(*b"eq/vest4");
     pub const MinVestedTransfer: u128 = 10;
     pub const QCurrencyGet: asset::Asset = asset::Q;
     pub const BlockHashCount: u32 = 250;
@@ -80,8 +82,9 @@ frame_support::construct_runtime!(
         EqAssets: eq_assets::{Pallet, Call, Storage, Event} = 2,
         EqVesting1: eq_vesting::<Instance1>::{Pallet, Call, Storage, Event<T, Instance1>} = 3,
         EqVesting2: eq_vesting::<Instance2>::{Pallet, Call, Storage, Event<T, Instance2>} = 4,
-        EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>} = 5,
-        QSwap: q_swap::{Pallet, Call, Storage, Event<T>} = 6,
+        EqVesting3: eq_vesting::<Instance3>::{Pallet, Call, Storage, Event<T, Instance3>} = 5,
+        EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>} = 6,
+        QSwap: q_swap::{Pallet, Call, Storage, Event<T>} = 7,
     }
 );
 
@@ -90,6 +93,7 @@ pub struct BailsmanManagerMock;
 pub struct SubaccountsManagerMock;
 pub struct Vesting1AccountMock<AccountId>(PhantomData<AccountId>);
 pub struct Vesting2AccountMock<AccountId>(PhantomData<AccountId>);
+pub struct Vesting3AccountMock<AccountId>(PhantomData<AccountId>);
 
 impl SubaccountsManager<AccountId> for SubaccountsManagerMock {
     fn create_subaccount_inner(
@@ -213,6 +217,12 @@ impl<AccountId: Encode + Decode> Get<AccountId> for Vesting2AccountMock<AccountI
     }
 }
 
+impl<AccountId: Encode + Decode> Get<AccountId> for Vesting3AccountMock<AccountId> {
+    fn get() -> AccountId {
+        Vesting3ModuleId::get().into_account_truncating()
+    }
+}
+
 impl system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
@@ -301,6 +311,18 @@ impl eq_vesting::Config<VestingInstance2> for Test {
     type BlockNumberToBalance = BlockNumberToBalance;
 }
 
+type VestingInstance3 = eq_vesting::Instance3;
+impl eq_vesting::Config<VestingInstance3> for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type PalletId = Vesting2ModuleId;
+    type Balance = Balance;
+    type Currency = QCurrency;
+    type MinVestedTransfer = MinVestedTransfer;
+    type WeightInfo = ();
+    type IsTransfersEnabled = ModuleBalances;
+    type BlockNumberToBalance = BlockNumberToBalance;
+}
+
 impl q_swap::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
@@ -308,8 +330,10 @@ impl q_swap::Config for Test {
     type SetQSwapConfigurationOrigin = EnsureRoot<AccountId>;
     type Vesting1 = EqVesting1;
     type Vesting2 = EqVesting2;
+    type Vesting3 = EqVesting3;
     type Vesting1AccountId = Vesting1AccountMock<AccountId>;
     type Vesting2AccountId = Vesting2AccountMock<AccountId>;
+    type Vesting3AccountId = Vesting3AccountMock<AccountId>;
     type QHolderAccountId = TreasuryAccountMock<AccountId>;
     type AssetHolderAccountId = TreasuryAccountMock<AccountId>;
     type WeightInfo = ();

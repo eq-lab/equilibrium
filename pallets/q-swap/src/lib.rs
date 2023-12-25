@@ -83,10 +83,13 @@ pub mod pallet {
         /// Origin for setting configuration
         type SetQSwapConfigurationOrigin: EnsureOrigin<Self::RuntimeOrigin>;
         // Used for managing vestings #1
-        type Vesting1: Vesting<Self::AccountId> // eq + dot, gens
+        type Vesting1: Vesting<Self::AccountId>
             + EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
         // Used for managing vestings #2
-        type Vesting2: Vesting<Self::AccountId> // eq + dot, gens
+        type Vesting2: Vesting<Self::AccountId>
+            + EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
+        // Used for managing vestings #3
+        type Vesting3: Vesting<Self::AccountId>
             + EqVestingSchedule<Self::Balance, Self::AccountId, Moment = Self::BlockNumber>;
         /// Used for managing balances and currencies
         type EqCurrency: EqCurrency<Self::AccountId, Self::Balance>
@@ -95,6 +98,8 @@ pub mod pallet {
         type Vesting1AccountId: Get<Self::AccountId>;
         /// Returns vesting #2 account
         type Vesting2AccountId: Get<Self::AccountId>;
+        /// Returns vesting #3 account
+        type Vesting3AccountId: Get<Self::AccountId>;
         /// Returns Q holder account
         type QHolderAccountId: Get<Self::AccountId>;
         /// Returns Asset holder account
@@ -132,7 +137,7 @@ pub mod pallet {
         /// - Q received amount
         /// - Q vested amount #1
         /// - Q vested amount #2
-        /// \[from, amount_1, amount_2, amount_3, amount_4, amount_5\]
+        /// \[from, amount_1, amount_2, amount_3, amount_4, amount_5 \]
         QSwap(
             T::AccountId,
             T::Balance,
@@ -308,8 +313,6 @@ impl<T: Config> Pallet<T> {
 
         let q_holder_account_id = T::QHolderAccountId::get();
         let asset_holder_account_id = T::AssetHolderAccountId::get();
-        let q_vesting_1_account_id = T::Vesting1AccountId::get();
-        let q_vesting_2_account_id = T::Vesting2AccountId::get();
 
         if !q_instant_swap.is_zero() {
             T::EqCurrency::currency_transfer(
@@ -348,69 +351,25 @@ impl<T: Config> Pallet<T> {
         }
 
         if !vesting_1_amount.is_zero() {
-            T::EqCurrency::currency_transfer(
+            Self::do_vest(
+                configuration.main_vesting_number,
+                who,
                 &q_holder_account_id,
-                &q_vesting_1_account_id,
-                Q,
                 vesting_1_amount,
-                ExistenceRequirement::AllowDeath,
-                eq_primitives::TransferReason::QSwap,
-                true,
+                configuration.main_vesting_starting_block,
+                configuration.main_vesting_duration_blocks,
             )?;
-
-            if T::Vesting1::has_vesting_schedule(who.clone()) {
-                T::Vesting1::update_vesting_schedule(
-                    who,
-                    vesting_1_amount,
-                    configuration.first_vesting_duration_blocks,
-                )?;
-            } else {
-                let per_block = configuration
-                    .first_vesting_duration_blocks
-                    .lt(&vesting_1_amount)
-                    .then(|| vesting_1_amount.div(configuration.first_vesting_duration_blocks))
-                    .unwrap_or(vesting_1_amount.div(vesting_1_amount));
-
-                T::Vesting1::add_vesting_schedule(
-                    who,
-                    vesting_1_amount,
-                    per_block,
-                    configuration.first_vesting_starting_block,
-                )?;
-            }
         }
 
         if !vesting_2_amount.is_zero() {
-            T::EqCurrency::currency_transfer(
+            Self::do_vest(
+                configuration.secondary_vesting_number,
+                who,
                 &q_holder_account_id,
-                &q_vesting_2_account_id,
-                Q,
                 vesting_2_amount,
-                ExistenceRequirement::AllowDeath,
-                eq_primitives::TransferReason::QSwap,
-                true,
+                configuration.secondary_vesting_starting_block,
+                configuration.secondary_vesting_duration_blocks,
             )?;
-
-            if T::Vesting2::has_vesting_schedule(who.clone()) {
-                T::Vesting2::update_vesting_schedule(
-                    who,
-                    vesting_2_amount,
-                    configuration.second_vesting_duration_blocks,
-                )?;
-            } else {
-                let per_block = configuration
-                    .second_vesting_duration_blocks
-                    .lt(&vesting_2_amount)
-                    .then(|| vesting_2_amount.div(configuration.second_vesting_duration_blocks))
-                    .unwrap_or(vesting_2_amount.div(vesting_2_amount));
-
-                T::Vesting2::add_vesting_schedule(
-                    who,
-                    vesting_2_amount,
-                    per_block,
-                    configuration.second_vesting_starting_block,
-                )?;
-            }
         }
 
         QReceivedAmounts::<T>::insert(who, q_received_after);
@@ -423,6 +382,86 @@ impl<T: Config> Pallet<T> {
             vesting_1_amount,
             vesting_2_amount,
         ));
+
+        Ok(())
+    }
+
+    fn do_vest(
+        vesting_number: u8,
+        who: &T::AccountId,
+        q_holder_account_id: &T::AccountId,
+        amount: T::Balance,
+        starting_block: T::BlockNumber,
+        duration_blocks: T::Balance,
+    ) -> DispatchResult {
+        match vesting_number {
+            1 => {
+                Self::do_upsert_vesting::<T::Vesting1>(
+                    who,
+                    &q_holder_account_id,
+                    &T::Vesting1AccountId::get(),
+                    amount,
+                    starting_block,
+                    duration_blocks,
+                )?;
+            }
+            2 => {
+                Self::do_upsert_vesting::<T::Vesting2>(
+                    who,
+                    &q_holder_account_id,
+                    &T::Vesting2AccountId::get(),
+                    amount,
+                    starting_block,
+                    duration_blocks,
+                )?;
+            }
+            3 => {
+                Self::do_upsert_vesting::<T::Vesting3>(
+                    who,
+                    &q_holder_account_id,
+                    &T::Vesting3AccountId::get(),
+                    amount,
+                    starting_block,
+                    duration_blocks,
+                )?;
+            }
+            _ => (),
+        };
+
+        Ok(())
+    }
+
+    fn do_upsert_vesting<
+        TVesting: Vesting<T::AccountId>
+            + EqVestingSchedule<T::Balance, T::AccountId, Moment = T::BlockNumber>,
+    >(
+        who: &T::AccountId,
+        q_holder_account_id: &T::AccountId,
+        q_vesting_account_id: &T::AccountId,
+        amount: T::Balance,
+        starting_block: T::BlockNumber,
+        duration_blocks: T::Balance,
+    ) -> DispatchResult {
+        T::EqCurrency::currency_transfer(
+            &q_holder_account_id,
+            &q_vesting_account_id,
+            Q,
+            amount,
+            ExistenceRequirement::AllowDeath,
+            eq_primitives::TransferReason::QSwap,
+            true,
+        )?;
+
+        if TVesting::has_vesting_schedule(who.clone()) {
+            TVesting::update_vesting_schedule(who, amount, duration_blocks)?;
+        } else {
+            let per_block = duration_blocks
+                .lt(&amount)
+                .then(|| amount.div(duration_blocks))
+                .unwrap_or(amount.div(amount));
+
+            TVesting::add_vesting_schedule(who, amount, per_block, starting_block)?;
+        }
 
         Ok(())
     }
@@ -447,7 +486,6 @@ impl<T: Config> Pallet<T> {
         let balance = T::EqCurrency::get_balance(who, asset);
         Self::ensure_enough_balance(&balance, amount)?;
 
-        // EQ to Q, GENS to Q, etc.
         // Example #1: 1Q = 1700EQ (502.96 discounted EQ), vesting_share = 0.5
         //   swap(1005.92EQ)
         //     vesting #1:
@@ -749,10 +787,12 @@ pub struct SwapConfiguration<Balance, BlockNumber> {
     pub secondary_asset_q_price: Balance,
     pub secondary_asset_q_discounted_price: Balance,
     pub vesting_share: Percent,
-    pub first_vesting_starting_block: BlockNumber,
-    pub first_vesting_duration_blocks: Balance,
-    pub second_vesting_starting_block: BlockNumber,
-    pub second_vesting_duration_blocks: Balance,
+    pub main_vesting_number: u8,
+    pub secondary_vesting_number: u8,
+    pub main_vesting_starting_block: BlockNumber,
+    pub main_vesting_duration_blocks: Balance,
+    pub secondary_vesting_starting_block: BlockNumber,
+    pub secondary_vesting_duration_blocks: Balance,
 }
 
 impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, BlockNumber> {
@@ -791,20 +831,29 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
             self.vesting_share = vesting_share;
         }
 
-        if let Some(first_vesting_starting_block) = config.mb_first_vesting_starting_block {
-            self.first_vesting_starting_block = first_vesting_starting_block;
+        if let Some(main_vesting_starting_block) = config.mb_main_vesting_starting_block {
+            self.main_vesting_starting_block = main_vesting_starting_block;
         }
 
-        if let Some(first_vesting_duration_blocks) = config.mb_first_vesting_duration_blocks {
-            self.first_vesting_duration_blocks = first_vesting_duration_blocks;
+        if let Some(main_vesting_duration_blocks) = config.mb_main_vesting_duration_blocks {
+            self.main_vesting_duration_blocks = main_vesting_duration_blocks;
         }
 
-        if let Some(second_vesting_starting_block) = config.mb_second_vesting_starting_block {
-            self.second_vesting_starting_block = second_vesting_starting_block;
+        if let Some(secondary_vesting_starting_block) = config.mb_secondary_vesting_starting_block {
+            self.secondary_vesting_starting_block = secondary_vesting_starting_block;
         }
 
-        if let Some(second_vesting_duration_blocks) = config.mb_second_vesting_duration_blocks {
-            self.second_vesting_duration_blocks = second_vesting_duration_blocks;
+        if let Some(secondary_vesting_duration_blocks) = config.mb_secondary_vesting_duration_blocks
+        {
+            self.secondary_vesting_duration_blocks = secondary_vesting_duration_blocks;
+        }
+
+        if let Some(main_vesting_number) = config.mb_main_vesting_number {
+            self.main_vesting_number = main_vesting_number;
+        }
+
+        if let Some(secondary_vesting_number) = config.mb_secondary_vesting_number {
+            self.secondary_vesting_number = secondary_vesting_number;
         }
     }
 
@@ -814,12 +863,13 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
                 && !self.main_asset_q_price.is_zero()
                 && !self.main_asset_q_discounted_price.is_zero()
                 && !self.vesting_share.is_zero()
-                && !self.first_vesting_starting_block.is_zero()
-                && !self.first_vesting_duration_blocks.is_zero()
-                && ((!self.second_vesting_starting_block.is_zero()
-                    || !self.second_vesting_duration_blocks.is_zero())
-                    && !self.second_vesting_starting_block.is_zero()
-                    && !self.second_vesting_duration_blocks.is_zero())
+                && (!self.main_vesting_number.is_zero() || !self.secondary_vesting_number.is_zero())
+                && (self.main_vesting_number.is_zero()
+                    || !self.main_vesting_starting_block.is_zero()
+                        && !self.main_vesting_duration_blocks.is_zero())
+                && (self.secondary_vesting_number.is_zero()
+                    || !self.secondary_vesting_starting_block.is_zero()
+                        && !self.secondary_vesting_duration_blocks.is_zero())
                 && self.main_asset_q_discounted_price <= self.main_asset_q_price
                 && (self.secondary_asset_q_price.is_zero()
                     || !self.secondary_asset_q_discounted_price.is_zero()
@@ -840,8 +890,10 @@ pub struct SwapConfigurationInput<Balance, BlockNumber> {
     pub mb_secondary_asset_q_price: Option<Balance>,
     pub mb_secondary_asset_q_discounted_price: Option<Balance>,
     pub mb_vesting_share: Option<Percent>,
-    pub mb_first_vesting_starting_block: Option<BlockNumber>,
-    pub mb_first_vesting_duration_blocks: Option<Balance>,
-    pub mb_second_vesting_starting_block: Option<BlockNumber>,
-    pub mb_second_vesting_duration_blocks: Option<Balance>,
+    pub mb_main_vesting_number: Option<u8>,
+    pub mb_secondary_vesting_number: Option<u8>,
+    pub mb_main_vesting_starting_block: Option<BlockNumber>,
+    pub mb_main_vesting_duration_blocks: Option<Balance>,
+    pub mb_secondary_vesting_starting_block: Option<BlockNumber>,
+    pub mb_secondary_vesting_duration_blocks: Option<Balance>,
 }
