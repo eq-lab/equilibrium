@@ -886,8 +886,8 @@ impl eq_vesting::Config<VestingInstance1> for Runtime {
 }
 
 parameter_types! {
-    pub const Vesting3ModuleId: PalletId = PalletId(*b"eq/3vest");
-    pub const Vesting4ModuleId: PalletId = PalletId(*b"eq/4vest");
+    pub const Vesting3ModuleId: PalletId = PalletId(*b"eq/vest3");
+    pub const Vesting4ModuleId: PalletId = PalletId(*b"eq/vest4");
 }
 
 type VestingInstance3 = eq_vesting::Instance3;

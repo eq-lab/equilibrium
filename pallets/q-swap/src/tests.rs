@@ -357,12 +357,15 @@ fn set_config() {
 #[test]
 fn swap() {
     new_test_ext().execute_with(|| {
-        let account_1: u64 = 1;
-        let account_2: u64 = 2;
-        let account_3: u64 = 3;
-        let vesting_1_account_id: u64 = Vesting1AccountMock::get();
-        let vesting_2_account_id: u64 = Vesting2AccountMock::get();
-        let treasury_acount_id: u64 = TreasuryAccountMock::get();
+        let account_1: u128 = 1;
+        let account_2: u128 = 2;
+        let account_3: u128 = 3;
+        let vesting_1_account_id: u128 = Vesting1AccountMock::get();
+        let vesting_2_account_id: u128 = Vesting2AccountMock::get();
+        let treasury_acount_id: u128 = TreasuryAccountMock::get();
+
+        println!("{:?}", vesting_1_account_id);
+        println!("{:?}", vesting_2_account_id);
 
         assert_err!(
             ModuleQSwap::swap(RuntimeOrigin::signed(account_1), EQ, 1000 * ONE_TOKEN),
@@ -716,7 +719,7 @@ mod signed_extension {
     #[test]
     fn validate_should_skip_when_valid() {
         new_test_ext().execute_with(|| {
-            let account_id = 1u64;
+            let account_id = 1;
 
             assert_ok!(ModuleQSwap::set_config(
                 RawOrigin::Root.into(),
@@ -754,7 +757,7 @@ mod signed_extension {
     #[test]
     fn validate_should_fail_when_swap_disabled() {
         new_test_ext().execute_with(|| {
-            let account_id = 1u64;
+            let account_id = 1;
 
             let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
                 asset: EQ,
@@ -776,7 +779,7 @@ mod signed_extension {
     #[test]
     fn validate_should_fail_when_not_enough_balance() {
         new_test_ext().execute_with(|| {
-            let account_id = 1u64;
+            let account_id = 1;
 
             assert_ok!(ModuleQSwap::set_config(
                 RawOrigin::Root.into(),
@@ -820,7 +823,7 @@ mod signed_extension {
     #[test]
     fn validate_should_fail_when_less_then_min_amount() {
         new_test_ext().execute_with(|| {
-            let account_id = 1u64;
+            let account_id = 1;
 
             assert_ok!(ModuleQSwap::set_config(
                 RawOrigin::Root.into(),

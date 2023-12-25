@@ -41,7 +41,7 @@ use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup};
 use sp_runtime::{DispatchError, FixedI64, Percent, Permill};
 use system::EnsureRoot;
 
-pub(crate) type AccountId = u64;
+pub(crate) type AccountId = u128;
 pub(crate) type Balance = eq_primitives::balance::Balance;
 pub(crate) type OracleMock = eq_primitives::price::mock::OracleMock<AccountId>;
 
@@ -50,7 +50,7 @@ pub type ModuleQSwap = Pallet<Test>;
 pub type ModuleVesting1 = EqVesting1;
 pub type ModuleVesting2 = EqVesting2;
 
-type DummyValidatorId = u64;
+type DummyValidatorId = AccountId;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -63,8 +63,8 @@ parameter_types! {
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
-    pub const Vesting1ModuleId: PalletId = PalletId(*b"eq/1vest");
-    pub const Vesting2ModuleId: PalletId = PalletId(*b"eq/2vest");
+    pub const Vesting1ModuleId: PalletId = PalletId(*b"eq/vest3");
+    pub const Vesting2ModuleId: PalletId = PalletId(*b"eq/vest4");
     pub const MinVestedTransfer: u128 = 10;
     pub const QCurrencyGet: asset::Asset = asset::Q;
     pub const BlockHashCount: u32 = 250;
@@ -91,29 +91,29 @@ pub struct SubaccountsManagerMock;
 pub struct Vesting1AccountMock<AccountId>(PhantomData<AccountId>);
 pub struct Vesting2AccountMock<AccountId>(PhantomData<AccountId>);
 
-impl SubaccountsManager<u64> for SubaccountsManagerMock {
+impl SubaccountsManager<AccountId> for SubaccountsManagerMock {
     fn create_subaccount_inner(
-        _who: &u64,
+        _who: &AccountId,
         _subacc_type: &SubAccType,
-    ) -> Result<u64, DispatchError> {
-        Ok(9999_u64)
+    ) -> Result<AccountId, DispatchError> {
+        Ok(9999_u128)
     }
     fn delete_subaccount_inner(
-        _who: &u64,
+        _who: &AccountId,
         _subacc_type: &SubAccType,
-    ) -> Result<u64, DispatchError> {
-        Ok(9999_u64)
+    ) -> Result<AccountId, DispatchError> {
+        Ok(9999_u128)
     }
-    fn has_subaccount(_who: &u64, _subacc_type: &SubAccType) -> bool {
+    fn has_subaccount(_who: &AccountId, _subacc_type: &SubAccType) -> bool {
         true
     }
-    fn get_subaccount_id(_who: &u64, _subacc_type: &SubAccType) -> Option<u64> {
-        Some(9999_u64)
+    fn get_subaccount_id(_who: &AccountId, _subacc_type: &SubAccType) -> Option<AccountId> {
+        Some(9999_u128)
     }
-    fn is_subaccount(_who: &u64, _subacc_id: &u64) -> bool {
+    fn is_subaccount(_who: &AccountId, _subacc_id: &AccountId) -> bool {
         false
     }
-    fn get_owner_id(_subaccount: &u64) -> Option<(u64, SubAccType)> {
+    fn get_owner_id(_subaccount: &AccountId) -> Option<(AccountId, SubAccType)> {
         None
     }
     fn get_subaccounts_amount(_who: &AccountId) -> usize {
