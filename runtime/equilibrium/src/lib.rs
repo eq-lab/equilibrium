@@ -306,15 +306,9 @@ impl frame_support::traits::Contains<RuntimeCall> for CallFilter {
             ) => false,
             (false, RuntimeCall::EqRate(eq_rate::Call::set_now_millis_offset { .. })) => false,
             (false, RuntimeCall::Vesting(eq_vesting::Call::force_vested_transfer { .. })) => false,
-            (false, RuntimeCall::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => {
-                false
-            }
-            (false, RuntimeCall::Vesting3(eq_vesting::Call::force_vested_transfer { .. })) => {
-                false
-            }
-            (false, RuntimeCall::Vesting4(eq_vesting::Call::force_vested_transfer { .. })) => {
-                false
-            }
+            (false, RuntimeCall::Vesting2(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::Vesting3(eq_vesting::Call::force_vested_transfer { .. })) => false,
+            (false, RuntimeCall::Vesting4(eq_vesting::Call::force_vested_transfer { .. })) => false,
             // XCM disallowed
             (_, &RuntimeCall::PolkadotXcm(_)) => false,
             (false, _) => true,
@@ -2589,10 +2583,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 vesting_share: Percent::from_percent(90),
                 main_vesting_number: 1,
                 secondary_vesting_number: 2,
-                main_vesting_starting_block: Default::default(), // TODO: set missing value
-                main_vesting_duration_blocks: Default::default(), // TODO: set missing value
-                secondary_vesting_starting_block: Default::default(), // TODO: set missing value
-                secondary_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                main_vesting_starting_block: 4_774_456, // slot_ends(4_126_456) + 90 days cliff
+                main_vesting_duration_blocks: 1_944_000, // 270 days
+                secondary_vesting_starting_block: 6_761_656, // slot_ends(4_126_456) + 1 year cliff (366 days)
+                secondary_vesting_duration_blocks: 5_263_200, // 2 years (366 days + 365 days)
             },
         );
 
@@ -2609,10 +2603,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 vesting_share: Percent::from_percent(90),
                 main_vesting_number: 3,
                 secondary_vesting_number: Default::default(),
-                main_vesting_starting_block: Default::default(), // TODO: set missing value
-                main_vesting_duration_blocks: Default::default(), // TODO: set missing value
-                secondary_vesting_starting_block: Default::default(), // TODO: set missing value
-                secondary_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                main_vesting_starting_block: 5_422_456, // slot_ends(4_126_456) + 180 days cliff
+                main_vesting_duration_blocks: 2_592_000, // 360 days
+                secondary_vesting_starting_block: Default::default(),
+                secondary_vesting_duration_blocks: Default::default(),
             },
         );
 
@@ -2629,10 +2623,10 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 vesting_share: Percent::from_percent(90),
                 main_vesting_number: 1,
                 secondary_vesting_number: 2,
-                main_vesting_starting_block: Default::default(), // TODO: set missing value
-                main_vesting_duration_blocks: Default::default(), // TODO: set missing value
-                secondary_vesting_starting_block: Default::default(), // TODO: set missing value
-                secondary_vesting_duration_blocks: Default::default(), // TODO: set missing value
+                main_vesting_starting_block: 4_774_456, // slot_ends(4_126_456) + 90 days cliff
+                main_vesting_duration_blocks: 1_944_000, // 270 days
+                secondary_vesting_starting_block: 6_761_656, // slot_ends(4_126_456) + 1 year cliff (366 days)
+                secondary_vesting_duration_blocks: 5_263_200, // 2 years (366 days + 365 days)
             },
         );
 
