@@ -2570,11 +2570,13 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
 
         eq_treasury::BuyoutLimit::<Runtime>::set(Some(100));
 
+        q_swap::QReceivingThreshold::<Runtime>::insert(497 * ONE_TOKEN);
+
         q_swap::QSwapConfigurations::<Runtime>::insert(
             asset::EQ,
             q_swap::SwapConfiguration {
                 enabled: true,
-                min_amount: 100 * ONE_TOKEN,
+                min_amount: 502_960_000_000,
                 main_asset_q_price: 1_700 * ONE_TOKEN,
                 main_asset_q_discounted_price: 502_960_000_000,
                 secondary_asset: Default::default(),
@@ -2590,13 +2592,11 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             },
         );
 
-        q_swap::QReceivingThreshold::<Runtime>::insert(497 * ONE_TOKEN);
-
         q_swap::QSwapConfigurations::<Runtime>::insert(
             asset::GENS,
             q_swap::SwapConfiguration {
                 enabled: true,
-                min_amount: 100 * ONE_TOKEN,
+                min_amount: 4_000 * ONE_TOKEN,
                 main_asset_q_price: 4_000 * ONE_TOKEN,
                 main_asset_q_discounted_price: 4_000 * ONE_TOKEN,
                 secondary_asset: Default::default(),
@@ -2616,7 +2616,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             asset::DOT,
             q_swap::SwapConfiguration {
                 enabled: true,
-                min_amount: 400000,
+                min_amount: 100_000_000,
                 main_asset_q_price: 100_000_000,
                 main_asset_q_discounted_price: 100_000_000,
                 secondary_asset: asset::EQ,
