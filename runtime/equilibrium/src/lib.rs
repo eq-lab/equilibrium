@@ -2590,6 +2590,8 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             },
         );
 
+        q_swap::QReceivingThreshold::<Runtime>::insert(497 * ONE_TOKEN);
+
         q_swap::QSwapConfigurations::<Runtime>::insert(
             asset::GENS,
             q_swap::SwapConfiguration {
