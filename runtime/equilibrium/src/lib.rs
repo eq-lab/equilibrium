@@ -2570,7 +2570,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
 
         eq_treasury::BuyoutLimit::<Runtime>::set(Some(100));
 
-        q_swap::QReceivingThreshold::<Runtime>::insert(497 * ONE_TOKEN);
+        q_swap::QReceivingThreshold::<Runtime>::insert(99 * ONE_TOKEN); // 5USD
 
         q_swap::QSwapConfigurations::<Runtime>::insert(
             asset::EQ,
