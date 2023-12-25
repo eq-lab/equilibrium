@@ -33,8 +33,8 @@ use eq_node_runtime::{
     EqLiquidityFarmingConfig, EqMultisigSudoConfig, EqTreasuryConfig, FinancialConfig, FixedI64,
     GenesisConfig, OracleConfig, ParachainInfoConfig, PolkadotXcmConfig, RepublicConfig,
     SessionConfig, SubaccountsConfig, SystemConfig, TechnicalCommitteeConfig,
-    TechnicalCommitteeMembershipConfig, VestingConfig, VestingQSwapConfig, WhitelistsConfig,
-    WASM_BINARY,
+    TechnicalCommitteeMembershipConfig, Vesting2Config, Vesting3Config, Vesting4Config,
+    VestingConfig, WhitelistsConfig, WASM_BINARY,
 };
 use sp_runtime::{traits::CheckedConversion, BoundedVec, Percent};
 
@@ -530,7 +530,9 @@ fn testnet_genesis(
         eq_liquidity_farming: EqLiquidityFarmingConfig { empty: () },
         eq_treasury: EqTreasuryConfig { empty: () },
         vesting: VestingConfig::default(),
-        vesting_q_swap: VestingQSwapConfig::default(),
+        vesting_2: Vesting2Config::default(),
+        vesting_3: Vesting3Config::default(),
+        vesting_4: Vesting4Config::default(),
         aura: AuraConfig {
             authorities: vec![],
         },

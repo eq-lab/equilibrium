@@ -24,7 +24,7 @@ use eq_primitives::asset::{self, AssetType};
 use eq_primitives::balance_number::EqFixedU128;
 use eq_primitives::mocks::{
     TimeZeroDurationMock, TreasuryAccountMock, UniversalLocationMock, UpdateTimeManagerEmptyMock,
-    VestingAccountMock, XcmRouterErrMock, XcmToFeeZeroMock,
+    XcmRouterErrMock, XcmToFeeZeroMock,
 };
 use eq_primitives::subaccount::{SubAccType, SubaccountsManager};
 use eq_primitives::{
@@ -37,19 +37,21 @@ use frame_support::{parameter_types, PalletId};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::generic::Header;
-use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
+use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup};
 use sp_runtime::{DispatchError, FixedI64, Percent, Permill};
 use system::EnsureRoot;
 
-pub(crate) type AccountId = u64;
+pub(crate) type AccountId = u128;
 pub(crate) type Balance = eq_primitives::balance::Balance;
 pub(crate) type OracleMock = eq_primitives::price::mock::OracleMock<AccountId>;
 
 pub type ModuleBalances = eq_balances::Pallet<Test>;
 pub type ModuleQSwap = Pallet<Test>;
-pub type ModuleVesting = eq_vesting::Pallet<Test>;
+pub type ModuleVesting1 = EqVesting1;
+pub type ModuleVesting2 = EqVesting2;
+pub type ModuleVesting3 = EqVesting3;
 
-type DummyValidatorId = u64;
+type DummyValidatorId = AccountId;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -62,7 +64,9 @@ parameter_types! {
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
-    pub const VestingModuleId: PalletId = PalletId(*b"eq/vestn");
+    pub const Vesting1ModuleId: PalletId = PalletId(*b"eq/vest2");
+    pub const Vesting2ModuleId: PalletId = PalletId(*b"eq/vest3");
+    pub const Vesting3ModuleId: PalletId = PalletId(*b"eq/vest4");
     pub const MinVestedTransfer: u128 = 10;
     pub const QCurrencyGet: asset::Asset = asset::Q;
     pub const BlockHashCount: u32 = 250;
@@ -74,41 +78,46 @@ frame_support::construct_runtime!(
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        System: system::{Pallet, Call, Event<T>},
-        EqAssets: eq_assets::{Pallet, Call, Storage, Event},
-        EqVesting: eq_vesting::{Pallet, Call, Storage, Event<T>},
-        EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>},
-        QSwap: q_swap::{Pallet, Call, Storage, Event<T>},
+        System: system::{Pallet, Call, Event<T>} = 1,
+        EqAssets: eq_assets::{Pallet, Call, Storage, Event} = 2,
+        EqVesting1: eq_vesting::<Instance1>::{Pallet, Call, Storage, Event<T, Instance1>} = 3,
+        EqVesting2: eq_vesting::<Instance2>::{Pallet, Call, Storage, Event<T, Instance2>} = 4,
+        EqVesting3: eq_vesting::<Instance3>::{Pallet, Call, Storage, Event<T, Instance3>} = 5,
+        EqBalances: eq_balances::{Pallet, Call, Storage, Event<T>} = 6,
+        QSwap: q_swap::{Pallet, Call, Storage, Event<T>} = 7,
     }
 );
 
 pub struct AggregatesMock;
 pub struct BailsmanManagerMock;
 pub struct SubaccountsManagerMock;
+pub struct Vesting1AccountMock<AccountId>(PhantomData<AccountId>);
+pub struct Vesting2AccountMock<AccountId>(PhantomData<AccountId>);
+pub struct Vesting3AccountMock<AccountId>(PhantomData<AccountId>);
 
-impl SubaccountsManager<u64> for SubaccountsManagerMock {
+impl SubaccountsManager<AccountId> for SubaccountsManagerMock {
     fn create_subaccount_inner(
-        _who: &u64,
+        _who: &AccountId,
         _subacc_type: &SubAccType,
-    ) -> Result<u64, DispatchError> {
-        Ok(9999_u64)
+    ) -> Result<AccountId, DispatchError> {
+        Ok(9999_u128)
     }
     fn delete_subaccount_inner(
-        _who: &u64,
+        _who: &AccountId,
         _subacc_type: &SubAccType,
-    ) -> Result<u64, DispatchError> {
-        Ok(9999_u64)
+    ) -> Result<AccountId, DispatchError> {
+        Ok(9999_u128)
     }
-    fn has_subaccount(_who: &u64, _subacc_type: &SubAccType) -> bool {
+    fn has_subaccount(_who: &AccountId, _subacc_type: &SubAccType) -> bool {
         true
     }
-    fn get_subaccount_id(_who: &u64, _subacc_type: &SubAccType) -> Option<u64> {
-        Some(9999_u64)
+    fn get_subaccount_id(_who: &AccountId, _subacc_type: &SubAccType) -> Option<AccountId> {
+        Some(9999_u128)
     }
-    fn is_subaccount(_who: &u64, _subacc_id: &u64) -> bool {
+    fn is_subaccount(_who: &AccountId, _subacc_id: &AccountId) -> bool {
         false
     }
-    fn get_owner_id(_subaccount: &u64) -> Option<(u64, SubAccType)> {
+    fn get_owner_id(_subaccount: &AccountId) -> Option<(AccountId, SubAccType)> {
         None
     }
     fn get_subaccounts_amount(_who: &AccountId) -> usize {
@@ -196,6 +205,24 @@ impl BailsmanManager<AccountId, Balance> for BailsmanManagerMock {
     }
 }
 
+impl<AccountId: Encode + Decode> Get<AccountId> for Vesting1AccountMock<AccountId> {
+    fn get() -> AccountId {
+        Vesting1ModuleId::get().into_account_truncating()
+    }
+}
+
+impl<AccountId: Encode + Decode> Get<AccountId> for Vesting2AccountMock<AccountId> {
+    fn get() -> AccountId {
+        Vesting2ModuleId::get().into_account_truncating()
+    }
+}
+
+impl<AccountId: Encode + Decode> Get<AccountId> for Vesting3AccountMock<AccountId> {
+    fn get() -> AccountId {
+        Vesting3ModuleId::get().into_account_truncating()
+    }
+}
+
 impl system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
@@ -260,9 +287,34 @@ impl eq_balances::Config for Test {
     type UnixTime = TimeZeroDurationMock;
 }
 
-impl eq_vesting::Config for Test {
+type VestingInstance1 = eq_vesting::Instance1;
+impl eq_vesting::Config<VestingInstance1> for Test {
     type RuntimeEvent = RuntimeEvent;
-    type PalletId = VestingModuleId;
+    type PalletId = Vesting1ModuleId;
+    type Balance = Balance;
+    type Currency = QCurrency;
+    type MinVestedTransfer = MinVestedTransfer;
+    type WeightInfo = ();
+    type IsTransfersEnabled = ModuleBalances;
+    type BlockNumberToBalance = BlockNumberToBalance;
+}
+
+type VestingInstance2 = eq_vesting::Instance2;
+impl eq_vesting::Config<VestingInstance2> for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type PalletId = Vesting2ModuleId;
+    type Balance = Balance;
+    type Currency = QCurrency;
+    type MinVestedTransfer = MinVestedTransfer;
+    type WeightInfo = ();
+    type IsTransfersEnabled = ModuleBalances;
+    type BlockNumberToBalance = BlockNumberToBalance;
+}
+
+type VestingInstance3 = eq_vesting::Instance3;
+impl eq_vesting::Config<VestingInstance3> for Test {
+    type RuntimeEvent = RuntimeEvent;
+    type PalletId = Vesting2ModuleId;
     type Balance = Balance;
     type Currency = QCurrency;
     type MinVestedTransfer = MinVestedTransfer;
@@ -276,8 +328,12 @@ impl q_swap::Config for Test {
     type Balance = Balance;
     type EqCurrency = EqBalances;
     type SetQSwapConfigurationOrigin = EnsureRoot<AccountId>;
-    type Vesting = eq_vesting::Pallet<Test>;
-    type VestingAccountId = VestingAccountMock<AccountId>;
+    type Vesting1 = EqVesting1;
+    type Vesting2 = EqVesting2;
+    type Vesting3 = EqVesting3;
+    type Vesting1AccountId = Vesting1AccountMock<AccountId>;
+    type Vesting2AccountId = Vesting2AccountMock<AccountId>;
+    type Vesting3AccountId = Vesting3AccountMock<AccountId>;
     type QHolderAccountId = TreasuryAccountMock<AccountId>;
     type AssetHolderAccountId = TreasuryAccountMock<AccountId>;
     type WeightInfo = ();
@@ -305,7 +361,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                 true,
                 Percent::one(),
                 Permill::one(),
-            ),(
+            ),
+            (
                 asset::Q.get_id(),
                 EqFixedU128::from(0),
                 FixedI64::from(0),
@@ -315,6 +372,20 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
                 Permill::zero(),
                 u64::MAX,
                 AssetType::Native,
+                true,
+                Percent::one(),
+                Permill::one(),
+            ),
+            (
+                asset::GENS.get_id(),
+                EqFixedU128::from(0),
+                FixedI64::from(0),
+                Permill::zero(),
+                Permill::zero(),
+                vec![],
+                Permill::zero(),
+                u64::MAX,
+                AssetType::Physical,
                 true,
                 Percent::one(),
                 Permill::one(),
@@ -340,13 +411,24 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     eq_balances::GenesisConfig::<Test> {
         balances: vec![
-            (1, vec![(1000 * ONE_TOKEN as Balance, asset::EQ.get_id())]),
+            (
+                1,
+                vec![
+                    (10_000 * ONE_TOKEN as Balance, asset::EQ.get_id()),
+                    (10_000 * ONE_TOKEN as Balance, asset::DOT.get_id()),
+                    (10_000 * ONE_TOKEN as Balance, asset::GENS.get_id()),
+                ],
+            ),
             (
                 2,
                 vec![
-                    (1000 * ONE_TOKEN as Balance, asset::EQ.get_id()),
-                    (1000 * ONE_TOKEN as Balance, asset::DOT.get_id()),
+                    (10_000 * ONE_TOKEN as Balance, asset::EQ.get_id()),
+                    (10_000 * ONE_TOKEN as Balance, asset::DOT.get_id()),
                 ],
+            ),
+            (
+                3,
+                vec![(10_000 * ONE_TOKEN as Balance, asset::GENS.get_id())],
             ),
             (
                 TreasuryAccountMock::get(),
