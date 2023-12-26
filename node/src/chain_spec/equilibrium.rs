@@ -360,7 +360,7 @@ fn testnet_genesis(
                     AssetXcmData::SelfReserved.encode(),
                     Permill::zero(),
                     u64::MAX,
-                    AssetType::Physical,
+                    AssetType::Native,
                     true,
                     Percent::from_rational(4u32, 10u32),
                     Permill::one(),
@@ -374,7 +374,7 @@ fn testnet_genesis(
                     AssetXcmData::SelfReserved.encode(),
                     Permill::zero(),
                     u64::MAX,
-                    AssetType::Native,
+                    AssetType::Physical,
                     true,
                     Percent::from_rational(4u32, 10u32),
                     Permill::one(),
@@ -510,7 +510,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, vec![(DEFAULT_BALANCE, asset::Q.get_id())]))
+                .map(|k| (k, vec![(DEFAULT_BALANCE, asset::EQ.get_id())]))
                 .collect(),
             is_transfers_enabled: true,
             is_xcm_enabled: Some(XcmMode::Xcm(true)),
@@ -628,6 +628,10 @@ fn testnet_genesis(
         },
 
         democracy: DemocracyConfig::default(),
+
+        crowdloan_distribution: Default::default(),
+
+        stabilization_pool: Default::default(),
     }
 }
 
