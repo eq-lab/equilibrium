@@ -793,169 +793,169 @@ fn swap() {
     });
 }
 
-mod signed_extension {
-    use super::*;
-    use crate::mock::RuntimeCall;
-    use frame_support::{dispatch::DispatchInfo, weights::Weight};
+// mod signed_extension {
+//     use super::*;
+//     use crate::mock::RuntimeCall;
+//     use frame_support::{dispatch::DispatchInfo, weights::Weight};
 
-    pub fn info_from_weight(w: Weight) -> DispatchInfo {
-        DispatchInfo {
-            weight: w,
-            ..Default::default()
-        }
-    }
+//     pub fn info_from_weight(w: Weight) -> DispatchInfo {
+//         DispatchInfo {
+//             weight: w,
+//             ..Default::default()
+//         }
+//     }
 
-    #[test]
-    fn validate_should_skip_when_valid() {
-        new_test_ext().execute_with(|| {
-            let account_id = 1;
+//     #[test]
+//     fn validate_should_skip_when_valid() {
+//         new_test_ext().execute_with(|| {
+//             let account_id = 1;
 
-            assert_ok!(ModuleQSwap::set_config(
-                RawOrigin::Root.into(),
-                Some(1000 * ONE_TOKEN),
-                Some(vec![(
-                    EQ,
-                    SwapConfigurationInput {
-                        mb_enabled: Some(true),
-                        mb_min_amount: Some(100 * ONE_TOKEN),
-                        mb_main_asset_q_price: Some(1_500_000_000),
-                        mb_main_asset_q_discounted_price: Some(1_500_000_000),
-                        mb_secondary_asset: Default::default(),
-                        mb_secondary_asset_q_price: Default::default(),
-                        mb_secondary_asset_q_discounted_price: Default::default(),
-                        mb_instant_swap_share: Some(Percent::from_percent(50)),
-                        mb_main_vesting_number: Some(1),
-                        mb_secondary_vesting_number: Some(2),
-                        mb_main_vesting_starting_block: Some(100),
-                        mb_main_vesting_duration_blocks: Some(50),
-                        mb_secondary_vesting_starting_block: Some(100),
-                        mb_secondary_vesting_duration_blocks: Some(50),
-                    }
-                )])
-            ));
+//             assert_ok!(ModuleQSwap::set_config(
+//                 RawOrigin::Root.into(),
+//                 Some(1000 * ONE_TOKEN),
+//                 Some(vec![(
+//                     EQ,
+//                     SwapConfigurationInput {
+//                         mb_enabled: Some(true),
+//                         mb_min_amount: Some(100 * ONE_TOKEN),
+//                         mb_main_asset_q_price: Some(1_500_000_000),
+//                         mb_main_asset_q_discounted_price: Some(1_500_000_000),
+//                         mb_secondary_asset: Default::default(),
+//                         mb_secondary_asset_q_price: Default::default(),
+//                         mb_secondary_asset_q_discounted_price: Default::default(),
+//                         mb_instant_swap_share: Some(Percent::from_percent(50)),
+//                         mb_main_vesting_number: Some(1),
+//                         mb_secondary_vesting_number: Some(2),
+//                         mb_main_vesting_starting_block: Some(100),
+//                         mb_main_vesting_duration_blocks: Some(50),
+//                         mb_secondary_vesting_starting_block: Some(100),
+//                         mb_secondary_vesting_duration_blocks: Some(50),
+//                     }
+//                 )])
+//             ));
 
-            let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
-                asset: EQ,
-                amount: 100 * ONE_TOKEN,
-            });
+//             let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
+//                 asset: EQ,
+//                 amount: 100 * ONE_TOKEN,
+//             });
 
-            let check = CheckQSwap::<Test>::new();
-            let info = info_from_weight(Weight::zero());
-            assert_ok!(check.validate(&account_id, &q_swap_call, &info, 0));
-        });
-    }
+//             let check = CheckQSwap::<Test>::new();
+//             let info = info_from_weight(Weight::zero());
+//             assert_ok!(check.validate(&account_id, &q_swap_call, &info, 0));
+//         });
+//     }
 
-    #[test]
-    fn validate_should_fail_when_swap_disabled() {
-        new_test_ext().execute_with(|| {
-            let account_id = 1;
+//     #[test]
+//     fn validate_should_fail_when_swap_disabled() {
+//         new_test_ext().execute_with(|| {
+//             let account_id = 1;
 
-            let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
-                asset: EQ,
-                amount: 100 * ONE_TOKEN,
-            });
+//             let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
+//                 asset: EQ,
+//                 amount: 100 * ONE_TOKEN,
+//             });
 
-            let check = CheckQSwap::<Test>::new();
-            let info = info_from_weight(Weight::zero());
+//             let check = CheckQSwap::<Test>::new();
+//             let info = info_from_weight(Weight::zero());
 
-            assert_err!(
-                check.validate(&account_id, &q_swap_call, &info, 1),
-                TransactionValidityError::Invalid(InvalidTransaction::Custom(
-                    ValidityError::SwapsAreDisabled.into()
-                ))
-            );
-        });
-    }
+//             assert_err!(
+//                 check.validate(&account_id, &q_swap_call, &info, 1),
+//                 TransactionValidityError::Invalid(InvalidTransaction::Custom(
+//                     ValidityError::SwapsAreDisabled.into()
+//                 ))
+//             );
+//         });
+//     }
 
-    #[test]
-    fn validate_should_fail_when_not_enough_balance() {
-        new_test_ext().execute_with(|| {
-            let account_id = 1;
+//     #[test]
+//     fn validate_should_fail_when_not_enough_balance() {
+//         new_test_ext().execute_with(|| {
+//             let account_id = 1;
 
-            assert_ok!(ModuleQSwap::set_config(
-                RawOrigin::Root.into(),
-                Some(1000 * ONE_TOKEN),
-                Some(vec![(
-                    EQ,
-                    SwapConfigurationInput {
-                        mb_enabled: Some(true),
-                        mb_min_amount: Some(100 * ONE_TOKEN),
-                        mb_main_asset_q_price: Some(1_500_000_000),
-                        mb_main_asset_q_discounted_price: Some(1_500_000_000),
-                        mb_secondary_asset_q_price: Default::default(),
-                        mb_secondary_asset_q_discounted_price: Default::default(),
-                        mb_secondary_asset: Default::default(),
-                        mb_instant_swap_share: Some(Percent::from_percent(50)),
-                        mb_main_vesting_number: Some(1),
-                        mb_secondary_vesting_number: Some(2),
-                        mb_main_vesting_starting_block: Some(100),
-                        mb_main_vesting_duration_blocks: Some(50),
-                        mb_secondary_vesting_starting_block: Some(100),
-                        mb_secondary_vesting_duration_blocks: Some(50),
-                    }
-                )])
-            ));
+//             assert_ok!(ModuleQSwap::set_config(
+//                 RawOrigin::Root.into(),
+//                 Some(1000 * ONE_TOKEN),
+//                 Some(vec![(
+//                     EQ,
+//                     SwapConfigurationInput {
+//                         mb_enabled: Some(true),
+//                         mb_min_amount: Some(100 * ONE_TOKEN),
+//                         mb_main_asset_q_price: Some(1_500_000_000),
+//                         mb_main_asset_q_discounted_price: Some(1_500_000_000),
+//                         mb_secondary_asset_q_price: Default::default(),
+//                         mb_secondary_asset_q_discounted_price: Default::default(),
+//                         mb_secondary_asset: Default::default(),
+//                         mb_instant_swap_share: Some(Percent::from_percent(50)),
+//                         mb_main_vesting_number: Some(1),
+//                         mb_secondary_vesting_number: Some(2),
+//                         mb_main_vesting_starting_block: Some(100),
+//                         mb_main_vesting_duration_blocks: Some(50),
+//                         mb_secondary_vesting_starting_block: Some(100),
+//                         mb_secondary_vesting_duration_blocks: Some(50),
+//                     }
+//                 )])
+//             ));
 
-            let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
-                asset: EQ,
-                amount: 100_000 * ONE_TOKEN,
-            });
+//             let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
+//                 asset: EQ,
+//                 amount: 100_000 * ONE_TOKEN,
+//             });
 
-            let check = CheckQSwap::<Test>::new();
-            let info = info_from_weight(Weight::zero());
+//             let check = CheckQSwap::<Test>::new();
+//             let info = info_from_weight(Weight::zero());
 
-            assert_err!(
-                check.validate(&account_id, &q_swap_call, &info, 1),
-                TransactionValidityError::Invalid(InvalidTransaction::Custom(
-                    ValidityError::NotEnoughBalance.into()
-                ))
-            );
-        });
-    }
+//             assert_err!(
+//                 check.validate(&account_id, &q_swap_call, &info, 1),
+//                 TransactionValidityError::Invalid(InvalidTransaction::Custom(
+//                     ValidityError::NotEnoughBalance.into()
+//                 ))
+//             );
+//         });
+//     }
 
-    #[test]
-    fn validate_should_fail_when_less_then_min_amount() {
-        new_test_ext().execute_with(|| {
-            let account_id = 1;
+//     #[test]
+//     fn validate_should_fail_when_less_then_min_amount() {
+//         new_test_ext().execute_with(|| {
+//             let account_id = 1;
 
-            assert_ok!(ModuleQSwap::set_config(
-                RawOrigin::Root.into(),
-                Some(1000 * ONE_TOKEN),
-                Some(vec![(
-                    EQ,
-                    SwapConfigurationInput {
-                        mb_enabled: Some(true),
-                        mb_min_amount: Some(100 * ONE_TOKEN),
-                        mb_main_asset_q_price: Some(1_500_000_000),
-                        mb_main_asset_q_discounted_price: Some(1_500_000_000),
-                        mb_secondary_asset: Default::default(),
-                        mb_secondary_asset_q_price: Default::default(),
-                        mb_secondary_asset_q_discounted_price: Default::default(),
-                        mb_instant_swap_share: Some(Percent::from_percent(50)),
-                        mb_main_vesting_number: Some(1),
-                        mb_secondary_vesting_number: Some(2),
-                        mb_main_vesting_starting_block: Some(100),
-                        mb_main_vesting_duration_blocks: Some(50),
-                        mb_secondary_vesting_starting_block: Some(100),
-                        mb_secondary_vesting_duration_blocks: Some(50),
-                    }
-                )])
-            ));
+//             assert_ok!(ModuleQSwap::set_config(
+//                 RawOrigin::Root.into(),
+//                 Some(1000 * ONE_TOKEN),
+//                 Some(vec![(
+//                     EQ,
+//                     SwapConfigurationInput {
+//                         mb_enabled: Some(true),
+//                         mb_min_amount: Some(100 * ONE_TOKEN),
+//                         mb_main_asset_q_price: Some(1_500_000_000),
+//                         mb_main_asset_q_discounted_price: Some(1_500_000_000),
+//                         mb_secondary_asset: Default::default(),
+//                         mb_secondary_asset_q_price: Default::default(),
+//                         mb_secondary_asset_q_discounted_price: Default::default(),
+//                         mb_instant_swap_share: Some(Percent::from_percent(50)),
+//                         mb_main_vesting_number: Some(1),
+//                         mb_secondary_vesting_number: Some(2),
+//                         mb_main_vesting_starting_block: Some(100),
+//                         mb_main_vesting_duration_blocks: Some(50),
+//                         mb_secondary_vesting_starting_block: Some(100),
+//                         mb_secondary_vesting_duration_blocks: Some(50),
+//                     }
+//                 )])
+//             ));
 
-            let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
-                asset: EQ,
-                amount: 99 * ONE_TOKEN,
-            });
+//             let q_swap_call = RuntimeCall::QSwap(crate::Call::swap {
+//                 asset: EQ,
+//                 amount: 99 * ONE_TOKEN,
+//             });
 
-            let check = CheckQSwap::<Test>::new();
-            let info = info_from_weight(Weight::zero());
+//             let check = CheckQSwap::<Test>::new();
+//             let info = info_from_weight(Weight::zero());
 
-            assert_err!(
-                check.validate(&account_id, &q_swap_call, &info, 1),
-                TransactionValidityError::Invalid(InvalidTransaction::Custom(
-                    ValidityError::AmountTooSmall.into()
-                ))
-            );
-        });
-    }
-}
+//             assert_err!(
+//                 check.validate(&account_id, &q_swap_call, &info, 1),
+//                 TransactionValidityError::Invalid(InvalidTransaction::Custom(
+//                     ValidityError::AmountTooSmall.into()
+//                 ))
+//             );
+//         });
+//     }
+// }

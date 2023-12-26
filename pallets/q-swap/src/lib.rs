@@ -179,7 +179,7 @@ pub mod pallet {
         }
 
         #[pallet::call_index(1)]
-        #[pallet::weight((T::WeightInfo::swap(), DispatchClass::Normal, Pays::No))]
+        #[pallet::weight((T::WeightInfo::swap(), DispatchClass::Normal))]
         #[transactional]
         pub fn swap(
             origin: OriginFor<T>,
