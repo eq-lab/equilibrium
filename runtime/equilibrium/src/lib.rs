@@ -2705,6 +2705,39 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             },
         );
 
+        FinancialPalletOnNewAsset::on_new_asset(asset::GENS, vec![
+            FixedI64::from_rational(108785, ONE_TOKEN),
+            FixedI64::from_rational(107261, ONE_TOKEN),
+            FixedI64::from_rational(99320, ONE_TOKEN),
+            FixedI64::from_rational(90052, ONE_TOKEN),
+            FixedI64::from_rational(105409, ONE_TOKEN),
+            FixedI64::from_rational(105922, ONE_TOKEN),
+            FixedI64::from_rational(114417, ONE_TOKEN),
+            FixedI64::from_rational(104537, ONE_TOKEN),
+            FixedI64::from_rational(101253, ONE_TOKEN),
+            FixedI64::from_rational(99880, ONE_TOKEN),
+            FixedI64::from_rational(109613, ONE_TOKEN),
+            FixedI64::from_rational(117801, ONE_TOKEN),
+            FixedI64::from_rational(120707, ONE_TOKEN),
+            FixedI64::from_rational(110146, ONE_TOKEN),
+            FixedI64::from_rational(123226, ONE_TOKEN),
+            FixedI64::from_rational(161899, ONE_TOKEN),
+            FixedI64::from_rational(151781, ONE_TOKEN),
+            FixedI64::from_rational(152079, ONE_TOKEN),
+            FixedI64::from_rational(142296, ONE_TOKEN),
+            FixedI64::from_rational(136546, ONE_TOKEN),
+            FixedI64::from_rational(128606, ONE_TOKEN),
+            FixedI64::from_rational(117135, ONE_TOKEN),
+            FixedI64::from_rational(119767, ONE_TOKEN),
+            FixedI64::from_rational(116708, ONE_TOKEN),
+            FixedI64::from_rational(124082, ONE_TOKEN),
+            FixedI64::from_rational(126083, ONE_TOKEN),
+            FixedI64::from_rational(146995, ONE_TOKEN),
+            FixedI64::from_rational(136994, ONE_TOKEN),
+            FixedI64::from_rational(243622, ONE_TOKEN),
+            FixedI64::from_rational(223732, ONE_TOKEN)
+        ]);
+
         Weight::from_parts(1, 0)
     }
 }
