@@ -305,28 +305,6 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
-        fn on_initialize(_: BlockNumberFor<T>) -> Weight {
-            Vesting::<T, I>::iter()
-                .take(AccountsPerBlock::<T, I>::get() as usize)
-                .for_each(|(account, vesting_info)| {
-                    let vested = Vested::<T, I>::get(&account).unwrap_or_else(T::Balance::zero);
-
-                    if T::Currency::transfer(
-                        &Self::account_id(),
-                        &account,
-                        vesting_info.locked.saturating_sub(vested),
-                        ExistenceRequirement::KeepAlive,
-                    )
-                    .is_ok()
-                    {
-                        Vesting::<T, I>::remove(&account);
-                        Vested::<T, I>::remove(&account);
-                        AccountRefCounter::<T>::dec_ref(&account);
-                    }
-                });
-
-            T::DbWeight::get().writes(AccountsPerBlock::<T, I>::get().saturating_mul(2) as u64)
-        }
     }
 
     /// Pallet storage: information regarding the vesting of a given account
@@ -340,10 +318,6 @@ pub mod pallet {
     #[pallet::getter(fn vested)]
     pub type Vested<T: Config<I>, I: 'static = ()> =
         StorageMap<_, Blake2_128Concat, T::AccountId, T::Balance>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn accounts_per_block)]
-    pub type AccountsPerBlock<T: Config<I>, I: 'static = ()> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
