@@ -2591,10 +2591,11 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             false,
         );
 
-        eq_primitives::EqPalletAccountInitializer::initialize(Vesting3Account::get());
-        eq_primitives::EqPalletAccountInitializer::initialize(Vesting4Account::get());
-        eq_primitives::EqPalletAccountInitializer::initialize(CrowdloanDistributionPalletId::get().into_account_truncating());
-        eq_primitives::EqPalletAccountInitializer::initialize(StabilizationPoolDistributionPalletId::get().into_account_truncating());
+        use eq_primitives::PalletAccountInitializer;
+        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&Vesting3Account::get());
+        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&Vesting4Account::get());
+        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&CrowdloanDistributionPalletId::get().into_account_truncating());
+        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&StabilizationPoolDistributionPalletId::get().into_account_truncating());
 
         // Vesting1::AccountsPerBlock
         frame_support::storage::unhashed::kill(&hex_literal::hex!("5f27b51b5ec208ee9cb25b55d87282431b4b77d7ff95c4d35969b80ecdf44e6a"));
