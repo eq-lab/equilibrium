@@ -257,21 +257,6 @@ pub mod pallet {
 
             Ok(().into())
         }
-
-        /// Sets number of accounts to be used in on_initialize vesting removals.
-        #[pallet::call_index(3)]
-        #[pallet::weight(T::DbWeight::get().writes(1))]
-        pub fn set_accounts_per_block_removed(
-            origin: OriginFor<T>,
-            account_per_block: u32,
-        ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
-
-            AccountsPerBlock::<T, I>::set(account_per_block);
-            Self::deposit_event(Event::<T, I>::NewAccountsPerBlock(account_per_block));
-
-            Ok(().into())
-        }
     }
 
     #[pallet::event]
