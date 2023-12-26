@@ -3,9 +3,9 @@
   "id": "genshiro",
   "chainType": "Live",
   "bootNodes": [
-    "/dns4/parachain1.ksm.genshiro.io/tcp/30334/p2p/12D3KooWMexwTHngT3EXvuPWhN784uLAtZs8hMyiLe53ix1YncDd",
-    "/dns4/parachain2.ksm.genshiro.io/tcp/30334/p2p/12D3KooWSfZqM4DALoWE16oh5DGNWPdh5jkJnz1FRffesCGKhGYy",
-    "/dns4/parachain3.ksm.genshiro.io/tcp/30334/p2p/12D3KooWPrN74ttUbKn4h29h6of6QGyuuxJ7UDZ8F8xS8vV92whm"
+    "/dns4/parachain1.ksm.genshiro.io/tcp/30333/p2p/12D3KooWMexwTHngT3EXvuPWhN784uLAtZs8hMyiLe53ix1YncDd",
+    "/dns4/parachain2.ksm.genshiro.io/tcp/30333/p2p/12D3KooWSfZqM4DALoWE16oh5DGNWPdh5jkJnz1FRffesCGKhGYy",
+    "/dns4/parachain3.ksm.genshiro.io/tcp/30333/p2p/12D3KooWPrN74ttUbKn4h29h6of6QGyuuxJ7UDZ8F8xS8vV92whm"
   ],
   "telemetryEndpoints": null,
   "protocolId": "genshiro",
