@@ -447,14 +447,14 @@ impl timestamp::Config for Runtime {
 }
 
 pub const EXISTENTIAL_DEPOSIT_USD: Balance = ONE_TOKEN / 10;
-pub const EXISTENTIAL_DEPOSIT_BASIC: Balance = ONE_TOKEN;
+pub const EXISTENTIAL_DEPOSIT_Q: Balance = ONE_TOKEN / 4;
 pub const EXISTENTIAL_DEPOSIT_EQ: Balance = 100 * ONE_TOKEN;
 
 parameter_types! {
     pub const ExistentialDeposit: Balance = EXISTENTIAL_DEPOSIT_USD; // 0.1 USD
-    pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_BASIC; // 1 Q
+    pub const ExistentialDepositBasic: Balance = EXISTENTIAL_DEPOSIT_Q; // 0.125 Q
     pub const ExistentialDepositEq: Balance = EXISTENTIAL_DEPOSIT_EQ; // 100 EQ
-    pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
+    pub const BasicCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
     pub const QCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::Q;
     pub const EqCurrencyGet: eq_primitives::asset::Asset = eq_primitives::asset::EQ;
 }
@@ -746,8 +746,8 @@ pub mod fee {
             smallvec![WeightToFeeCoefficient {
                 degree: 1,
                 negative: false,
-                coeff_frac: Perbill::from_parts(268861), // TODO: Q token
-                coeff_integer: 2,
+                coeff_frac: Perbill::from_percent(10),
+                coeff_integer: 0,
             }]
         }
     }
@@ -776,7 +776,7 @@ impl transaction_payment::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type OnChargeTransaction = transaction_payment::CurrencyAdapter<BasicCurrency, DealWithFees>;
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
-    type WeightToFee = fee::WeightToFee; // TODO: Q token
+    type WeightToFee = fee::WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
@@ -803,13 +803,15 @@ parameter_types! {
     pub const PriceTimeout: u64 = PRICE_TIMEOUT_IN_SECONDS;
     pub const MinimalCollateral: Balance = 1000 * ONE_TOKEN; // 1000 USD
     pub const OracleUnsignedPriority: UnsignedPriorityPair = (TransactionPriority::min_value(), 10_000);
-    pub const MinSurplus: Balance =  ONE_TOKEN; // 1 Q
+    pub const MinSurplus: Balance =  100 * ONE_TOKEN; // 100 Eq
     pub const MinTempBalanceUsd: Balance = 50 * ONE_TOKEN; // 50 USD
     pub const TreasuryModuleId: PalletId = PalletId(*b"eq/trsry");
     pub const BailsmanModuleId: PalletId = PalletId(*b"eq/bails");
     pub const RepublicModuleId: PalletId = PalletId(*b"eq/repub");
     pub const InvestorsModuleId: PalletId = PalletId(*b"eq/invst");
     pub const LiquidityFarmingModuleId: PalletId = PalletId(*b"eq/liqfm");
+    pub const CrowdloanDistributionPalletId: PalletId = PalletId(*b"eq/crwdl");
+    pub const StabilizationPoolDistributionPalletId: PalletId = PalletId(*b"eq/spool");
     pub const LendingModuleId: PalletId = PalletId(*b"eq/lendr");
     pub const BalancesModuleId: PalletId = PalletId(*b"eq/balan");
     pub const LpPriceBlockTimeout: u64 = PRICE_TIMEOUT_IN_SECONDS * 1000 / MILLISECS_PER_BLOCK;
@@ -820,7 +822,7 @@ parameter_types! {
 parameter_types! {
     pub BuyFee: Permill = PerThing::from_rational::<u32>(1, 100);
     pub SellFee: Permill = PerThing::from_rational::<u32>(15, 100);
-    pub const MinAmountToBuyout: Balance = ONE_TOKEN; // 1 Q
+    pub const MinAmountToBuyout: Balance = 100 * ONE_TOKEN; // 100 Eq
 }
 
 impl eq_treasury::Config for Runtime {
@@ -1099,6 +1101,30 @@ impl eq_distribution::Config<LiquidityFarmingD> for Runtime {
     type WeightInfo = weights::pallet_distribution::WeightInfo<Runtime>;
 }
 
+type CrowdloanDistributionInstance = eq_distribution::Instance6;
+impl eq_distribution::Config<CrowdloanDistributionInstance> for Runtime {
+    type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
+    type PalletId = CrowdloanDistributionPalletId;
+    type Vesting = Vesting;
+    type Balance = Balance;
+    type VestingAccountId = Vesting1Account;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type EqCurrency = eq_balances::Pallet<Runtime>;
+    type WeightInfo = weights::pallet_distribution::WeightInfo<Runtime>;
+}
+
+type StabilizationPoolInstance = eq_distribution::Instance7;
+impl eq_distribution::Config<StabilizationPoolInstance> for Runtime {
+    type ManagementOrigin = EnsureRootOrTwoThirdsCouncil;
+    type PalletId = StabilizationPoolDistributionPalletId;
+    type Vesting = Vesting;
+    type Balance = Balance;
+    type VestingAccountId = Vesting1Account;
+    type AssetGetter = eq_assets::Pallet<Runtime>;
+    type EqCurrency = eq_balances::Pallet<Runtime>;
+    type WeightInfo = weights::pallet_distribution::WeightInfo<Runtime>;
+}
+
 parameter_types! {
     pub const RateUnsignedPriority: TransactionPriority = TransactionPriority::min_value();
 
@@ -1261,7 +1287,7 @@ where
             eq_rate::reinit_extension::ReinitAccount::<Runtime, CallsWithReinit>::new(),
             eq_claim::PrevalidateAttests::<Runtime>::new(),
             eq_treasury::CheckBuyout::<Runtime>::new(),
-            q_swap::CheckQSwap::<Runtime>::new(),
+            // q_swap::CheckQSwap::<Runtime>::new(),
         );
 
         let raw_payload = SignedPayload::new(call, extra)
@@ -2368,6 +2394,17 @@ impl eq_crowdloan_dots::Config for Runtime {
     type LendingPoolManager = EqLending;
 }
 
+parameter_types! {
+    pub const QSwapPalletId: PalletId = PalletId(*b"eq/qswap");
+}
+
+pub struct QSwapAccount;
+impl Get<AccountId> for QSwapAccount {
+    fn get() -> AccountId {
+        QSwapPalletId::get().into_account_truncating()
+    }
+}
+
 impl q_swap::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Balance = Balance;
@@ -2378,7 +2415,7 @@ impl q_swap::Config for Runtime {
     type Vesting1AccountId = Vesting2Account;
     type Vesting2AccountId = Vesting3Account;
     type Vesting3AccountId = Vesting4Account;
-    type QHolderAccountId = TreasuryAccount;
+    type QHolderAccountId = QSwapAccount;
     type AssetHolderAccountId = TreasuryAccount;
     type EqCurrency = EqBalances;
     type WeightInfo = ();
@@ -2462,6 +2499,8 @@ construct_runtime!(
         Vesting2: eq_vesting::<Instance2>::{Pallet, Call, Storage, Event<T, Instance2>, Config<T, Instance2>} = 70,
         Vesting3: eq_vesting::<Instance3>::{Pallet, Call, Storage, Event<T, Instance3>, Config<T, Instance3>} = 71,
         Vesting4: eq_vesting::<Instance4>::{Pallet, Call, Storage, Event<T, Instance4>, Config<T, Instance4>} = 72,
+        CrowdloanDistribution: eq_distribution::<Instance6>::{Pallet, Call, Storage, Config} = 73,
+        StabilizationPool: eq_distribution::<Instance7>::{Pallet, Call, Storage, Config} = 74,
     }
 );
 
@@ -2485,7 +2524,7 @@ pub type SignedExtra = (
     eq_rate::reinit_extension::ReinitAccount<Runtime, CallsWithReinit>,
     eq_claim::PrevalidateAttests<Runtime>,
     eq_treasury::CheckBuyout<Runtime>,
-    q_swap::CheckQSwap<Runtime>,
+    // q_swap::CheckQSwap<Runtime>,
 );
 
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
@@ -2551,26 +2590,59 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             TransferReason::Common,
             false,
         );
-        frame_system::Pallet::<Runtime>::dec_consumers(&vesting2_acc);
-        let _ = frame_system::Pallet::<Runtime>::dec_providers(&vesting2_acc);
-        let _ = frame_system::Pallet::<Runtime>::dec_providers(&vesting2_acc);
-        let _ = frame_system::Pallet::<Runtime>::dec_providers(&vesting2_acc);
 
+        eq_primitives::EqPalletAccountInitializer::initialize(Vesting3Account::get());
+        eq_primitives::EqPalletAccountInitializer::initialize(Vesting4Account::get());
+        eq_primitives::EqPalletAccountInitializer::initialize(CrowdloanDistributionPalletId::get().into_account_truncating());
+        eq_primitives::EqPalletAccountInitializer::initialize(StabilizationPoolDistributionPalletId::get().into_account_truncating());
+
+        // Vesting1::AccountsPerBlock
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("5f27b51b5ec208ee9cb25b55d87282431b4b77d7ff95c4d35969b80ecdf44e6a"));
+        // Vesting2::AccountsPerBlock
+        frame_support::storage::unhashed::kill(&hex_literal::hex!("2fb74f5132384cfe8f5be3ce96ceb0d01b4b77d7ff95c4d35969b80ecdf44e6a"));
+
+        let liquidity = hex_literal::hex!("ceffe71a41eb9cd92d94989fc960f57d628d572c4d06931f35ddca6fc42c4d25").into(); // 5Gk7jtyDvqtkZosffjF6r8obqsjWZwthiqUfzmEeEyFVkEj9
+        let marketing = hex_literal::hex!("d66c455c1a21b950bd66b44cd020b5c765520aeccdb6dffb3469f4c4f9a0dc1d").into();// 5GurGUhyJuREQndjp2gE4h4r26nYVZWPmtyK9PMYZBNvfvwW
+        let prod_bridge_init = hex_literal::hex!("c2636483b8eb649b283db08dde646b60ba6da8eb7138a5275910eaa9e140fe17").into(); // 5GTafxnhsAdRN3GcMZKD84ppvPZiemMeXs6npEe9vcDaiTi7
+        let prod_test = hex_literal::hex!("4c388c1b04512ee6dd3afd3355fe0498f55c57773d1f4862bdf6aa27d12e387f").into(); // 5DneJ2naSz2mXY1tadz5RKT2HPSArdG65erFa2Bbvyisdrfd
+        let benj_tech = hex_literal::hex!("2a52c07e7626704a278ad7790f69f3786c5950e1e080c42c8c5616247e7aa800").into(); // cg44ZXV6nyj9ndnQwLzqqLHRXTDhk5MD3tEdUPPhLLiCYJxou
+        // Vesting 5 000 000
+        let command = hex_literal::hex!("c63b1d526266c233e770345ec2c4d6bacf9d0d38c1a82f45fcdfdd49abd53e20").into(); // 5GYcu6YpZvoizcaiRmCJySGnwrhphSP66S1Y2MfV62o28NzP
+        // Vesting 100 000
+        let advisers = hex_literal::hex!("b48513bd79b3dd23d6b085ec2a0622870c2e1b76012071ef2801a9e9a10c2247").into(); // 5G9Q1T52u61JjvhCYtBykWvnpZCMQqxjkSN9C7dkGAQfayP6
         for (account, amount) in [
-            (TreasuryAccount::get(), 1_000_000_000_000_000_000),
-            (
-                LendingModuleId::get().into_account_truncating(),
-                1_000_000_000_000_000_000,
-            ),
-            // bridge relayers OR ChainBridge::fee_account_id() && redistribute fees
-            // msig accounts
+            (QSwapAccount::get(), (7_100_000 + 400_000) * ONE_TOKEN),
+            (liquidity, 1_000_000 * ONE_TOKEN),
+            (CrowdloanDistributionPalletId::get().into_account_truncating(), 1_000_000 * ONE_TOKEN),
+            (marketing, 2_000_000 * ONE_TOKEN),
+            (StabilizationPoolDistributionPalletId::get().into_account_truncating(), 50_000_000 * ONE_TOKEN),
+            (TreasuryAccount::get(), 53_397_000 * ONE_TOKEN),
+            (prod_bridge_init, 1000 * ONE_TOKEN),
+            (prod_test, 1000 * ONE_TOKEN),
+            (benj_tech, 1000 * ONE_TOKEN),
         ] {
             let _ = EqBalances::deposit_creating(&account, asset::Q, amount, false, None);
         }
 
-        eq_treasury::BuyoutLimit::<Runtime>::set(Some(100));
+        use eq_primitives::vestings::EqVestingSchedule;
+        let _ = Vesting3::add_vesting_schedule(
+            &command,
+            5_000_000 * ONE_TOKEN,
+            5_000_000 * ONE_TOKEN / 5_263_200, // 2 years (366 days + 365 days)
+            6_761_656, // slot_ends(4_126_456) + 1 year cliff (366 days)
 
-        q_swap::QReceivingThreshold::<Runtime>::insert(99 * ONE_TOKEN); // 5USD
+        );
+        let _ = EqBalances::deposit_creating(&Vesting3Account::get(), asset::Q, 5_000_000 * ONE_TOKEN, false, None);
+        let _ = Vesting2::add_vesting_schedule(
+            &advisers,
+            100_000 * ONE_TOKEN,
+            100_000 * ONE_TOKEN / 648_000, // 3 months
+            4_342_456, // slot_ends(4_126_456) + 1 month cliff (30 days)
+
+        );
+        let _ = EqBalances::deposit_creating(&Vesting2Account::get(), asset::Q, 100_000 * ONE_TOKEN, false, None);
+
+        q_swap::QReceivingThreshold::<Runtime>::set(99 * ONE_TOKEN); // 5USD
 
         q_swap::QSwapConfigurations::<Runtime>::insert(
             asset::EQ,
@@ -2631,17 +2703,6 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 secondary_vesting_duration_blocks: 5_263_200, // 2 years (366 days + 365 days)
             },
         );
-
-        if let Some(mut assets) = eq_assets::Assets::<Runtime>::get() {
-            if let Ok(idx_q) = assets.binary_search_by(|x| x.id.cmp(&asset::Q)) {
-                assets[idx_q].asset_type = crate::AssetType::Native;
-                if let Ok(idx_eq) = assets.binary_search_by(|x| x.id.cmp(&asset::EQ)) {
-                    assets[idx_eq].asset_type = crate::AssetType::Physical;
-                }
-            }
-
-            eq_assets::Assets::<Runtime>::put(assets);
-        }
 
         Weight::from_parts(1, 0)
     }
