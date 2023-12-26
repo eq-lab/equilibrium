@@ -486,12 +486,12 @@ impl<T: Config> Pallet<T> {
         let balance = T::EqCurrency::get_balance(who, asset);
         Self::ensure_enough_balance(&balance, amount)?;
 
-        // Example #1: 1Q = 1700EQ (502.96 discounted EQ), vesting_share = 0.5
+        // Example #1: 1Q = 1700EQ (502.96 discounted EQ), instant_swap_share = 0.5
         //   swap(1005.92EQ)
         //     vesting #1:
         //       coeff = 502.96EQ / 1700EQ ~ 0.3
         //       q_total_amount = 1005.92EQ / 502.96EQ = 2Q
-        //       q_instant_swap_amount = q_total_amount * coeff * vesting_share = 0.3Q
+        //       q_instant_swap_amount = q_total_amount * coeff * instant_swap_share = 0.3Q
         //       q_vesting_amount = q_total_amount * coeff - q_instant_swap_amount = 0.3Q
         //     vesting #2:
         //       q_vesting_amount = q_total_amount - q_instant_swap_amount - q_vesting_amount = 1.4Q
@@ -515,7 +515,7 @@ impl<T: Config> Pallet<T> {
 
         let vesting_1_amount =
             balance_from_eq_fixedu128(vesting_1_amount_fixed).ok_or(ArithmeticError::Overflow)?;
-        let q_instant_swap = configuration.vesting_share.mul_floor(vesting_1_amount);
+        let q_instant_swap = configuration.instant_swap_share.mul_floor(vesting_1_amount);
 
         let q_received = QReceivedAmounts::<T>::get(who);
         let q_received_after = q_received
@@ -568,7 +568,7 @@ impl<T: Config> Pallet<T> {
         let balance = T::EqCurrency::get_balance(who, asset);
         Self::ensure_enough_balance(&balance, amount)?;
 
-        // Example #2: 1Q = 1000EQ (295.86 discounted EQ) + 0.1DOT, vesting_share = 0.5
+        // Example #2: 1Q = 1000EQ (295.86 discounted EQ) + 0.1DOT, instant_swap_share = 0.5
         //   swap(0.15DOT)
         //     vesting #1:
         //       one_q = 295.86EQ / 0.1DOT * 0.1DOT + 295.86EQ = 591.72EQ
@@ -576,7 +576,7 @@ impl<T: Config> Pallet<T> {
         //       eq_amount = (0.15DOT / 0.1DOT) * 295.86EQ = 443.79EQ
         //       dot_amount = 0.15DOT
         //       q_total_amount = (eq_amount + dot_amount * (295.86EQ / 0.1DOT)) / one_q = 1.5Q
-        //       q_instant_swap_amount = q_total_amount * coeff * vesting_share = 0.225Q
+        //       q_instant_swap_amount = q_total_amount * coeff * instant_swap_share = 0.225Q
         //       q_vesting_amount = q_total_amount * coeff - q_instant_swap = 0.225Q
         //     vesting #2:
         //       q_vesting_amount = q_total_amount - q_instant_swap_amount - q_vesting_amount = 1Q
@@ -626,7 +626,7 @@ impl<T: Config> Pallet<T> {
 
         let vesting_1_amount =
             balance_from_eq_fixedu128(vesting_1_amount_fixed).ok_or(ArithmeticError::Overflow)?;
-        let q_instant_swap = configuration.vesting_share.mul_floor(vesting_1_amount);
+        let q_instant_swap = configuration.instant_swap_share.mul_floor(vesting_1_amount);
 
         let q_received = QReceivedAmounts::<T>::get(who);
         let q_received_after = q_received
@@ -786,7 +786,7 @@ pub struct SwapConfiguration<Balance, BlockNumber> {
     pub secondary_asset: Asset,
     pub secondary_asset_q_price: Balance,
     pub secondary_asset_q_discounted_price: Balance,
-    pub vesting_share: Percent,
+    pub instant_swap_share: Percent,
     pub main_vesting_number: u8,
     pub secondary_vesting_number: u8,
     pub main_vesting_starting_block: BlockNumber,
@@ -827,8 +827,8 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
             self.secondary_asset_q_discounted_price = secondary_asset_q_discounted_price;
         }
 
-        if let Some(vesting_share) = config.mb_vesting_share {
-            self.vesting_share = vesting_share;
+        if let Some(instant_swap_share) = config.mb_instant_swap_share {
+            self.instant_swap_share = instant_swap_share;
         }
 
         if let Some(main_vesting_starting_block) = config.mb_main_vesting_starting_block {
@@ -862,7 +862,7 @@ impl<Balance: PartialOrd + Zero, BlockNumber: Zero> SwapConfiguration<Balance, B
             || self.min_amount.gt(&Balance::zero())
                 && !self.main_asset_q_price.is_zero()
                 && !self.main_asset_q_discounted_price.is_zero()
-                && !self.vesting_share.is_zero()
+                && !self.instant_swap_share.is_zero()
                 && (!self.main_vesting_number.is_zero() || !self.secondary_vesting_number.is_zero())
                 && (self.main_vesting_number.is_zero()
                     || !self.main_vesting_starting_block.is_zero()
@@ -889,7 +889,7 @@ pub struct SwapConfigurationInput<Balance, BlockNumber> {
     pub mb_secondary_asset: Option<Asset>,
     pub mb_secondary_asset_q_price: Option<Balance>,
     pub mb_secondary_asset_q_discounted_price: Option<Balance>,
-    pub mb_vesting_share: Option<Percent>,
+    pub mb_instant_swap_share: Option<Percent>,
     pub mb_main_vesting_number: Option<u8>,
     pub mb_secondary_vesting_number: Option<u8>,
     pub mb_main_vesting_starting_block: Option<BlockNumber>,

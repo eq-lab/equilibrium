@@ -2582,7 +2582,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 secondary_asset: Default::default(),
                 secondary_asset_q_price: Default::default(),
                 secondary_asset_q_discounted_price: Default::default(),
-                vesting_share: Percent::from_percent(90),
+                instant_swap_share: Percent::from_percent(10),
                 main_vesting_number: 1,
                 secondary_vesting_number: 2,
                 main_vesting_starting_block: 4_774_456, // slot_ends(4_126_456) + 90 days cliff
@@ -2602,7 +2602,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 secondary_asset: Default::default(),
                 secondary_asset_q_price: Default::default(),
                 secondary_asset_q_discounted_price: Default::default(),
-                vesting_share: Percent::from_percent(90),
+                instant_swap_share: Percent::from_percent(10),
                 main_vesting_number: 3,
                 secondary_vesting_number: Default::default(),
                 main_vesting_starting_block: 5_422_456, // slot_ends(4_126_456) + 180 days cliff
@@ -2622,7 +2622,7 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
                 secondary_asset: asset::EQ,
                 secondary_asset_q_price: 1000 * ONE_TOKEN,
                 secondary_asset_q_discounted_price: 295_860_000_000,
-                vesting_share: Percent::from_percent(90),
+                instant_swap_share: Percent::from_percent(10),
                 main_vesting_number: 1,
                 secondary_vesting_number: 2,
                 main_vesting_starting_block: 4_774_456, // slot_ends(4_126_456) + 90 days cliff
