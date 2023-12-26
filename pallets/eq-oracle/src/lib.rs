@@ -637,7 +637,7 @@ pub mod pallet {
             };
 
             let update_q_token_price = || -> DispatchResult {
-                let q_price = FixedI64::from_rational(1, 10);
+                let q_price = FixedI64::from_rational(10, 120);
                 Self::set_the_only_price(asset::Q, q_price);
                 T::OnPriceSet::on_price_set(asset::Q, fixedi64_to_i64f64(q_price))?;
                 Ok(())
