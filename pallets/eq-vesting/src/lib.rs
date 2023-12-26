@@ -289,8 +289,7 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {
-    }
+    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
 
     /// Pallet storage: information regarding the vesting of a given account
     #[pallet::storage]

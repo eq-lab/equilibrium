@@ -2594,29 +2594,57 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
         use eq_primitives::PalletAccountInitializer;
         eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&Vesting3Account::get());
         eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&Vesting4Account::get());
-        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&CrowdloanDistributionPalletId::get().into_account_truncating());
-        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(&StabilizationPoolDistributionPalletId::get().into_account_truncating());
+        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(
+            &CrowdloanDistributionPalletId::get().into_account_truncating(),
+        );
+        eq_primitives::EqPalletAccountInitializer::<Runtime>::initialize(
+            &StabilizationPoolDistributionPalletId::get().into_account_truncating(),
+        );
 
         // Vesting1::AccountsPerBlock
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("5f27b51b5ec208ee9cb25b55d87282431b4b77d7ff95c4d35969b80ecdf44e6a"));
+        frame_support::storage::unhashed::kill(&hex_literal::hex!(
+            "5f27b51b5ec208ee9cb25b55d87282431b4b77d7ff95c4d35969b80ecdf44e6a"
+        ));
         // Vesting2::AccountsPerBlock
-        frame_support::storage::unhashed::kill(&hex_literal::hex!("2fb74f5132384cfe8f5be3ce96ceb0d01b4b77d7ff95c4d35969b80ecdf44e6a"));
+        frame_support::storage::unhashed::kill(&hex_literal::hex!(
+            "2fb74f5132384cfe8f5be3ce96ceb0d01b4b77d7ff95c4d35969b80ecdf44e6a"
+        ));
 
-        let liquidity = hex_literal::hex!("ceffe71a41eb9cd92d94989fc960f57d628d572c4d06931f35ddca6fc42c4d25").into(); // 5Gk7jtyDvqtkZosffjF6r8obqsjWZwthiqUfzmEeEyFVkEj9
-        let marketing = hex_literal::hex!("d66c455c1a21b950bd66b44cd020b5c765520aeccdb6dffb3469f4c4f9a0dc1d").into();// 5GurGUhyJuREQndjp2gE4h4r26nYVZWPmtyK9PMYZBNvfvwW
-        let prod_bridge_init = hex_literal::hex!("c2636483b8eb649b283db08dde646b60ba6da8eb7138a5275910eaa9e140fe17").into(); // 5GTafxnhsAdRN3GcMZKD84ppvPZiemMeXs6npEe9vcDaiTi7
-        let prod_test = hex_literal::hex!("4c388c1b04512ee6dd3afd3355fe0498f55c57773d1f4862bdf6aa27d12e387f").into(); // 5DneJ2naSz2mXY1tadz5RKT2HPSArdG65erFa2Bbvyisdrfd
-        let benj_tech = hex_literal::hex!("2a52c07e7626704a278ad7790f69f3786c5950e1e080c42c8c5616247e7aa800").into(); // cg44ZXV6nyj9ndnQwLzqqLHRXTDhk5MD3tEdUPPhLLiCYJxou
-        // Vesting 5 000 000
-        let command = hex_literal::hex!("c63b1d526266c233e770345ec2c4d6bacf9d0d38c1a82f45fcdfdd49abd53e20").into(); // 5GYcu6YpZvoizcaiRmCJySGnwrhphSP66S1Y2MfV62o28NzP
-        // Vesting 100 000
-        let advisers = hex_literal::hex!("b48513bd79b3dd23d6b085ec2a0622870c2e1b76012071ef2801a9e9a10c2247").into(); // 5G9Q1T52u61JjvhCYtBykWvnpZCMQqxjkSN9C7dkGAQfayP6
+        let liquidity =
+            hex_literal::hex!("ceffe71a41eb9cd92d94989fc960f57d628d572c4d06931f35ddca6fc42c4d25")
+                .into(); // 5Gk7jtyDvqtkZosffjF6r8obqsjWZwthiqUfzmEeEyFVkEj9
+        let marketing =
+            hex_literal::hex!("d66c455c1a21b950bd66b44cd020b5c765520aeccdb6dffb3469f4c4f9a0dc1d")
+                .into(); // 5GurGUhyJuREQndjp2gE4h4r26nYVZWPmtyK9PMYZBNvfvwW
+        let prod_bridge_init =
+            hex_literal::hex!("c2636483b8eb649b283db08dde646b60ba6da8eb7138a5275910eaa9e140fe17")
+                .into(); // 5GTafxnhsAdRN3GcMZKD84ppvPZiemMeXs6npEe9vcDaiTi7
+        let prod_test =
+            hex_literal::hex!("4c388c1b04512ee6dd3afd3355fe0498f55c57773d1f4862bdf6aa27d12e387f")
+                .into(); // 5DneJ2naSz2mXY1tadz5RKT2HPSArdG65erFa2Bbvyisdrfd
+        let benj_tech =
+            hex_literal::hex!("2a52c07e7626704a278ad7790f69f3786c5950e1e080c42c8c5616247e7aa800")
+                .into(); // cg44ZXV6nyj9ndnQwLzqqLHRXTDhk5MD3tEdUPPhLLiCYJxou
+                         // Vesting 5 000 000
+        let command =
+            hex_literal::hex!("c63b1d526266c233e770345ec2c4d6bacf9d0d38c1a82f45fcdfdd49abd53e20")
+                .into(); // 5GYcu6YpZvoizcaiRmCJySGnwrhphSP66S1Y2MfV62o28NzP
+                         // Vesting 100 000
+        let advisers =
+            hex_literal::hex!("b48513bd79b3dd23d6b085ec2a0622870c2e1b76012071ef2801a9e9a10c2247")
+                .into(); // 5G9Q1T52u61JjvhCYtBykWvnpZCMQqxjkSN9C7dkGAQfayP6
         for (account, amount) in [
             (QSwapAccount::get(), (7_100_000 + 400_000) * ONE_TOKEN),
             (liquidity, 1_000_000 * ONE_TOKEN),
-            (CrowdloanDistributionPalletId::get().into_account_truncating(), 1_000_000 * ONE_TOKEN),
+            (
+                CrowdloanDistributionPalletId::get().into_account_truncating(),
+                1_000_000 * ONE_TOKEN,
+            ),
             (marketing, 2_000_000 * ONE_TOKEN),
-            (StabilizationPoolDistributionPalletId::get().into_account_truncating(), 50_000_000 * ONE_TOKEN),
+            (
+                StabilizationPoolDistributionPalletId::get().into_account_truncating(),
+                50_000_000 * ONE_TOKEN,
+            ),
             (TreasuryAccount::get(), 53_397_000 * ONE_TOKEN),
             (prod_bridge_init, 1000 * ONE_TOKEN),
             (prod_test, 1000 * ONE_TOKEN),
@@ -2630,18 +2658,28 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             &command,
             5_000_000 * ONE_TOKEN,
             5_000_000 * ONE_TOKEN / 5_263_200, // 2 years (366 days + 365 days)
-            6_761_656, // slot_ends(4_126_456) + 1 year cliff (366 days)
-
+            6_761_656,                         // slot_ends(4_126_456) + 1 year cliff (366 days)
         );
-        let _ = EqBalances::deposit_creating(&Vesting3Account::get(), asset::Q, 5_000_000 * ONE_TOKEN, false, None);
+        let _ = EqBalances::deposit_creating(
+            &Vesting3Account::get(),
+            asset::Q,
+            5_000_000 * ONE_TOKEN,
+            false,
+            None,
+        );
         let _ = Vesting2::add_vesting_schedule(
             &advisers,
             100_000 * ONE_TOKEN,
             100_000 * ONE_TOKEN / 648_000, // 3 months
-            4_342_456, // slot_ends(4_126_456) + 1 month cliff (30 days)
-
+            4_342_456,                     // slot_ends(4_126_456) + 1 month cliff (30 days)
         );
-        let _ = EqBalances::deposit_creating(&Vesting2Account::get(), asset::Q, 100_000 * ONE_TOKEN, false, None);
+        let _ = EqBalances::deposit_creating(
+            &Vesting2Account::get(),
+            asset::Q,
+            100_000 * ONE_TOKEN,
+            false,
+            None,
+        );
 
         q_swap::QReceivingThreshold::<Runtime>::set(99 * ONE_TOKEN); // 5USD
 
@@ -2705,38 +2743,41 @@ impl frame_support::traits::OnRuntimeUpgrade for CustomOnRuntimeUpgrade {
             },
         );
 
-        FinancialPalletOnNewAsset::on_new_asset(asset::GENS, vec![
-            FixedI64::from_rational(108785, ONE_TOKEN),
-            FixedI64::from_rational(107261, ONE_TOKEN),
-            FixedI64::from_rational(99320, ONE_TOKEN),
-            FixedI64::from_rational(90052, ONE_TOKEN),
-            FixedI64::from_rational(105409, ONE_TOKEN),
-            FixedI64::from_rational(105922, ONE_TOKEN),
-            FixedI64::from_rational(114417, ONE_TOKEN),
-            FixedI64::from_rational(104537, ONE_TOKEN),
-            FixedI64::from_rational(101253, ONE_TOKEN),
-            FixedI64::from_rational(99880, ONE_TOKEN),
-            FixedI64::from_rational(109613, ONE_TOKEN),
-            FixedI64::from_rational(117801, ONE_TOKEN),
-            FixedI64::from_rational(120707, ONE_TOKEN),
-            FixedI64::from_rational(110146, ONE_TOKEN),
-            FixedI64::from_rational(123226, ONE_TOKEN),
-            FixedI64::from_rational(161899, ONE_TOKEN),
-            FixedI64::from_rational(151781, ONE_TOKEN),
-            FixedI64::from_rational(152079, ONE_TOKEN),
-            FixedI64::from_rational(142296, ONE_TOKEN),
-            FixedI64::from_rational(136546, ONE_TOKEN),
-            FixedI64::from_rational(128606, ONE_TOKEN),
-            FixedI64::from_rational(117135, ONE_TOKEN),
-            FixedI64::from_rational(119767, ONE_TOKEN),
-            FixedI64::from_rational(116708, ONE_TOKEN),
-            FixedI64::from_rational(124082, ONE_TOKEN),
-            FixedI64::from_rational(126083, ONE_TOKEN),
-            FixedI64::from_rational(146995, ONE_TOKEN),
-            FixedI64::from_rational(136994, ONE_TOKEN),
-            FixedI64::from_rational(243622, ONE_TOKEN),
-            FixedI64::from_rational(223732, ONE_TOKEN)
-        ]);
+        FinancialPalletOnNewAsset::on_new_asset(
+            asset::GENS,
+            vec![
+                FixedI64::from_rational(108785, ONE_TOKEN),
+                FixedI64::from_rational(107261, ONE_TOKEN),
+                FixedI64::from_rational(99320, ONE_TOKEN),
+                FixedI64::from_rational(90052, ONE_TOKEN),
+                FixedI64::from_rational(105409, ONE_TOKEN),
+                FixedI64::from_rational(105922, ONE_TOKEN),
+                FixedI64::from_rational(114417, ONE_TOKEN),
+                FixedI64::from_rational(104537, ONE_TOKEN),
+                FixedI64::from_rational(101253, ONE_TOKEN),
+                FixedI64::from_rational(99880, ONE_TOKEN),
+                FixedI64::from_rational(109613, ONE_TOKEN),
+                FixedI64::from_rational(117801, ONE_TOKEN),
+                FixedI64::from_rational(120707, ONE_TOKEN),
+                FixedI64::from_rational(110146, ONE_TOKEN),
+                FixedI64::from_rational(123226, ONE_TOKEN),
+                FixedI64::from_rational(161899, ONE_TOKEN),
+                FixedI64::from_rational(151781, ONE_TOKEN),
+                FixedI64::from_rational(152079, ONE_TOKEN),
+                FixedI64::from_rational(142296, ONE_TOKEN),
+                FixedI64::from_rational(136546, ONE_TOKEN),
+                FixedI64::from_rational(128606, ONE_TOKEN),
+                FixedI64::from_rational(117135, ONE_TOKEN),
+                FixedI64::from_rational(119767, ONE_TOKEN),
+                FixedI64::from_rational(116708, ONE_TOKEN),
+                FixedI64::from_rational(124082, ONE_TOKEN),
+                FixedI64::from_rational(126083, ONE_TOKEN),
+                FixedI64::from_rational(146995, ONE_TOKEN),
+                FixedI64::from_rational(136994, ONE_TOKEN),
+                FixedI64::from_rational(243622, ONE_TOKEN),
+                FixedI64::from_rational(223732, ONE_TOKEN),
+            ],
+        );
 
         Weight::from_parts(1, 0)
     }
