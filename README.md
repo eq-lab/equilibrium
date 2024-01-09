@@ -101,7 +101,7 @@ rustup target add wasm32-unknown-unknown --toolchain stable
 
 Build Equilibrium node
 ```bash
-cargo build -p eq-node --release --features with-eq-runtime,production
+cargo build -p eq-node --profile production --features with-eq-runtime,production
 ```
 
 ## Runt unit tests for all project
