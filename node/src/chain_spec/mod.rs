@@ -27,7 +27,7 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_core::{sr25519, Pair, Public};
 pub use sp_runtime::{
     traits::{AccountIdConversion, IdentifyAccount, Verify},
-    AccountId32, FixedI64, FixedPointNumber, MultiSignature, Permill, WeakBoundedVec,
+    AccountId32, FixedPointNumber, MultiSignature, Permill,
 };
 pub use std::time::SystemTime;
 pub use substrate_fixed::types::I64F64;

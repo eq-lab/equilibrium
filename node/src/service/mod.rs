@@ -44,7 +44,7 @@ use crate::chain_spec::IdentifyVariant;
 pub use common_runtime::{
     self,
     opaque::{Block, Header},
-    AccountId, Balance, BlockNumber, Hash, Index,
+    AccountId, Balance, Index,
 };
 use sc_client_api::Backend;
 use sc_consensus::{
